@@ -67,13 +67,15 @@ namespace Core
 			}
 
 			std::string GetServerToken( ) {
+                ServerIp.clear();
+                RedirectUrl.clear();
 
 				if ( DirFiveM.empty( ) )
 				{
-					char value[ 255 ];
-					DWORD BufferSize = 8192;
+					char value[ 8192 ] = {};
+					DWORD BufferSize = sizeof(value);
 
-					auto GetDirFiveM = RegGetValue( HKEY_CURRENT_USER, xorstr( "Software\\CitizenFX\\FiveM" ), xorstr( "Last Run Location" ), RRF_RT_REG_SZ, NULL, ( PVOID ) &value, &BufferSize );
+					auto GetDirFiveM = RegGetValueA( HKEY_CURRENT_USER, xorstr( "Software\\CitizenFX\\FiveM" ), xorstr( "Last Run Location" ), RRF_RT_REG_SZ, NULL, ( PVOID ) &value, &BufferSize );
 
 					if ( GetDirFiveM != ERROR_SUCCESS ) 
 						return xorstr( "" );
@@ -82,7 +84,9 @@ namespace Core
 				}
 
 
-				std::string CrashoMetryDir = DirFiveM + xorstr( "data\\cache\\crashometry" );
+				if (!DirFiveM.empty() && DirFiveM.back() != '\\' && DirFiveM.back() != '/')
+                    DirFiveM += '\\';
+                std::string CrashoMetryDir = DirFiveM + xorstr( "data\\cache\\crashometry" );
 				std::ifstream File( CrashoMetryDir, std::ios::binary );
 
 				if ( !File )
@@ -112,7 +116,8 @@ namespace Core
 				std::string ReqUrl = xorstr( "http://" ) + ServerIp;
 
 				CURL * hnd;
-				CURLcode res;
+				CURLcode res = CURLE_FAILED_INIT;
+                long HttpStatus = 0;
 				hnd = curl_easy_init( );
 				if ( hnd ) {
 					curl_easy_setopt( hnd, CURLOPT_CUSTOMREQUEST, xorstr( "GET" ) );
@@ -127,11 +132,14 @@ namespace Core
 					curl_easy_setopt( hnd, CURLOPT_FOLLOWLOCATION, 1L );
 					curl_easy_setopt( hnd, CURLOPT_MAXREDIRS, 10L );
 
-					res = curl_easy_perform( hnd );
+					curl_easy_setopt(hnd, CURLOPT_CONNECTTIMEOUT, 5L);
+                    curl_easy_setopt(hnd, CURLOPT_TIMEOUT, 10L);
+                    res = curl_easy_perform( hnd );
+                    curl_easy_getinfo(hnd, CURLINFO_RESPONSE_CODE, &HttpStatus);
 
 					if ( res == CURLE_OK )
 					{
-						char * FinalUrl;
+						char * FinalUrl = nullptr;
 						curl_easy_getinfo( hnd, CURLINFO_EFFECTIVE_URL, &FinalUrl );
 
 						if ( FinalUrl ) {
@@ -142,7 +150,7 @@ namespace Core
 					curl_easy_cleanup( hnd );
 				}
 
-				if ( ResponseStr.empty( ) ) {
+				if (res != CURLE_OK || HttpStatus < 200 || HttpStatus >= 300 || RedirectUrl.empty()) {
 					return xorstr("");
 				}
 
@@ -150,7 +158,13 @@ namespace Core
 				if ( pos == std::string::npos )
 					return xorstr( "" );
 
-				std::string Token = RedirectUrl.substr( pos + 1 );
+				// Only a cfx.re join redirect can supply a server token.
+                if (RedirectUrl.rfind("https://cfx.re/join/", 0) != 0 &&
+                    RedirectUrl.rfind("http://cfx.re/join/", 0) != 0)
+                    return "";
+                std::string Token = RedirectUrl.substr( pos + 1 );
+                if (Token.empty() || Token.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") != std::string::npos)
+                    return "";
 
 				return Token;
 			}
@@ -166,7 +180,8 @@ namespace Core
 
 				std::string ResponseStr;
 				CURL * hnd;
-				CURLcode res;
+				CURLcode res = CURLE_FAILED_INIT;
+                long HttpStatus = 0;
 				hnd = curl_easy_init( );
 				if ( hnd ) {
 					curl_easy_setopt( hnd, CURLOPT_CUSTOMREQUEST, xorstr("GET") );
@@ -179,15 +194,29 @@ namespace Core
 					curl_easy_setopt( hnd, CURLOPT_WRITEFUNCTION, WriteCallBack );
 					curl_easy_setopt( hnd, CURLOPT_WRITEDATA, &ResponseStr );
 
-					res = curl_easy_perform( hnd );
+					curl_easy_setopt(hnd, CURLOPT_CONNECTTIMEOUT, 5L);
+                    curl_easy_setopt(hnd, CURLOPT_TIMEOUT, 10L);
+                    res = curl_easy_perform( hnd );
+                    curl_easy_getinfo(hnd, CURLINFO_RESPONSE_CODE, &HttpStatus);
 
-					curl_easy_cleanup( hnd );
+					curl_slist_free_all(headers);
+                    curl_easy_cleanup( hnd );
 				}
 
-				if ( ResponseStr.empty( ) )
-					return NULL;
+				if (res != CURLE_OK || HttpStatus < 200 || HttpStatus >= 300 || ResponseStr.empty()) {
+                    const std::string diagnostic = "[Wexize] Player lookup skipped: curl=" +
+                        std::to_string(static_cast<int>(res)) + ", HTTP=" + std::to_string(HttpStatus);
+                    OutputDebugStringA(diagnostic.c_str());
+                    return nullptr;
+                }
 
-				nlohmann::json ResponseJson = json::parse( ResponseStr );
+				nlohmann::json ResponseJson = json::parse(ResponseStr, nullptr, false);
+                if (ResponseJson.is_discarded() || !ResponseJson.is_object() ||
+                    !ResponseJson.contains("Data") || !ResponseJson["Data"].is_object() ||
+                    !ResponseJson["Data"].contains("players") || !ResponseJson["Data"]["players"].is_array()) {
+                    OutputDebugStringA("[Wexize] Player lookup skipped: invalid JSON/schema.\n");
+                    return nullptr;
+                }
 				nlohmann::json ServerData = ResponseJson[ xorstr( "Data" ) ];
 				nlohmann::json PlayersArray = ServerData[ xorstr( "players" ) ];
 
@@ -198,19 +227,22 @@ namespace Core
 			{
 				nlohmann::json PlayersArr = GetPlayerData( );
 
-				if ( PlayersArr == NULL )
+				if ( !PlayersArr.is_array() )
 					return;
 
 				for ( const auto & PlayerJson : PlayersArr )
 				{
-					nlohmann::json Player = json::parse( PlayerJson.dump( ) );
+					const auto & Player = PlayerJson;
+                    if (!Player.is_object() || !Player.contains("id") || !Player["id"].is_number_integer() ||
+                        !Player.contains("name") || !Player["name"].is_string())
+                        continue;
 					int PlayerId = Player[ xorstr( "id" ) ].get<int>();
 					std::string PlayerName = Player[ xorstr( "name" ) ].get<std::string>();
-					nlohmann::json Identifiers = Player[ xorstr( "identifiers" ) ];
+					nlohmann::json Identifiers = Player.value("identifiers", json());
 
 					std::string Discord, SteamId;
 
-					if ( Identifiers != NULL )
+					if ( Identifiers.is_array() )
 					{
 						for ( const auto & Identifier : Identifiers ) 
 						{
@@ -220,9 +252,9 @@ namespace Core
 
 							std::string IdentifierVal = Identifier;
 
-							if ( Identifier.find( "discord:" ) != Identifier.end() )
+							if ( IdentifierVal.rfind( "discord:", 0 ) == 0 )
 								Discord = IdentifierVal.substr( 8 );
-							if ( Identifier.find( "steam:" ) != Identifier.end() )
+							if ( IdentifierVal.rfind( "steam:", 0 ) == 0 )
 								SteamId = IdentifierVal.substr( 6 );
 
 						}
@@ -247,16 +279,13 @@ namespace Core
 
 						GetPlayerNames( );
 					}
-					catch ( const std::exception & e ) {
-						std::string errorMessage = xorstr( "Crash Detected. Code: 2\nException: " );
-						errorMessage += e.what( );
-						MessageBox( NULL, errorMessage.c_str( ), xorstr( "Error" ), MB_ICONERROR );
-						break;
-					}
-					catch ( ... ) {
-						MessageBox( NULL, xorstr( "Crash Detected. Code: 2\nUnknown exception caught." ), xorstr( "Error" ), MB_ICONERROR );
-						break;
-					}
+                    catch (const std::exception & e) {
+                        OutputDebugStringA("[Wexize] Player lookup failed: ");
+                        OutputDebugStringA(e.what());
+                    }
+                    catch (...) {
+                        OutputDebugStringA("[Wexize] Player lookup failed: unknown exception.");
+                    }
 
 				}
 			}
