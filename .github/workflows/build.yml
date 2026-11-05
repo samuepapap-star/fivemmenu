@@ -1,0 +1,57 @@
+name: Build Wexize EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Instala DirectX SDK
+        run: |
+          $url = "https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe"
+          $out = "$env:TEMP\DXSDK_Jun10.exe"
+          Invoke-WebRequest -Uri $url -OutFile $out
+          Start-Process -FilePath $out -ArgumentList "/U" -Wait
+          echo "DXSDK_DIR=C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      - name: Cria api.hpp bypass
+        run: |
+          $path = "src\Security\Api"
+          if (!(Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force }
+          $file = "$path\api.hpp"
+          if (!(Test-Path $file)) {
+            @"
+          #pragma once
+          #include <string>
+          struct Api {
+              std::string login(const std::string& key, const std::string& hwid) {
+                  return "success";
+              }
+          };
+          inline Api g_Api;
+          "@ | Out-File -FilePath $file -Encoding utf8
+          }
+        shell: pwsh
+
+      - name: Compila Release x64
+        run: |
+          msbuild "Wexize Revamp.sln" /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /m /nologo
+        shell: pwsh
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wexize-EXE
+          path: src\x64\Release\*.exe
+          if-no-files-found: error
