@@ -49,9 +49,19 @@ jobs:
           msbuild "Wexize Revamp.sln" /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /m /nologo
         shell: pwsh
 
+      - name: Verifica executável
+        run: |
+          Write-Host "Conteúdo da pasta x64\Release:"
+          Get-ChildItem -Path "x64\Release" -File -ErrorAction SilentlyContinue | Select-Object Name, Length
+          if (!(Get-ChildItem -Path "x64\Release" -Filter *.exe -File -ErrorAction SilentlyContinue)) {
+            Write-Error "Nenhum .exe encontrado em x64\Release."
+            exit 1
+          }
+        shell: pwsh
+
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
           name: Wexize-EXE
-          path: src\x64\Release\*.exe
+          path: x64/Release/*.exe
           if-no-files-found: error
