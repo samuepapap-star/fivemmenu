@@ -286,8 +286,11 @@ namespace World {
 								}
 							}
 
-							if (actionMode == 2 && Custom::Button( xorstr( "Teleportar" ), ImVec2( -1, 30 ), 0 ) ) {
-								Core::SDK::Pointers::pLocalPlayer->SetPos( Veh->GetPos( ) );
+							if (actionMode == 0 && Custom::Button( xorstr( "Teleportar para o carro" ), ImVec2( -1, 30 ), 0 ) ) {
+                                auto player = Core::SDK::Pointers::pLocalPlayer;
+                                if (!player || !Veh || !player->SetPos(Veh->GetPos())) {
+                                    NotifyManager::Send("Nao foi possivel teleportar para o carro selecionado.",4000);
+                                }
 							}
 
 
@@ -310,3 +313,4 @@ namespace World {
 
 	}
 }
+

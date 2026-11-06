@@ -22,8 +22,9 @@ inline void Weapons() {
     if (weaponTab == 0) Local::Render(3); else Exploits::Render(0);
 }
 inline void Teleports() {
-    Tab("Destinos",0,teleportTab,false); Tab("Jogadores",1,teleportTab,true); Tab("Veículos",2,teleportTab,true);
+    Tab("Destinos",0,teleportTab,false); Tab("Jogadores",1,teleportTab,true);
     if (teleportTab == 0) Local::Render(2);
-    else World::Render(teleportTab == 1 ? 0 : 1,2);
+    else World::Render(0,2);
 }
 }
+
