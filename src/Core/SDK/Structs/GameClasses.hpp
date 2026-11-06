@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/SDK/LipeTeleport.hpp>
 #include <Core/SDK/TeleportTrace.hpp>
 
 #pragma region Enums
@@ -131,32 +132,33 @@ public:
 	}
 
 	bool SetPos(D3DXVECTOR3 Pos) {
-        AltosDiagnostics::TeleportTrace trace(Mem.ProcHandle,reinterpret_cast<uintptr_t>(this),Pos,g_Offsets.CurrentBuild);
-        if (!this || !Mem.ProcHandle)
-            return false;
-
-        // Port of SHARK Features::TeleportTo: update both player transforms.
-        // Do not depend on LastVehicle, which can refer to a despawned vehicle.
-        const uintptr_t ped = reinterpret_cast<uintptr_t>(this);
-        uintptr_t navigation = 0;
-        SIZE_T transferred = 0;
-        if (!ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(ped + 0x30),
-                &navigation, sizeof(navigation), &transferred) ||
-            transferred != sizeof(navigation) || !navigation) {
-            OutputDebugStringA("[Wexize] Teleport failed: player navigation unavailable.");
+        if (!this || !Mem.ProcHandle || !LipeTeleport::Sane(Pos)) return false;
+        const uintptr_t ped=reinterpret_cast<uintptr_t>(this);
+        const bool insideVehicle=InVehicle();
+        const uintptr_t vehicle=insideVehicle?reinterpret_cast<uintptr_t>(GetLastVehicle()):0;
+        const uintptr_t entity=LipeTeleport::Entity(ped,insideVehicle,vehicle);
+        if(!entity) {
+            AltosDiagnostics::Log("teleport_lipe failed=current_vehicle_unavailable");
             return false;
         }
-
-        const bool visualMoved = WriteProcessMemory(Mem.ProcHandle,
-            reinterpret_cast<LPVOID>(ped + 0x90), &Pos, sizeof(Pos), &transferred) &&
-            transferred == sizeof(Pos);
-        const bool navigationMoved = WriteProcessMemory(Mem.ProcHandle,
-            reinterpret_cast<LPVOID>(navigation + 0x50), &Pos, sizeof(Pos), &transferred) &&
-            transferred == sizeof(Pos);
-        if (!visualMoved || !navigationMoved)
-            OutputDebugStringA("[Wexize] Teleport failed: position write rejected.");
-        trace.Results(visualMoved,navigationMoved);
-        return visualMoved && navigationMoved;
+        auto read=[](uintptr_t at,auto& value) {
+            SIZE_T bytes=0;
+            return at>=0x10000 && ReadProcessMemory(Mem.ProcHandle,reinterpret_cast<LPCVOID>(at),
+                &value,sizeof(value),&bytes) && bytes==sizeof(value);
+        };
+        auto write=[](uintptr_t at,const auto& value) {
+            SIZE_T bytes=0;
+            return at>=0x10000 && WriteProcessMemory(Mem.ProcHandle,reinterpret_cast<LPVOID>(at),
+                &value,sizeof(value),&bytes) && bytes==sizeof(value);
+        };
+        AltosDiagnostics::TeleportTrace trace(Mem.ProcHandle,entity,Pos,g_Offsets.CurrentBuild,
+            insideVehicle?"lipe_veiculo_atual":"lipe_personagem");
+        const auto result=LipeTeleport::Move(entity,Pos,read,write);
+        trace.Results(result.visual,result.navigation);
+        AltosDiagnostics::Log(std::string("teleport_lipe inside_vehicle=")+(insideVehicle?"1":"0")+
+            " motion_reset="+(result.motion?"1":"0")+
+            " writes_complete="+(result.visual&&result.navigation?"1":"0"));
+        return result.motion && result.visual && result.navigation;
     }
 
 	void SeatBealt(bool toggle) {
