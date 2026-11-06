@@ -49,6 +49,8 @@ namespace Combat {
 					{
 						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.Aimbot->Enabled );
 						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.Aimbot->ShowFov );
+                        ImGui::ColorEdit4("Cor do FOV##Aimbot", &g_Config.Aimbot->FovColor.Value.x, ImGuiColorEditFlags_AlphaBar);
+                        ImGui::ColorEdit3("Cor do menu", &g_Config.General->MenuAccent.x);
 						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.Aimbot->OnlyVisible );
 						ImGui::Combo("Alvos", &g_Config.Aimbot->TargetType, "Todos\0Somente jogadores\0Somente NPCs\0");
                         ImGui::Combo("Modo de mira", &g_Config.Aimbot->AimMode, "Mouse\0Câmera\0");
@@ -103,6 +105,7 @@ namespace Combat {
 
 						if (!g_Config.TriggerBot->SmartTrigger) {
 						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.TriggerBot->ShowFov );
+                        ImGui::ColorEdit4("Cor do FOV##TriggerBot", &g_Config.TriggerBot->FovColor.Value.x, ImGuiColorEditFlags_AlphaBar);
 						}
 						else
 						{
@@ -141,6 +144,7 @@ namespace Combat {
 					{
 						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.SilentAim->Enabled );
 						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.SilentAim->ShowFov );
+                        ImGui::ColorEdit4("Cor do FOV##SilentAim", &g_Config.SilentAim->FovColor.Value.x, ImGuiColorEditFlags_AlphaBar);
 						Custom::CheckBox( xorstr( "Balas mágicas" ), &g_Config.SilentAim->MagicBullets );
 						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.SilentAim->OnlyVisible );
 						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.SilentAim->IgnoreNPCs );
@@ -176,3 +180,4 @@ namespace Combat {
 		ImGui::PopStyleVar( );
 	}
 }
+

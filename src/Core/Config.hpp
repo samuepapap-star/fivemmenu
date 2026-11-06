@@ -21,6 +21,7 @@ namespace Core {
             inline static ImVec4 MenuAccent = ImVec4(138.f/255.f,43.f/255.f,226.f/255.f,1.f);
 			inline static int ProcessPriority = 0;
 			inline static int MenuKey = VK_INSERT;
+            inline static int MenuScale = 50;
 		} *General;
 
 		struct Aimbot {
@@ -156,6 +157,7 @@ namespace Core {
 			inline static bool InfiniteAmmoEnabled;
 			inline static bool NoReloadEnabled;
 			inline static bool NoClipEnabled;
+            inline static bool NoClipInvisible = false;
 			inline static bool HandlingEditor;
 			inline static int NoClipKey;
 			inline static float NoClipSpeed = 2.0f;
@@ -214,6 +216,7 @@ namespace Core {
 				GeneralCfg[ xorstr( "VSync" ) ] = General->VSync;
 				GeneralCfg[ xorstr( "ProcessPriority" ) ] = General->ProcessPriority;
 				GeneralCfg[ xorstr( "MenuKey" ) ] = General->MenuKey;
+                GeneralCfg["MenuScale"] = General->MenuScale;
                 GeneralCfg["MenuAccent"] = nlohmann::json::array({General->MenuAccent.x,General->MenuAccent.y,General->MenuAccent.z});
 
 				// Features - Aimbot
@@ -320,6 +323,7 @@ namespace Core {
 				// Features - Player
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipKey" ) ] = Player->NoClipKey;
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipSpeed" ) ] = Player->NoClipSpeed;
+                FeaturesCfg["Player"]["NoClipInvisible"] = Player->NoClipInvisible;
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "GodModeKey" ) ] = Player->GodModeKey;
 
 				std::string CfgJsonStr = CfgJson.dump( );
@@ -357,6 +361,7 @@ namespace Core {
 					General->VSync = GeneralCfg[ xorstr( "VSync" ) ];
 					General->ProcessPriority = GeneralCfg[ xorstr( "ProcessPriority" ) ];
 					General->MenuKey = GeneralCfg[ xorstr( "MenuKey" ) ];
+                General->MenuScale = ImClamp(GeneralCfg.value("MenuScale", 50), 0, 100);
                     if (GeneralCfg.contains("MenuAccent")) {
                         const auto &accent=GeneralCfg["MenuAccent"];
                         if(accent.is_array() && accent.size()==3 && accent[0].is_number() &&
@@ -466,6 +471,7 @@ namespace Core {
 				// Features - Player
 				Player->NoClipKey = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipKey" ) ];
 				Player->NoClipSpeed = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipSpeed" ) ];
+                Player->NoClipInvisible = FeaturesCfg["Player"].value("NoClipInvisible", false);
 				Player->GodModeKey = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "GodModeKey" ) ];
 
 				ESP->UpdateCfgESP = true;
@@ -483,3 +489,4 @@ namespace Core {
 	inline Config g_Config;
 
 }
+

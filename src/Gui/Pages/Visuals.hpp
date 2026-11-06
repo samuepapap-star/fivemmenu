@@ -68,6 +68,11 @@ namespace Visuals {
                         Custom::CheckBox("Mostrar prévia", &g_Config.ESP->PreviewEnabled);
                         ImGui::ColorEdit4("Cor da caixa", &g_Config.ESP->BoxCol.Value.x);
                         ImGui::ColorEdit4("Cor dos cantos", &g_Config.ESP->CornerColor.Value.x);
+                        ImGui::ColorEdit4("Cor do preenchimento", &g_Config.ESP->FilledBoxCol.Value.x);
+                        ImGui::ColorEdit4("Cor das linhas", &g_Config.ESP->SnapLinesCol.Value.x);
+                        ImGui::ColorEdit4("Cor dos nomes", &g_Config.ESP->UserNamesCol.Value.x);
+                        ImGui::ColorEdit4("Cor das armas", &g_Config.ESP->WeaponNameCol.Value.x);
+                        ImGui::ColorEdit4("Cor da distância", &g_Config.ESP->DistanceCol.Value.x);
                         ImGui::ColorEdit4("Cor do esqueleto", &g_Config.ESP->SkeletonCol.Value.x);
                         Custom::CheckBox( xorstr( "Nomes dos jogadores" ), &g_Config.ESP->UserNames );
 						Custom::CheckBox( xorstr( "Nomes das armas" ), &g_Config.ESP->WeaponName );
@@ -151,3 +156,4 @@ namespace Visuals {
 		ImGui::PopStyleVar( );
 	}
 }
+
