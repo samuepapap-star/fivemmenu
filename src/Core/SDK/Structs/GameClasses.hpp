@@ -129,22 +129,62 @@ public:
 		return Mem.Read<D3DXVECTOR3>( reinterpret_cast< uintptr_t >( this ) + 0x90 );
 	}
 
-	void SetPos( D3DXVECTOR3 Pos ) {
-		if ( !this ) { return; }
-		bool InsideVehicle = InVehicle( );
-		uintptr_t LastVeh = reinterpret_cast< uintptr_t >( GetLastVehicle( ) );
+    bool SetPos(D3DXVECTOR3 Pos) {
+        if (!this || !Mem.ProcHandle)
+            return false;
 
-		if ( LastVeh && InsideVehicle ) {
-			uintptr_t Navigation = Mem.Read<uintptr_t>( LastVeh + 0x30 );
-			Mem.Write<D3DXVECTOR3>( Navigation + 0x30, D3DXVECTOR3( 0, 0, 0 ) );
-			Mem.Write<D3DXVECTOR3>( LastVeh + 0x90, Pos );
-		}
-		else if ( !InsideVehicle ) {
-			uintptr_t Navigation = this->GetNavigation( );
-			Mem.Write<D3DXVECTOR3>( Navigation + 0x30, D3DXVECTOR3 { 0, 0, 0 } );
-			Mem.Write<D3DXVECTOR3>( reinterpret_cast< uintptr_t >( this ) + 0x90, Pos );
-		}
-	}
+        const uintptr_t pedAddress = reinterpret_cast<uintptr_t>(this);
+        uintptr_t target = pedAddress;
+        uintptr_t navigation = 0;
+        SIZE_T transferred = 0;
+        D3DXVECTOR3 pedPosition{};
+        if (!ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(pedAddress + 0x90),
+                &pedPosition, sizeof(pedPosition), &transferred) ||
+            transferred != sizeof(pedPosition)) {
+            OutputDebugStringA("[Wexize] Teleport failed: player position unavailable.");
+            return false;
+        }
+
+        // LastVehicle is historical: never trust it without fresh readable data.
+        // A missing/despawned/distant vehicle must not suppress an on-foot teleport.
+        if (InVehicle()) {
+            const uintptr_t vehicle = reinterpret_cast<uintptr_t>(GetLastVehicle());
+            D3DXVECTOR3 vehiclePosition{};
+            uintptr_t vehicleNavigation = 0;
+            if (vehicle &&
+                ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(vehicle + 0x30),
+                    &vehicleNavigation, sizeof(vehicleNavigation), &transferred) &&
+                transferred == sizeof(vehicleNavigation) && vehicleNavigation &&
+                ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(vehicle + 0x90),
+                    &vehiclePosition, sizeof(vehiclePosition), &transferred) &&
+                transferred == sizeof(vehiclePosition)) {
+                const D3DXVECTOR3 delta = vehiclePosition - pedPosition;
+                if (delta.x * delta.x + delta.y * delta.y + delta.z * delta.z < 100.f) {
+                    target = vehicle;
+                    navigation = vehicleNavigation;
+                }
+            }
+        }
+
+        if (!navigation &&
+            (!ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(pedAddress + 0x30),
+                &navigation, sizeof(navigation), &transferred) ||
+             transferred != sizeof(navigation) || !navigation)) {
+            OutputDebugStringA("[Wexize] Teleport failed: navigation unavailable.");
+            return false;
+        }
+
+        const D3DXVECTOR3 zero(0.f, 0.f, 0.f);
+        const bool reset = WriteProcessMemory(Mem.ProcHandle,
+            reinterpret_cast<LPVOID>(navigation + 0x30), &zero, sizeof(zero), &transferred) &&
+            transferred == sizeof(zero);
+        const bool moved = reset && WriteProcessMemory(Mem.ProcHandle,
+            reinterpret_cast<LPVOID>(target + 0x90), &Pos, sizeof(Pos), &transferred) &&
+            transferred == sizeof(Pos);
+        if (!moved)
+            OutputDebugStringA("[Wexize] Teleport failed: memory write rejected.");
+        return moved;
+    }
 
 	void SeatBealt(bool toggle) {
 		if (!this) { return; }
