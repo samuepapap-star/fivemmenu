@@ -105,7 +105,11 @@ void Gui::Rendering( )
         }
         ImGui::SetCursorPos(savedCursor);
 
-        if (g_MenuInfo.IsLogged) AltosInterface::Navigation();
+        if (g_MenuInfo.IsLogged) {
+            ImGui::PushID("SidebarNavigation");
+            AltosInterface::Navigation();
+            ImGui::PopID();
+        }
 
 		g_MenuInfo.TabAlpha = ImClamp( g_MenuInfo.TabAlpha + ( 5.f * ImGui::GetIO( ).DeltaTime * ( g_MenuInfo.iTabCount == g_MenuInfo.iCurrentPage ? 1.f : -1.f ) ), 0.f, 1.f );
 
@@ -124,7 +128,9 @@ void Gui::Rendering( )
 
 
 
-			switch ( g_MenuInfo.iCurrentPage )
+			ImGui::PushID("PageContent");
+            ImGui::PushID(g_MenuInfo.iCurrentPage);
+            switch ( g_MenuInfo.iCurrentPage )
 			{
 
 			case g_MenuInfo.Combat:
@@ -152,7 +158,9 @@ void Gui::Rendering( )
 
 			}
 
-			ImGui::EndGroup( );
+			ImGui::PopID();
+            ImGui::PopID();
+            ImGui::EndGroup( );
 
 
 			HWND ActiveWindow = GetForegroundWindow( );
