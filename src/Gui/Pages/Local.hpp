@@ -18,19 +18,19 @@ namespace Local {
 
 	void Render( )
 	{
-		if ( Custom::SubTab( xorstr( "Main" ), 0 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Principal" ), 0 == iSubTabCount ) ) {
 			iSubTabCount = 0;
 		}
 		ImGui::SameLine( );
-		if ( Custom::SubTab( xorstr( "Vehicles" ), 1 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Veículos" ), 1 == iSubTabCount ) ) {
 			iSubTabCount = 1;
 		}
 		ImGui::SameLine( );
-		if ( Custom::SubTab( xorstr( "Teleports" ), 2 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Teleportes" ), 2 == iSubTabCount ) ) {
 			iSubTabCount = 2;
 		}
 		ImGui::SameLine( );
-		if ( Custom::SubTab( xorstr( "Weapons" ), 3 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Armas" ), 3 == iSubTabCount ) ) {
 			iSubTabCount = 3;
 		}
 
@@ -48,15 +48,15 @@ namespace Local {
 			case 0: //Main
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 230, 400 ), false, 0 );
 					{
 
-						if ( Custom::CheckBoxCfg( xorstr( "GodMode" ), &g_Config.Player->EnableGodMode, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Bind" ), &g_Config.Player->GodModeKey, &KeyMode ); }, true, xorstr( "That function can be detected by server AntiCheat" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
+						if ( Custom::CheckBoxCfg( xorstr( "Invencibilidade" ), &g_Config.Player->EnableGodMode, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->GodModeKey, &KeyMode ); }, true, xorstr( "That function can be detected by server AntiCheat" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
 							Core::SDK::Pointers::pLocalPlayer->SetGodMode( g_Config.Player->EnableGodMode );
 						}
 
-						if ( Custom::CheckBoxCfg( xorstr( "NoClip" ), &g_Config.Player->NoClipEnabled, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Bind" ), &g_Config.Player->NoClipKey, &KeyMode ); ImGui::SliderFloat( xorstr( "Speed" ), &g_Config.Player->NoClipSpeed, 0.1f, 20.f, xorstr( "%1.2fm/s" ) ); }, true, xorstr( "That function can be detected by server AntiCheat" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
+						if ( Custom::CheckBoxCfg( xorstr( "Atravessar paredes" ), &g_Config.Player->NoClipEnabled, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->NoClipKey, &KeyMode ); ImGui::SliderFloat( xorstr( "Speed" ), &g_Config.Player->NoClipSpeed, 0.1f, 20.f, xorstr( "%1.2fm/s" ) ); }, true, xorstr( "That function can be detected by server AntiCheat" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
 							Core::SDK::Pointers::pLocalPlayer->FreezePed( g_Config.Player->NoClipEnabled );
 						}
@@ -74,7 +74,7 @@ namespace Local {
 							}
 						}
 
-						if ( Custom::CheckBox( xorstr( "Anti Headshot" ), &g_Config.Player->AntiHSEnabled, true, xorstr( "That function can be detected by server AntiCheat" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
+						if ( Custom::CheckBox( xorstr( "Anti tiro na cabeça" ), &g_Config.Player->AntiHSEnabled, true, xorstr( "That function can be detected by server AntiCheat" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
 							Core::SDK::Pointers::pLocalPlayer->SetConfigFlag( ePedConfigFlag::NoCriticalHits, g_Config.Player->AntiHSEnabled );
 						}
@@ -129,7 +129,7 @@ namespace Local {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Diversos" ), ImVec2( 230, 400 ), false, 0 );
 					{
 						g_Config.Player->CurrentHealthValue = Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 100.f > Core::SDK::Pointers::pLocalPlayer->GetMaxHealth( ) - 100.f ? Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 100.f : Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 99.f;
 						g_Config.Player->CurrentArmorValue = Core::SDK::Pointers::pLocalPlayer->GetArmor( );
@@ -155,9 +155,9 @@ namespace Local {
 				{
 
 
-					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Diversos" ), ImVec2( 230, 400 ), false, 0 );
 					{
-						if ( Custom::CheckBox( xorstr( "GodMode" ), &g_Config.Player->VehicleGodMode ) )
+						if ( Custom::CheckBox( xorstr( "Invencibilidade" ), &g_Config.Player->VehicleGodMode ) )
 						{
 							if ( !InVehicle )
 							{
@@ -170,13 +170,15 @@ namespace Local {
 								CurrentVehicle->SetGodMode( g_Config.Player->VehicleGodMode );
 							}
 						}
-						static bool Locked = CurrentVehicle->IsLocked( );
-						if ( Custom::CheckBox( xorstr( "Doors Locked" ), &Locked ) )
-						{
-							CurrentVehicle->DoorState( !Locked );
+						// Read the lock state from the current vehicle on each frame; do not cache a previous vehicle's state.
+						if ( CurrentVehicle ) {
+							bool Locked = CurrentVehicle->IsLocked( );
+							if ( Custom::CheckBox( xorstr( "Portas trancadas" ), &Locked ) ) {
+								CurrentVehicle->DoorState( !Locked );
+							}
 						}
 
-						if ( Custom::CheckBox( xorstr( "SeatBelt" ), &g_Config.Player->SeatBelt ) )
+						if ( Custom::CheckBox( xorstr( "Cinto de segurança" ), &g_Config.Player->SeatBelt ) )
 						{
 							if ( !InVehicle )
 							{
@@ -197,7 +199,7 @@ namespace Local {
 						}
 
 
-						if ( Custom::CheckBoxPage( xorstr( "Handling Editor" ), &g_Config.Player->HandlingEditor, [ & ] ( ) {
+						if ( Custom::CheckBoxPage( xorstr( "Editor de dirigibilidade" ), &g_Config.Player->HandlingEditor, [ & ] ( ) {
 							if ( !InVehicle ) {
 								std::thread VehicleAlert( [ ] ( ) {  NotifyManager::Send( xorstr( "You must be in a car to use this function" ), 4000 );  } );
 								VehicleAlert.detach( );
@@ -232,13 +234,13 @@ namespace Local {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Configurações" ), ImVec2( 230, 400 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 
-						if ( Custom::Button( xorstr( "Repair Vehicle" ), ImVec2( -1, 33 ), 0 ) )
+						if ( Custom::Button( xorstr( "Reparar veículo" ), ImVec2( -1, 33 ), 0 ) )
 						{
-							CurrentVehicle->Fix( );
+							if ( InVehicle && CurrentVehicle ) CurrentVehicle->Fix( );
 						}
 
 						ImGui::PopStyleVar( );
@@ -258,11 +260,11 @@ namespace Local {
 					};
 
 					std::vector<Locations_t> Locations = {
-						Locations_t( xorstr( "Waypoint" ), D3DXVECTOR3( 0, 0, 0 ) ),
-						Locations_t( xorstr( "Square" ), D3DXVECTOR3( 156.184, -1043.17, 29.3236 ) ),
-						Locations_t( xorstr( "Pier" ), D3DXVECTOR3( -1847.72, -1223.36, 13.8745 ) ),
+						Locations_t( xorstr( "Marcador" ), D3DXVECTOR3( 0, 0, 0 ) ),
+						Locations_t( xorstr( "Praça" ), D3DXVECTOR3( 156.184, -1043.17, 29.3236 ) ),
+						Locations_t( xorstr( "Píer" ), D3DXVECTOR3( -1847.72, -1223.36, 13.8745 ) ),
 						Locations_t( xorstr( "Paleto Bay" ), D3DXVECTOR3( -397.605, 6047.57, 32.1797 ) ),
-						Locations_t( xorstr( "Central Bank" ), D3DXVECTOR3( 221.781, 217.278, 106.705 ) ),
+						Locations_t( xorstr( "Banco Central" ), D3DXVECTOR3( 221.781, 217.278, 106.705 ) ),
 						Locations_t( xorstr( "Cassino" ), D3DXVECTOR3( 885.322, 16.8489, 80.65 ) ),
 						Locations_t( xorstr( "Los Santos Airport" ), D3DXVECTOR3( -975.532, -2880.89, 16.2665 ) ),
 						Locations_t( xorstr( "Sandy Shores" ), D3DXVECTOR3( 1681.48, 3251.91, 40.809 ) ),
@@ -271,7 +273,7 @@ namespace Local {
 					static int SeletedIndex = 0;
 					bool IsSelected;
 
-					ImGui::BeginChild( xorstr( "Locations" ), ImVec2( g_MenuInfo.MenuSize.x - ( 184 + 24 ), 250 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Locais" ), ImVec2( g_MenuInfo.MenuSize.x - ( 184 + 24 ), 250 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 						for ( int i = 0; i < Locations.size( ); i++ )
@@ -288,7 +290,7 @@ namespace Local {
 						ImGui::BeginGroup( );
 						{
 							auto Location = Locations[ SeletedIndex ];
-							std::string Loc = xorstr( "Teleport to " ) + Location.Name;
+							std::string Loc = xorstr( "Teleportar para " ) + Location.Name;
 							if ( Custom::Button( Loc.c_str( ), ImVec2( ContentSize.x, 32 ), 0 ) ) {
 								if ( SeletedIndex == 0 )
 								{
@@ -311,7 +313,7 @@ namespace Local {
 			case 3: //Weapons
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Diversos" ), ImVec2( 230, 400 ), false, 0 );
 					{
 						g_Config.Player->RecoilValue = Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( )->GetRecoil( );
 						static const float RecoilBackup = g_Config.Player->RecoilValue;
@@ -381,7 +383,7 @@ namespace Local {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Configurações" ), ImVec2( 230, 400 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 
@@ -438,7 +440,7 @@ namespace Local {
 
 					ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 10, 4 ) );
 					{
-						ImGui::TextColored( g_Col.FeaturesText, xorstr( "Handling Editor" ) );
+						ImGui::TextColored( g_Col.FeaturesText, xorstr( "Editor de dirigibilidade" ) );
 						ImGui::PushFont( g_Variables.FontAwesomeSolidSmall );
 						{
 							ImGui::SameLine( );
