@@ -133,57 +133,27 @@ public:
         if (!this || !Mem.ProcHandle)
             return false;
 
-        const uintptr_t pedAddress = reinterpret_cast<uintptr_t>(this);
-        uintptr_t target = pedAddress;
+        // Port of SHARK Features::TeleportTo: update both player transforms.
+        // Do not depend on LastVehicle, which can refer to a despawned vehicle.
+        const uintptr_t ped = reinterpret_cast<uintptr_t>(this);
         uintptr_t navigation = 0;
         SIZE_T transferred = 0;
-        D3DXVECTOR3 pedPosition{};
-        if (!ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(pedAddress + 0x90),
-                &pedPosition, sizeof(pedPosition), &transferred) ||
-            transferred != sizeof(pedPosition)) {
-            OutputDebugStringA("[Wexize] Teleport failed: player position unavailable.");
-            return false;
-        }
-
-        // LastVehicle is historical: never trust it without fresh readable data.
-        // A missing/despawned/distant vehicle must not suppress an on-foot teleport.
-        if (InVehicle()) {
-            const uintptr_t vehicle = reinterpret_cast<uintptr_t>(GetLastVehicle());
-            D3DXVECTOR3 vehiclePosition{};
-            uintptr_t vehicleNavigation = 0;
-            if (vehicle &&
-                ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(vehicle + 0x30),
-                    &vehicleNavigation, sizeof(vehicleNavigation), &transferred) &&
-                transferred == sizeof(vehicleNavigation) && vehicleNavigation &&
-                ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(vehicle + 0x90),
-                    &vehiclePosition, sizeof(vehiclePosition), &transferred) &&
-                transferred == sizeof(vehiclePosition)) {
-                const D3DXVECTOR3 delta = vehiclePosition - pedPosition;
-                if (delta.x * delta.x + delta.y * delta.y + delta.z * delta.z < 100.f) {
-                    target = vehicle;
-                    navigation = vehicleNavigation;
-                }
-            }
-        }
-
-        if (!navigation &&
-            (!ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(pedAddress + 0x30),
+        if (!ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(ped + 0x30),
                 &navigation, sizeof(navigation), &transferred) ||
-             transferred != sizeof(navigation) || !navigation)) {
-            OutputDebugStringA("[Wexize] Teleport failed: navigation unavailable.");
+            transferred != sizeof(navigation) || !navigation) {
+            OutputDebugStringA("[Wexize] Teleport failed: player navigation unavailable.");
             return false;
         }
 
-        const D3DXVECTOR3 zero(0.f, 0.f, 0.f);
-        const bool reset = WriteProcessMemory(Mem.ProcHandle,
-            reinterpret_cast<LPVOID>(navigation + 0x30), &zero, sizeof(zero), &transferred) &&
-            transferred == sizeof(zero);
-        const bool moved = reset && WriteProcessMemory(Mem.ProcHandle,
-            reinterpret_cast<LPVOID>(target + 0x90), &Pos, sizeof(Pos), &transferred) &&
+        const bool visualMoved = WriteProcessMemory(Mem.ProcHandle,
+            reinterpret_cast<LPVOID>(ped + 0x90), &Pos, sizeof(Pos), &transferred) &&
             transferred == sizeof(Pos);
-        if (!moved)
-            OutputDebugStringA("[Wexize] Teleport failed: memory write rejected.");
-        return moved;
+        const bool navigationMoved = WriteProcessMemory(Mem.ProcHandle,
+            reinterpret_cast<LPVOID>(navigation + 0x50), &Pos, sizeof(Pos), &transferred) &&
+            transferred == sizeof(Pos);
+        if (!visualMoved || !navigationMoved)
+            OutputDebugStringA("[Wexize] Teleport failed: position write rejected.");
+        return visualMoved && navigationMoved;
     }
 
 	void SeatBealt(bool toggle) {
