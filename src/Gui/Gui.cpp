@@ -17,6 +17,7 @@
 #include <Core/Features/Esp.hpp>
 
 #include <Security/Api/api.hpp>
+#include <Gui/AltosInterface.hpp>
 
 inline std::mutex DrawMtx;
 
@@ -26,7 +27,7 @@ inline void CheatLogin( )
 	auto Login = g_Api.login( ClipBoard, Utils::GetHWID( ) );
 	if ( Login == xorstr( "success" ) )
 	{
-		g_MenuInfo.MenuSize = { 680, 500 };
+		g_MenuInfo.MenuSize = { 920, 600 };
 		g_MenuInfo.IsLogged = true;
 		Core::GetOffsets( );
 	}
@@ -74,11 +75,11 @@ void Gui::Rendering( )
 	ImGui::PushFont( g_Variables.m_FontNormal );
 	{
 
-		Custom::DrawBackground( g_MenuInfo.IsLogged );
+		AltosInterface::Background();
         // Keep dragging inside the logo/sidebar; combat tabs occupy x >= 176.
         const ImVec2 savedCursor = ImGui::GetCursorPos();
-        ImGui::SetCursorPos(ImVec2(0.f, 0.f));
-        ImGui::InvisibleButton("##MenuDragHandle", ImVec2(160.f, 100.f));
+        ImGui::SetCursorPos(ImVec2(285.f, 0.f));
+        ImGui::InvisibleButton("##MenuDragHandle", ImVec2(g_MenuInfo.MenuSize.x - 340.f, 60.f));
         if (g_MenuInfo.IsOpen && ImGui::IsItemActive() &&
             ImGui::IsMouseDragging(ImGuiMouseButton_Left) && display.x > 0.f && display.y > 0.f) {
             ImVec2 pos = ImGui::GetWindowPos();
@@ -87,46 +88,7 @@ void Gui::Rendering( )
         }
         ImGui::SetCursorPos(savedCursor);
 
-		if ( g_MenuInfo.IsLogged )
-		{
-
-			ImGui::SetCursorPos( ImVec2( 12, 120/*84*/ ) );
-
-			ImGui::BeginGroup( );
-			ImGui::PushFont( g_Variables.m_FontSecundary );
-			{
-				ImGui::TextColored( ImColor( 80, 80, 80 ), xorstr( "Aim Assist" ) );
-				//ImGui::TextColored( ImColor( 80, 80, 80 ), std::to_string( ImGui::GetIO().Framerate ).c_str() );
-				if ( Custom::Tab( ICON_FA_PERSON_RIFLE, xorstr( "Combat" ), g_MenuInfo.Combat == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Combat;
-				}
-				ImGui::TextColored( ImColor( 80, 80, 80 ), xorstr( "Game" ) );
-				if ( Custom::Tab( ICON_FA_BINOCULARS, xorstr( "Visuals" ), g_MenuInfo.Visuals == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Visuals;
-				}
-				if ( Custom::Tab( ICON_FA_USER, xorstr( "Local" ), g_MenuInfo.Local == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Local;
-				}
-				if ( Custom::Tab( ICON_FA_GLOBE, xorstr( "World" ), g_MenuInfo.World == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.World;
-				}
-				if ( Custom::Tab( ICON_FA_BARS, xorstr( "Exploits" ), g_MenuInfo.Exploits == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Exploits;
-				}
-				ImGui::TextColored( ImColor( 80, 80, 80 ), xorstr( "Others" ) );
-				if ( Custom::Tab( ICON_FA_GEAR, xorstr( "Settings" ), g_MenuInfo.Settings == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Settings;
-				}
-			}
-			ImGui::PopFont( );
-			ImGui::EndGroup( );
-		}
+        if (g_MenuInfo.IsLogged) AltosInterface::Navigation();
 
 		g_MenuInfo.TabAlpha = ImClamp( g_MenuInfo.TabAlpha + ( 5.f * ImGui::GetIO( ).DeltaTime * ( g_MenuInfo.iTabCount == g_MenuInfo.iCurrentPage ? 1.f : -1.f ) ), 0.f, 1.f );
 
@@ -140,7 +102,7 @@ void Gui::Rendering( )
 		{
 
 
-			ImGui::SetCursorPos( ImVec2( 176, 16 ) );
+			ImGui::SetCursorPos( ImVec2( 176, 76 ) );
 			ImGui::BeginGroup( );
 
 

@@ -9,19 +9,19 @@
 
 class cColors {
 public:
-	ImVec4 Base = ImColor( 107, 105, 255 ); //75, 70, 175 - 130, 151, 248
+	ImVec4 Base = ImColor( 245, 112, 163 ); //75, 70, 175 - 130, 151, 248
 	ImVec4 PrimaryText = ImColor( 200, 200, 200 );
-	ImVec4 SecundaryText = ImColor( 80, 80, 80 );
+	ImVec4 SecundaryText = ImColor( 128, 128, 128 );
 
-	ImVec4 FeaturesText = ImColor( 140, 140, 140 );
+	ImVec4 FeaturesText = ImColor( 230, 230, 230 );
 	ImVec4 SecundaryFeaturesText = ImColor( 100, 100, 100 );
 
 	ImVec4 BorderCol = ImColor( 32, 32, 34 );
 	ImVec4 LinesCol = ImColor( 30, 30, 33 );
-	ImVec4 BackgroundCol = ImColor( 12, 12, 14 );
+	ImVec4 BackgroundCol = ImColor( 15, 15, 15 );
 
-	ImVec4 ChildCol = ImColor( 16, 16, 18 );
-	ImVec4 ChildBorderCol = ImColor( 18, 18, 20 );
+	ImVec4 ChildCol = ImColor( 23, 23, 23 );
+	ImVec4 ChildBorderCol = ImColor( 31, 31, 31 );
 
 	ImVec4 TitleBar = ImColor( 15, 15, 18 );
 	ImVec4 TitleBarBorder = ImColor( 21, 21, 24 );
@@ -29,7 +29,7 @@ public:
 	ImVec4 SideBar = ImColor( 14, 14, 16 );
 	ImVec4 SideBarBorder = ImColor( 21, 21, 23 );
 
-	ImVec4 ButtonHovered = ImColor( 107, 105, 255, 220 );
+	ImVec4 ButtonHovered = ImColor( 245, 112, 163, 220 );
 
 	ImVec4 InputBackground = ImColor( 16, 16, 16, 255 );
 	ImVec4 InputBorder = ImColor( 22, 22, 22, 255 );
@@ -205,7 +205,7 @@ public:
 
 	char cDiscordId[ 200 ] ;
 
-	ImVec2 MenuSize{ 680, 500 };
+	ImVec2 MenuSize{ 920, 600 };
 };
 
 inline c_menu g_MenuInfo;

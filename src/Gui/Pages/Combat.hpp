@@ -36,7 +36,7 @@ namespace Combat {
 
 		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, SubTabAlpha * ImGui::GetStyle( ).Alpha );
 
-		ImGui::SetCursorPos( ImVec2( 184, 76 ) );
+		ImGui::SetCursorPos( ImVec2( 184, 136 ) );
 		ImGui::BeginGroup( );
 		{
 			switch ( iSubTab )
@@ -44,7 +44,7 @@ namespace Combat {
 			case 0: //Aimbot
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.Aimbot->Enabled );
 						Custom::CheckBox( xorstr( "Show Fov" ), &g_Config.Aimbot->ShowFov );
@@ -57,7 +57,7 @@ namespace Combat {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::SliderInt( xorstr( "Field of View" ), &g_Config.Aimbot->FOV, 0, 400, xorstr( "%d" ), 0 );
 						ImGui::Combo("Hitbox", &g_Config.Aimbot->Hitbox, "Head\0Torso\0");
@@ -78,7 +78,7 @@ namespace Combat {
 			case 1: //Trigger
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.TriggerBot->Enabled );
 
@@ -100,7 +100,7 @@ namespace Combat {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						if (!g_Config.TriggerBot->SmartTrigger) {
 							ImGui::SliderInt(xorstr("Field of View"), &g_Config.TriggerBot->FOV, 0, 400, xorstr("%d"), 0);
@@ -118,7 +118,7 @@ namespace Combat {
 			case 2: //Silent
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.SilentAim->Enabled );
 						Custom::CheckBox( xorstr( "Show Fov" ), &g_Config.SilentAim->ShowFov );
@@ -132,7 +132,7 @@ namespace Combat {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::SliderInt( xorstr( "Field of View" ), &g_Config.SilentAim->FOV, 0, 400, xorstr( "%d" ), 0 );
 						ImGui::SliderInt( xorstr( "Miss Chance" ), &g_Config.SilentAim->MissChance, 0, 100, xorstr( "%dx" ), 0 );

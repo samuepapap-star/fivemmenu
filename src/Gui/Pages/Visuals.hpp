@@ -37,7 +37,7 @@ namespace Visuals {
 
 		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, SubTabAlpha * ImGui::GetStyle( ).Alpha );
 
-		ImGui::SetCursorPos( ImVec2( 184, 76 ) );
+		ImGui::SetCursorPos( ImVec2( 184, 136 ) );
 		ImGui::BeginGroup( );
 		{
 			switch ( iSubTab )
@@ -45,7 +45,7 @@ namespace Visuals {
 			case 0: //Players
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals#ESP" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Globals#ESP" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.ESP->Enabled );
 						if ( Custom::CheckBox( xorstr( "Box" ), &g_Config.ESP->Box ) ) {
@@ -95,7 +95,7 @@ namespace Visuals {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Preview" ), ImVec2( 230, 400 ), false, ImGuiWindowFlags_NoScrollbar );
+					ImGui::BeginChild( xorstr( "Preview" ), ImVec2( 340, 440 ), false, ImGuiWindowFlags_NoScrollbar );
 					{
 						Custom::g_EspPreview.DragDropHandler( );
 						Custom::g_EspPreview.Draw( );
@@ -108,7 +108,7 @@ namespace Visuals {
 			case 1: //Vehicles
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.VehicleESP->Enabled );
 						Custom::CheckBox( xorstr( "Vehicle Names" ), &g_Config.VehicleESP->VehName );
@@ -122,7 +122,7 @@ namespace Visuals {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.VehicleESP->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 					}

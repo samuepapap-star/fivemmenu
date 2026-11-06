@@ -34,7 +34,7 @@ namespace World {
 
 		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, SubTabAlpha * ImGui::GetStyle( ).Alpha );
 
-		ImGui::SetCursorPos( ImVec2( 184, 76 ) );
+		ImGui::SetCursorPos( ImVec2( 184, 136 ) );
 		ImGui::BeginGroup( );
 		{
 			switch ( iSubTab )
@@ -57,7 +57,7 @@ namespace World {
 				ImGui::BeginGroup( );
 				{
 
-					ImGui::BeginChild( xorstr( "List" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "List" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 						for ( int i = 0; i < Core::SDK::Game::EntityList.size( ); i++ )
@@ -176,13 +176,13 @@ namespace World {
 
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "List" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "List" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 
 
 						{
-							std::lock_guard<std::mutex> lock( Core::Threads::g_VehicleList.vehicleListMutex ); // Protege a lista durante a renderização
+							std::lock_guard<std::mutex> lock( Core::Threads::g_VehicleList.vehicleListMutex ); // Protege a lista durante a renderizaÃ§Ã£o
 
 							for ( int i = 0; i < Core::SDK::Game::VehicleList.size( ); i++ )
 							{

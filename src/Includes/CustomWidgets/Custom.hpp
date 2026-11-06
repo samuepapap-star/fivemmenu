@@ -315,109 +315,33 @@ namespace Custom {
 		//return Check;
 	}
 
-	inline bool CheckBox( const char * Label, bool * Checked, bool bToolTip = false, const char * ToolTipMsg = "", const char * ToolTipIcon = "" ) {
-		ImGuiWindow * Window = ImGui::GetCurrentWindow( );
-		if ( Window->SkipItems )
-			return false;
-
-		ImGuiContext & g = *GImGui;
-		const ImGuiStyle & style = g.Style;
-
-		std::string UniqueID = ( std::string ) Label + std::to_string( ( int ) Checked );
-		const ImGuiID id = Window->GetID( UniqueID.c_str( ) );
-
-		float Width = ImGui::GetWindowContentRegionMax( ).x - ImGui::GetWindowContentRegionMin( ).x - ( Window->ScrollbarY ? 5.f : 0.f );
-		//if ( CustomWidth != 0.f ) {
-		//	Width = CustomWidth - ImGui::GetWindowContentRegionMin( ).x - ( Window->ScrollbarY ? 5.f : 0.f );
-		//}
-
-		ImVec2 TextSize = ImGui::CalcTextSize( Label );
-		const ImVec2 CheckBoxSize( 22, 22 );
-
-		const ImVec2 Pos = Window->DC.CursorPos;
-		const ImRect Rect( Pos, Pos + ImVec2( Width, CheckBoxSize.y - 4 ) );
-		const ImRect Clickable( Pos, Pos + ImVec2( CheckBoxSize.x + TextSize.x + 8, CheckBoxSize.y ) );
-
-		ImGui::ItemSize( Rect, style.FramePadding.y );
-
-		if ( !ImGui::ItemAdd( Rect, id, &Clickable ) ) {
-			IMGUI_TEST_ENGINE_ITEM_INFO( id, label, g.LastItemData.StatusFlags | ImGuiItemStatusFlags_Checkable | ( *v ? ImGuiItemStatusFlags_Checked : 0 ) );
-			return false;
-		}
-
-		bool Hovered, Held;
-		bool Pressed = ImGui::ButtonBehavior( Clickable, id, &Hovered, &Held );
-		if ( Pressed ) {
-			*Checked = !( *Checked );
-			ImGui::MarkItemEdited( id );
-		}
-
-		struct WidCheckBox_t {
-			ImVec4 BackGroundColor = ImColor( 18, 18, 20 );
-			ImVec4 UnCheckedBackGroundColor = ImColor( 18, 18, 20 );
-			ImVec4 CheckColor = ImColor( 18, 18, 20 );
-			ImVec4 LabelColor = g_Col.SecundaryText;
-
-			ImVec2 BackGroundSize = ImVec2( 0, 0 );
-			//ImVec2 BackGroundSizeTwo = ImVec2( 0, 0 );
-
-			float CheckUp = 0.f;
-			float AnimKeyBind = 0.f;
-
-			float SlideX = 0.f;
-			ImVec4 IconColor = ImColor( 245, 158, 66, 0 );
-		};
-
-		static std::map<ImGuiID, WidCheckBox_t> anim;
-		auto CheckBoxAnim = anim.find( id );
-
-		if ( CheckBoxAnim == anim.end( ) )
-		{
-			anim.insert( { id, WidCheckBox_t( ) } );
-			CheckBoxAnim = anim.find( id );
-		}
-
-		ImVec2 IconTextSize = Utils::CalcTextSize( g_Variables.FontAwesomeSolid, g_Variables.FontAwesomeSolid->FontSize, ICON_FA_TRIANGLE_EXCLAMATION );
-
-		//CheckBoxAnim->second.SlideX = ImLerp( CheckBoxAnim->second.SlideX, Hovered || *Checked ? ( TextSize.x + 8 ) : 0.f, ImGui::GetIO( ).DeltaTime * 6 );
-		CheckBoxAnim->second.IconColor = ImLerp( CheckBoxAnim->second.IconColor, Hovered || *Checked ? ImVec4( g_Col.Base ) : ImVec4( g_Col.Base.x, g_Col.Base.y, g_Col.Base.z, 0.f / 255.f ), ImGui::GetIO( ).DeltaTime * 12 );
-		CheckBoxAnim->second.LabelColor = ImLerp( CheckBoxAnim->second.LabelColor, *Checked ? ImColor( g_Col.FeaturesText ) : ImColor( g_Col.SecundaryFeaturesText ), g.IO.DeltaTime * 8.f );
-		CheckBoxAnim->second.BackGroundColor = ImLerp( CheckBoxAnim->second.BackGroundColor, *Checked ? ImColor( g_Col.Base ) : Hovered ? ImColor( 20, 20, 22 ) : ImColor( 18, 18, 20 ), g.IO.DeltaTime * 10.f );
-		CheckBoxAnim->second.UnCheckedBackGroundColor = ImLerp( CheckBoxAnim->second.UnCheckedBackGroundColor, Hovered ? ImColor( 20, 20, 22 ) : ImColor( 18, 18, 20 ), g.IO.DeltaTime * 6.f );
-		CheckBoxAnim->second.BackGroundSize = ImLerp( CheckBoxAnim->second.BackGroundSize, ( *Checked ) ? ImVec2( CheckBoxSize / 2 ) : ImVec2( 0, 0 ), g.IO.DeltaTime * 8.f );
-
-		if ( CheckBoxAnim->second.BackGroundSize.x > ( CheckBoxSize.x / 2 ) - 2.f && ( *Checked ) ) {
-			CheckBoxAnim->second.CheckColor = ImLerp( CheckBoxAnim->second.CheckColor, ImColor( 21, 21, 23, 255 ), g.IO.DeltaTime * 14.f );
-			CheckBoxAnim->second.CheckUp = ImLerp( CheckBoxAnim->second.CheckUp, CheckBoxSize.x / 4, g.IO.DeltaTime * 6.f );
-		}
-		else {
-			CheckBoxAnim->second.CheckColor = ImLerp( CheckBoxAnim->second.CheckColor, ImColor( 21, 21, 23, 0 ), g.IO.DeltaTime * 14.f );
-			CheckBoxAnim->second.CheckUp = ImLerp( CheckBoxAnim->second.CheckUp, 0.f, g.IO.DeltaTime * 6.f );
-		}
-
-		ImVec2 CheckBoxCenter( Rect.Min + CheckBoxSize / 2 );
-		Window->DrawList->AddRectFilled( Rect.Min, Rect.Min + CheckBoxSize, ImGui::GetColorU32( CheckBoxAnim->second.UnCheckedBackGroundColor ), 4.f );
-		Window->DrawList->AddRect( Rect.Min, Rect.Min + CheckBoxSize, ImGui::GetColorU32( ImVec4( ImColor( 24, 24, 26 ) ) ), 4.f );
-		Window->DrawList->AddRectFilled( CheckBoxCenter - CheckBoxAnim->second.BackGroundSize, CheckBoxCenter + CheckBoxAnim->second.BackGroundSize, ImGui::GetColorU32( CheckBoxAnim->second.BackGroundColor ), 4.f );
-
-		ImGui::RenderCheckMark( Window->DrawList, ImVec2( Pos.x + CheckBoxSize.x / 4, Pos.y + CheckBoxSize.x / 2 - CheckBoxAnim->second.CheckUp ), ImGui::GetColorU32( CheckBoxAnim->second.CheckColor ), CheckBoxSize.x / 2 );
-		//Window->DrawList->AddRectFilled( ImVec2( Rect.Min.x + CheckBoxAnim->second.BackGroundSizeTwo.x -3, Rect.Min.y + 4 ), ImVec2( Rect.Min.x + CheckBoxAnim->second.BackGroundSizeTwo.x, Rect.Min.y + CheckBoxSize.y - 2 ), ImGui::GetColorU32( CheckBoxAnim->second.BackGroundColor ), 4.f );
-
-		//Window->DrawList->AddLine( CheckBoxCenter - ImVec2( 6, 0 ) + ImVec2( 0 , 0 ), CheckBoxCenter + ImVec2( 0, 4 ), ImGui::GetColorU32( ImVec4( ImColor( 200, 200, 200 ) ) ), 2 );
-		//Window->DrawList->AddLine( CheckBoxCenter + ImVec2( 0, 4 ), CheckBoxCenter + ImVec2( 4, 0 ) - ImVec2( 0, 5 ), ImGui::GetColorU32( ImVec4( ImColor( 200, 200, 200 ) ) ), 2 );
-
-		if ( bToolTip )
-		{
-			ToolTip( Label, ToolTipMsg, ToolTipIcon, Hovered && g_MenuInfo.IsOpen );
-			//Window->DrawList->AddText( g_Variables.FontAwesomeSolid, g_Variables.FontAwesomeSolid->FontSize, ImVec2( Rect.Min.x + CheckBoxSize.x + 8.f + ( TextSize.x + 8 ), Pos.y + Rect.Max.y / 2 - ( Pos.y + IconTextSize.y ) / 2 ), ImGui::GetColorU32( CheckBoxAnim->second.IconColor ), ICON_FA_TRIANGLE_EXCLAMATION );
-		}
-
-		Window->DrawList->AddText( ImVec2( Rect.Min.x + CheckBoxSize.x + 8.f, Pos.y + Rect.Max.y / 2 - ( Pos.y + TextSize.y ) / 2 ), ImGui::GetColorU32( CheckBoxAnim->second.LabelColor ), Label );
-
-		//Window->DrawList->AddText( g_Variables.FontAwesomeSolid, g_Variables.FontAwesomeSolid->FontSize, ImVec2( Rect.Min.x + CheckBoxSize.x + 8.f, Pos.y + Rect.Max.y / 2 - ( Pos.y + TextSize.y ) / 2 ) + ImVec2( TextSize.x + 8, 0 ), ImGui::GetColorU32( ImVec4( ImColor( 204, 76, 67 ) ) ), ICON_FA_CIRCLE_EXCLAMATION );
-		IMGUI_TEST_ENGINE_ITEM_INFO( id, label, g.LastItemData.StatusFlags | ImGuiItemStatusFlags_Checkable | ( *Checked ? ImGuiItemStatusFlags_Checked : 0 ) );
-		return Pressed;
-	}
+    inline bool CheckBox(const char* Label, bool* Checked, bool bToolTip=false,
+        const char* ToolTipMsg="", const char* ToolTipIcon="") {
+        ImGuiWindow* window=ImGui::GetCurrentWindow();
+        if(window->SkipItems) return false;
+        const ImGuiID id=window->GetID(Label);
+        const float width=ImGui::GetContentRegionAvail().x;
+        const ImVec2 pos=window->DC.CursorPos;
+        const ImRect rect(pos,pos+ImVec2(width,28.f));
+        ImGui::ItemSize(rect);
+        if(!ImGui::ItemAdd(rect,id)) return false;
+        bool hovered=false,held=false;
+        const bool pressed=ImGui::ButtonBehavior(rect,id,&hovered,&held);
+        if(pressed){*Checked=!*Checked;ImGui::MarkItemEdited(id);}
+        ImGuiStorage* storage=ImGui::GetStateStorage();
+        float t=storage->GetFloat(id,*Checked?1.f:0.f);
+        t=ImLerp(t,*Checked?1.f:0.f,ImClamp(ImGui::GetIO().DeltaTime*12.f,0.f,1.f));
+        storage->SetFloat(id,t);
+        auto* draw=window->DrawList;
+        const ImVec2 toggle=pos+ImVec2(width-36.f,4.f);
+        const ImVec4 color=ImLerp(ImVec4(.19f,.19f,.19f,1.f),g_Col.Base,t);
+        draw->AddText(pos+ImVec2(0,5),ImGui::GetColorU32(ImVec4(.9f,.9f,.9f,1.f)),Label);
+        draw->AddRectFilled(toggle,toggle+ImVec2(36,20),ImGui::GetColorU32(color),10.f);
+        draw->AddCircleFilled(toggle+ImVec2(10+16*t,10),8.f,ImGui::GetColorU32(ImVec4(1,1,1,1)),20);
+        draw->AddLine(pos+ImVec2(0,27),pos+ImVec2(width,27),ImGui::GetColorU32(ImVec4(.12f,.12f,.12f,1)));
+        if(bToolTip) ToolTip(Label,ToolTipMsg,ToolTipIcon,hovered && g_MenuInfo.IsOpen);
+        return pressed;
+    }
 
 	inline bool CheckBoxCfg( const char * Label, bool * Checked, std::function<void( )> Components, bool bToolTip = false, const char * ToolTipMsg = "", const char * ToolTipIcon = "" ) {
 		ImGuiWindow * Window = ImGui::GetCurrentWindow( );

@@ -34,7 +34,7 @@ namespace Settings {
 
 		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, SubTabAlpha * ImGui::GetStyle( ).Alpha );
 
-		ImGui::SetCursorPos( ImVec2( 184, 76 ) );
+		ImGui::SetCursorPos( ImVec2( 184, 136 ) );
 		ImGui::BeginGroup( );
 		{
 			switch ( iSubTab )
@@ -42,7 +42,7 @@ namespace Settings {
 			case 0: //Settings
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						Custom::CheckBox( xorstr( "VSync" ), &g_Config.General->VSync );
                         Custom::CheckBox("Bind Manager", &g_Config.General->BindManager);
@@ -86,7 +86,7 @@ namespace Settings {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Configs" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Configs" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 						if ( Custom::Button( xorstr( "Export Config" ), ImVec2( -1, 30 ), 0 ) ) 

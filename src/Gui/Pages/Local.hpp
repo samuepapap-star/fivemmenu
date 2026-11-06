@@ -40,7 +40,7 @@ namespace Local {
 
 		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, SubTabAlpha * ImGui::GetStyle( ).Alpha );
 
-		ImGui::SetCursorPos( ImVec2( 184, 76 ) );
+		ImGui::SetCursorPos( ImVec2( 184, 136 ) );
 		ImGui::BeginGroup( );
 		{
 			switch ( iSubTab )
@@ -48,7 +48,7 @@ namespace Local {
 			case 0: //Main
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
 					{
 
 						if ( Custom::CheckBoxCfg( xorstr( "GodMode" ), &g_Config.Player->EnableGodMode, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Bind" ), &g_Config.Player->GodModeKey, &KeyMode ); }, true, xorstr( "That function can be detected by server AntiCheat" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
@@ -129,7 +129,7 @@ namespace Local {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						g_Config.Player->CurrentHealthValue = Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 100.f > Core::SDK::Pointers::pLocalPlayer->GetMaxHealth( ) - 100.f ? Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 100.f : Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 99.f;
 						g_Config.Player->CurrentArmorValue = Core::SDK::Pointers::pLocalPlayer->GetArmor( );
@@ -155,7 +155,7 @@ namespace Local {
 				{
 
 
-					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						if ( Custom::CheckBox( xorstr( "GodMode" ), &g_Config.Player->VehicleGodMode ) )
 						{
@@ -232,7 +232,7 @@ namespace Local {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 
@@ -249,7 +249,7 @@ namespace Local {
 			}
 			break;
 			case 2: //Teleports
-				ImGui::SetCursorPos( ImVec2( 184, 76 ) );
+				ImGui::SetCursorPos( ImVec2( 184, 136 ) );
 				ImGui::BeginGroup( );
 				{
 					struct Locations_t {
@@ -311,7 +311,7 @@ namespace Local {
 			case 3: //Weapons
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Misc" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						g_Config.Player->RecoilValue = Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( )->GetRecoil( );
 						static const float RecoilBackup = g_Config.Player->RecoilValue;
@@ -381,7 +381,7 @@ namespace Local {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 
@@ -434,7 +434,7 @@ namespace Local {
 					if ( !InVehicle ) 
 						iSubTabCount = 1;
 
-					ImGui::SetCursorPos( ImVec2( 184, 60 ) );
+					ImGui::SetCursorPos( ImVec2( 184, 120 ) );
 
 					ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 10, 4 ) );
 					{
@@ -485,7 +485,7 @@ namespace Local {
 			case 5: //WeaponSpawn
 				ImGui::BeginGroup( );
 				{
-					ImGui::SetCursorPos( ImVec2( 184, 60 ) );
+					ImGui::SetCursorPos( ImVec2( 184, 120 ) );
 
 					ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 10, 4 ) );
 					{
