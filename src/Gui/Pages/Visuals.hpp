@@ -6,6 +6,7 @@
 #include <Includes/CustomWidgets/Preview.hpp>
 
 #include <Core/Core.hpp>
+#include <Gui/AdminList.hpp>
 
 using namespace std;
 
@@ -103,6 +104,12 @@ namespace Visuals {
 						Custom::CheckBox( xorstr( "Mostrar meu personagem" ), &g_Config.ESP->ShowLocalPlayer );
 						Custom::CheckBox( xorstr( "Ignorar mortos" ), &g_Config.ESP->IgnoreDead );
                         Custom::CheckBox("ADM list (possíveis invisíveis)", &g_Config.ESP->AdminList);
+                        if(g_Config.ESP->AdminList && ImGui::TreeNode("Ver ADM list no menu")) {
+                            AdminList::RenderEntries();
+                            ImGui::TreePop();
+                        }
+                        if(g_Config.ESP->UserNames)
+                            ImGui::TextWrapped("%s",Core::Threads::g_UpdateNames.Status().c_str());
                         Custom::CheckBox("Destacar possíveis invisíveis", &g_Config.ESP->AdminHighlight);
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Usa indicadores locais de invisibilidade em jogadores carregados. Não confirma cargo de administrador.");
@@ -165,5 +172,6 @@ namespace Visuals {
 		ImGui::PopStyleVar( );
 	}
 }
+
 
 

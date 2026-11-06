@@ -91,7 +91,7 @@ namespace Core
                             Entity.Ped = CurrentPed;
                             Entity.Id = CachedEntity.Id;
 
-                            auto& NetworkInfo = Core::Threads::g_UpdateNames.NetworkMap[ Entity.Id ];
+                            const auto NetworkInfo = Core::Threads::g_UpdateNames.Lookup(Entity.Id);
 
                             Entity.Index = CachedEntity.Index;
                             Entity.Pos = CachedEntity.Pos;
@@ -103,10 +103,10 @@ namespace Core
                             Entity.Distance = CachedEntity.Distance;
                             Entity.WeaponName = CachedEntity.WeaponName;
 
-                            Entity.NetworkInfo.UserName = Utils::StringToFirstUpperCase( NetworkInfo.UserName );
+                            Entity.NetworkInfo.UserName = NetworkInfo.UserName;
 
                             if ( Entity.NetworkInfo.UserName.empty( ) ) {
-                                Entity.NetworkInfo.UserName = xorstr( "Unknown" );
+                                Entity.NetworkInfo.UserName = "Jogador #" + std::to_string(Entity.Id);
                             }
 
                             Entity.NetworkInfo.SteamId = NetworkInfo.SteamId;
@@ -131,3 +131,4 @@ namespace Core
         inline cEntityList g_EntityList;
     }
 }
+
