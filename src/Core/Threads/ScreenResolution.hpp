@@ -18,14 +18,15 @@ namespace Core
 			void MoveAndSetResolution( )
 			{
 				g_Variables.g_hGameWindow = FindWindowA( xorstr( "grcWindow" ), nullptr );
-				if ( !g_Variables.g_hGameWindow ) { exit( 0 ); }
+				if (!g_Variables.g_hGameWindow || IsIconic(g_Variables.g_hGameWindow)) { return; }
 
 				//Log in Check
 				//if ( g_MenuInfo.IsLogged && !g_Variables.g_bPassedByThisVerify ) { exit( 0 ); }
 				//if ( g_MenuInfo.IsLogged && g_Variables.g_VerifyLogin != 348975682703 ) { exit( 0 ); }
 
 				auto WindowInfo = Utils::GetWindowPosAndSize( g_Variables.g_hGameWindow );
-				g_Variables.g_vGameWindowSize = WindowInfo.second;
+				if (WindowInfo.second.x <= 0 || WindowInfo.second.y <= 0) return;
+                g_Variables.g_vGameWindowSize = WindowInfo.second;
 				g_Variables.g_vGameWindowPos = WindowInfo.first;
 				g_Variables.g_vGameWindowCenter = { g_Variables.g_vGameWindowSize.x / 2, g_Variables.g_vGameWindowSize.y / 2 };
 
