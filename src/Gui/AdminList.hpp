@@ -30,7 +30,7 @@ inline void Draw() {
         if (cfg->AdminHighlight) {
             const auto screen=Core::SDK::Game::WorldToScreen(pos);
             if (Core::SDK::Game::IsOnScreen(screen))
-                draw->AddText(ImVec2(screen.x,screen.y),IM_COL32(255,190,60,255),"Possivel invisivel");
+                draw->AddText(ImVec2(screen.x,screen.y),IM_COL32(255,190,60,255),"ADM");
         }
     }
     // The list is rendered inside the menu; no background panel covers gameplay.
