@@ -52,7 +52,17 @@ namespace World {
 				};*/
 
 				static int SeletedIndex = -1;
-				bool IsSelected;
+                static CPed* selectedPlayer=nullptr;
+                static int selectedPlayerId=0;
+                SeletedIndex=-1;
+                for(size_t index=0;index<Core::SDK::Game::EntityList.size();++index) {
+                    const auto &entity=Core::SDK::Game::EntityList[index];
+                    if(entity.Ped==selectedPlayer && entity.Id==selectedPlayerId && entity.PedType==2 &&
+                        entity.Ped!=Core::SDK::Pointers::pLocalPlayer) {
+                        SeletedIndex=static_cast<int>(index);break;
+                    }
+                }
+                bool IsSelected;
 
 
 				ImGui::BeginGroup( );
@@ -70,7 +80,13 @@ namespace World {
 								continue;
 
 							IsSelected = SeletedIndex == i;
-							if ( ImGui::ListSelectable( Core::SDK::Game::EntityList[ i ].NetworkInfo.UserName.c_str( ), &IsSelected ) ) SeletedIndex = i;
+							ImGui::PushID(i);
+                            if(ImGui::ListSelectable(Core::SDK::Game::EntityList[i].NetworkInfo.UserName.c_str(),&IsSelected)) {
+                                SeletedIndex=i;
+                                selectedPlayer=Core::SDK::Game::EntityList[i].Ped;
+                                selectedPlayerId=Core::SDK::Game::EntityList[i].Id;
+                            }
+                            ImGui::PopID();
 						}
 						ImGui::PopStyleVar( );
 					}
@@ -178,7 +194,16 @@ namespace World {
 			{
 
 				static int SeletedIndex = -1;
-				bool IsSelected;
+                static CVehicle* selectedVehicle=nullptr;
+                SeletedIndex=-1;
+                {
+                    std::lock_guard<std::mutex> guard(Core::Threads::g_VehicleList.vehicleListMutex);
+                    for(size_t index=0;index<Core::SDK::Game::VehicleList.size();++index)
+                        if(Core::SDK::Game::VehicleList[index].Pointer==selectedVehicle) {
+                            SeletedIndex=static_cast<int>(index);break;
+                        }
+                }
+                bool IsSelected;
 
 
 				ImGui::BeginGroup( );
@@ -195,7 +220,12 @@ namespace World {
 							{
 								IsSelected = SeletedIndex == i;
 								std::string Name = Core::SDK::Game::VehicleList[ i ].Name + xorstr( " (" ) + std::to_string( ( int ) Core::SDK::Game::VehicleList[ i ].Dist ) + xorstr( "m)" );
-								if ( ImGui::ListSelectable( Name.c_str( ), &IsSelected ) ) SeletedIndex = i;
+								ImGui::PushID(i);
+                                if(ImGui::ListSelectable(Name.c_str(),&IsSelected)) {
+                                    SeletedIndex=i;
+                                    selectedVehicle=Core::SDK::Game::VehicleList[i].Pointer;
+                                }
+                                ImGui::PopID();
 							}
 						}
 
