@@ -13,7 +13,7 @@ inline std::string Validate(HANDLE process, uintptr_t base) {
         dos.e_lfanew <= 0 || dos.e_lfanew >= 0x100000 ||
         !Read(process, base + dos.e_lfanew, nt) || nt.Signature != IMAGE_NT_SIGNATURE ||
         nt.FileHeader.Machine != IMAGE_FILE_MACHINE_AMD64 ||
-        nt.OptionalHeader.SizeOfImage != 65387520 || nt.FileHeader.TimeDateStamp != 1793798832)
+        nt.OptionalHeader.SizeOfImage != 65387520 || (nt.FileHeader.TimeDateStamp != 1793798832 && nt.FileHeader.TimeDateStamp != 1793965275))
         return "Esta revisao da build 3889 difere do diagnostico. Execute com --diagnostico-3889 e envie o novo relatorio.";
 
     uintptr_t world=0, ped=0, navigation=0, replay=0, iface=0, list=0, viewport=0, camera=0, follow=0;
