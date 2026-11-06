@@ -67,6 +67,7 @@ namespace Visuals {
                         ImGui::Combo("Posição do colete", &g_Config.ESP->ArmorBarState, "Acima\0Direita\0Abaixo\0Esquerda\0");
                         Custom::CheckBox("Mostrar prévia", &g_Config.ESP->PreviewEnabled);
                         ImGui::ColorEdit4("Cor da caixa", &g_Config.ESP->BoxCol.Value.x);
+                        ImGui::ColorEdit4("Cor dos cantos", &g_Config.ESP->CornerColor.Value.x);
                         ImGui::ColorEdit4("Cor do esqueleto", &g_Config.ESP->SkeletonCol.Value.x);
                         Custom::CheckBox( xorstr( "Nomes dos jogadores" ), &g_Config.ESP->UserNames );
 						Custom::CheckBox( xorstr( "Nomes das armas" ), &g_Config.ESP->WeaponName );

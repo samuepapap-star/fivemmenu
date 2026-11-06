@@ -89,6 +89,7 @@ namespace Core {
 			inline static bool FilledBox;
 			inline static int BoxState = 0;
             inline static bool CornerBox = false;
+            inline static ImColor CornerColor{33, 140, 176, 255};
             inline static bool StaticESP = false;
             inline static int BoxSize = 0;
             inline static bool PreviewEnabled = true;
@@ -288,6 +289,7 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ] = ESP->IgnoreDead;
                 FeaturesCfg["ESP"]["PossibleNoclip"] = ESP->PossibleNoclip;
                 FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
+                FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
                 FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
                 FeaturesCfg["ESP"]["BoxSize"] = ESP->BoxSize;
                 FeaturesCfg["ESP"]["PreviewEnabled"] = ESP->PreviewEnabled;
@@ -435,6 +437,7 @@ namespace Core {
 				ESP->IgnoreDead = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ];
                 ESP->PossibleNoclip = FeaturesCfg["ESP"].value("PossibleNoclip", false);
                 ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
+                if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
                 ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);
                 ESP->BoxSize = FeaturesCfg["ESP"].value("BoxSize", 0);
                 ESP->PreviewEnabled = FeaturesCfg["ESP"].value("PreviewEnabled", true);

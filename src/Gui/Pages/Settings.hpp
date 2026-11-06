@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Features/ExternalCameraOptions.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
 #include <Gui/Pages/NamedConfigs.hpp>
 #include <Includes/Includes.hpp>
@@ -79,6 +80,7 @@ namespace Settings {
 						if ( Custom::Button( xorstr( "Encerrar" ), ImVec2( -1, 30 ), 0 ) ) 
 						{
                             g_Config.Player->NoCollisionEnabled=false;
+                            Core::Features::ExternalCameraOptions::Tick(true);
                             Core::Features::CarreraAdditions::TickCollision(true);
 							exit( 0 );
 						}

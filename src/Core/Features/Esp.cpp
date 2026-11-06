@@ -247,19 +247,19 @@ void Core::Features::cEsp::Draw( )
                 const float dy = i & 2 ? -length : length;
                 DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), IM_COL32(0,0,0,220), 3.f);
                 DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), IM_COL32(0,0,0,220), 3.f);
-                DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), Cfg->BoxCol, 1.f);
-                DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), Cfg->BoxCol, 1.f);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), Cfg->CornerColor, 1.f);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), Cfg->CornerColor, 1.f);
             }
         }
 
 		if ( Cfg->Skeleton )
-		{
+		[&]() {
 			//auto Skeleton = Entity.Skeleton;
 			uintptr_t FragInstNMGta = Mem.Read<uintptr_t>( ( uintptr_t ) Ped + g_Offsets.m_FragInst );
 			uintptr_t v9 = Mem.Read<uintptr_t>( FragInstNMGta + 0x68 );
 
 			if ( !v9 )
-				continue;
+				return;
 
 			Core::SDK::Game::cSkeleton_t Skeleton;
 
@@ -271,7 +271,7 @@ void Core::Features::cEsp::Draw( )
 			Skeleton.crSkeletonData.m_BoneIdTable_Slots = Mem.Read<unsigned short>( Skeleton.crSkeletonData.Ptr + 0x18 );
 
 			if ( !Skeleton.crSkeletonData.m_BoneIdTable_Slots )
-				continue;
+				return;
 
 			Skeleton.crSkeletonData.m_BoneIdTable = Mem.Read<uintptr_t>( Skeleton.crSkeletonData.Ptr + 0x10 );
 
@@ -310,7 +310,7 @@ void Core::Features::cEsp::Draw( )
 			D3DXVECTOR2 Rfoot = Core::SDK::Game::WorldToScreen( RfootPos );
 
 			if ( !Core::SDK::Game::IsOnScreen( Lfoot ) || !Core::SDK::Game::IsOnScreen( Rfoot ) || !Core::SDK::Game::IsOnScreen( Pelvis ) || !Core::SDK::Game::IsOnScreen( Neck ) || !Core::SDK::Game::IsOnScreen( LeftUperarm ) || !Core::SDK::Game::IsOnScreen( RightUperarm ) || !Core::SDK::Game::IsOnScreen( RightFormArm ) || !Core::SDK::Game::IsOnScreen( LeftFormArm ) || !Core::SDK::Game::IsOnScreen( RightHand ) || !Core::SDK::Game::IsOnScreen( LeftHand ) || !Core::SDK::Game::IsOnScreen( LeftThigh ) || !Core::SDK::Game::IsOnScreen( RightThigh ) || !Core::SDK::Game::IsOnScreen( RightCalf ) )
-				continue;
+				return;
 
 			auto ScreenHead = Core::SDK::Game::WorldToScreen( HeadPos );
 			//DrawList->AddLine( ImVec2( ScreenHead.x, ScreenHead.y ), ImVec2( Neck.x, Neck.y ), ImColor( 0, 0, 0 ), 2.5 );
@@ -352,7 +352,7 @@ void Core::Features::cEsp::Draw( )
 			//DrawList->AddLine( ImVec2( RightCalf.x, RightCalf.y ), ImVec2( Rfoot.x, Rfoot.y ), ImColor( 0, 0, 0 ), 2.5 );
 			DrawList->AddLine( ImVec2( RightCalf.x, RightCalf.y ), ImVec2( Rfoot.x, Rfoot.y ), Cfg->SkeletonCol, 1.5 );
 
-		}
+		}();
 
 		if ( Cfg->HeadCircle )
 		{

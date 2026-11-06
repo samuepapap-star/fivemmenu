@@ -56,7 +56,7 @@ namespace Custom
 		void Draw( )
 		{
 			iBox_Height = 200;
-			iBox_Width = iBox_Height / 2.f;
+			iBox_Width = int(iBox_Height / (1.80f + ImClamp(g_Config.ESP->BoxSize, 0, 30) / 100.f));
 
 			iBox_X = ImGui::GetWindowPos( ).x + ImGui::GetWindowSize( ).x / 2 - iBox_Width / 2;
 			iBox_Y = ImGui::GetWindowPos( ).y + ImGui::GetWindowSize( ).y / 2 - iBox_Height / 2;
@@ -77,14 +77,27 @@ namespace Custom
 
 			if ( BoxFillAnimation != 0 )
 			{
-				ImGui::GetWindowDrawList( )->AddRectFilled( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( ( int ) g_Config.ESP->FilledBoxCol.Value.x * 255, ( int ) g_Config.ESP->FilledBoxCol.Value.y * 255, ( int ) g_Config.ESP->FilledBoxCol.Value.z * 255, ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxFillAnimation ) ), 0, ImDrawFlags_None );
+				ImGui::GetWindowDrawList( )->AddRectFilled( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( ( int )(g_Config.ESP->FilledBoxCol.Value.x * 255), ( int )(g_Config.ESP->FilledBoxCol.Value.y * 255), ( int )(g_Config.ESP->FilledBoxCol.Value.z * 255), ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxFillAnimation ) ), 0, ImDrawFlags_None );
 			}
 
 			if ( BoxAnimation != 0 )
 			{
 				ImGui::GetWindowDrawList( )->AddRect( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( 0, 0, 0, ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxAnimation ) ), 0, ImDrawFlags_None, 2 );
-				ImGui::GetWindowDrawList( )->AddRect( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( ( int ) g_Config.ESP->BoxCol.Value.x * 255, ( int ) g_Config.ESP->BoxCol.Value.y * 255, ( int ) g_Config.ESP->BoxCol.Value.z * 255, ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxAnimation ) ), 0, ImDrawFlags_None );
+				ImGui::GetWindowDrawList( )->AddRect( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( ( int )(g_Config.ESP->BoxCol.Value.x * 255), ( int )(g_Config.ESP->BoxCol.Value.y * 255), ( int )(g_Config.ESP->BoxCol.Value.z * 255), ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxAnimation ) ), 0, ImDrawFlags_None );
 			}
+
+            if (g_Config.ESP->CornerBox) {
+                const float length = iBox_Width * 0.25f;
+                auto draw = ImGui::GetWindowDrawList();
+                ImVec4 color = g_Config.ESP->CornerColor.Value;
+                color.w *= ImGui::GetStyle().Alpha;
+                for (int i = 0; i < 4; ++i) {
+                    const float x = float(iBox_X + (i & 1 ? iBox_Width : 0));
+                    const float y = float(iBox_Y + (i & 2 ? iBox_Height : 0));
+                    draw->AddLine(ImVec2(x,y), ImVec2(x + (i & 1 ? -length : length),y), ImColor(color), 1.f);
+                    draw->AddLine(ImVec2(x,y), ImVec2(x,y + (i & 2 ? -length : length)), ImColor(color), 1.f);
+                }
+            }
 
 			for ( size_t i = 0; i < mWidgets.size( ); i++ )
 			{
