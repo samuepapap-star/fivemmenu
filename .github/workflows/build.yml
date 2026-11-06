@@ -2,7 +2,7 @@ name: Build Wexize EXE
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/player-esp-customization ]
   workflow_dispatch:
 
 jobs:
