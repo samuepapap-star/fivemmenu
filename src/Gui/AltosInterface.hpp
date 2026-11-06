@@ -8,8 +8,9 @@ namespace AltosInterface {
         const ImVec2 pos = ImGui::GetWindowPos();
         const ImVec2 size = g_MenuInfo.MenuSize;
         ImDrawList* draw = ImGui::GetWindowDrawList();
-        draw->AddRectFilled(pos, pos + size, ImGui::GetColorU32(ImVec4(.06f,.06f,.06f,1)), 12.f);
-        draw->AddRect(pos, pos + size, ImGui::GetColorU32(ImVec4(.12f,.12f,.12f,1)), 12.f);
+        draw->AddRectFilled(pos,pos+size,ImGui::GetColorU32(g_Col.BackgroundCol),6.f);
+        draw->AddRectFilled(pos,pos+ImVec2(160,size.y),ImGui::GetColorU32(g_Col.SideBar),6.f,ImDrawFlags_RoundCornersLeft);
+        draw->AddRect(pos,pos+size,ImGui::GetColorU32(g_Col.BorderCol),6.f);
         draw->AddLine(pos + ImVec2(0,60), pos + ImVec2(size.x,60), ImGui::GetColorU32(ImVec4(.12f,.12f,.12f,1)));
         draw->AddLine(pos + ImVec2(160,60), pos + ImVec2(160,size.y), ImGui::GetColorU32(ImVec4(.12f,.12f,.12f,1)));
         draw->AddText(pos + ImVec2(18,22), ImGui::GetColorU32(g_Col.Base), "|||");
@@ -40,41 +41,34 @@ namespace AltosInterface {
     }
     inline void Navigation() {
         float y=76.f;
-        auto section=[&](const char* name) {
-            ImGui::GetWindowDrawList()->AddText(ImGui::GetWindowPos()+ImVec2(12,y),
-                ImGui::GetColorU32(ImVec4(.5f,.5f,.5f,1)),name);
-            y+=26.f;
+        auto section=[&](const char* label) {
+            ImGui::SetCursorPos(ImVec2(12,y));
+            ImGui::TextColored(ImColor(120,120,120),"%s",label);
+            y+=23.f;
         };
-        auto item=[&](const char* name,int page,int combatTab=-1) {
+        auto item=[&](const char* icon,const char* label,int page,int combat=-1) {
             if(search[0]) {
-                std::string label(name),query(search);
-                std::transform(label.begin(),label.end(),label.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
+                std::string text(label),query(search);
+                std::transform(text.begin(),text.end(),text.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
                 std::transform(query.begin(),query.end(),query.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
-                if(label.find(query)==std::string::npos) return;
+                if(text.find(query)==std::string::npos)return;
             }
-            const bool selected=g_MenuInfo.iTabCount==page &&
-                (combatTab<0 || Combat::iSubTabCount==combatTab);
-            ImGui::SetCursorPos(ImVec2(10,y));
-            const bool clicked=ImGui::InvisibleButton(name,ImVec2(140,30));
-            const ImVec2 p=ImGui::GetItemRectMin();
-            auto* draw=ImGui::GetWindowDrawList();
-            if(selected || ImGui::IsItemHovered())
-                draw->AddRectFilled(p,p+ImVec2(140,30),ImGui::GetColorU32(ImVec4(.09f,.09f,.09f,1)),6.f);
-            draw->AddCircleFilled(p+ImVec2(13,15),3.f,ImGui::GetColorU32(selected?g_Col.Base:ImVec4(.5f,.5f,.5f,1)));
-            draw->AddText(p+ImVec2(26,7),ImGui::GetColorU32(selected?ImVec4(.9f,.9f,.9f,1):ImVec4(.5f,.5f,.5f,1)),name);
-            if(clicked) {g_MenuInfo.iTabCount=page;if(combatTab>=0)Combat::iSubTabCount=combatTab;}
-            y+=33.f;
+            ImGui::SetCursorPos(ImVec2(5,y));
+            const bool active=g_MenuInfo.iTabCount==page && (combat<0 || Combat::iSubTabCount==combat);
+            if(Custom::Tab(icon,label,active)) {g_MenuInfo.iTabCount=page;if(combat>=0)Combat::iSubTabCount=combat;}
+            y+=34.f;
         };
         section("Combate");
-        item("Mira assistida",g_MenuInfo.Combat,0);
-        item("Tiro automático",g_MenuInfo.Combat,1);
-        item("Mira silenciosa",g_MenuInfo.Combat,2);
-        y+=8.f;section("Visual");
-        item("ESP",g_MenuInfo.Visuals);
-        item("Mundo",g_MenuInfo.World);
-        item("Personagem",g_MenuInfo.Local);
-        item("Recursos extras",g_MenuInfo.Exploits);
-        y+=8.f;section("Outros");
-        item("Configurações",g_MenuInfo.Settings);
+        item(ICON_FA_CROSSHAIRS,"Mira assistida",g_MenuInfo.Combat,0);
+        item(ICON_FA_BOLT,"Tiro automático",g_MenuInfo.Combat,1);
+        item(ICON_FA_PERSON_RUNNING,"Mira silenciosa",g_MenuInfo.Combat,2);
+        section("Recursos");
+        item(ICON_FA_PERSON,"Personagem",g_MenuInfo.Local);
+        item(ICON_FA_LIST,"Listas",g_MenuInfo.World);
+        item(ICON_FA_BOMB,"Extras",g_MenuInfo.Exploits);
+        section("Visual");
+        item(ICON_FA_EARTH_AMERICAS,"ESP",g_MenuInfo.Visuals);
+        section("Personalização");
+        item(ICON_FA_GEAR,"Configurações",g_MenuInfo.Settings);
     }
 }

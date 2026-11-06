@@ -9,7 +9,7 @@
 
 class cColors {
 public:
-	ImVec4 Base = ImColor( 245, 112, 163 ); //75, 70, 175 - 130, 151, 248
+	ImVec4 Base = ImColor(138,43,226); //75, 70, 175 - 130, 151, 248
 	ImVec4 PrimaryText = ImColor( 200, 200, 200 );
 	ImVec4 SecundaryText = ImColor( 128, 128, 128 );
 
@@ -18,7 +18,7 @@ public:
 
 	ImVec4 BorderCol = ImColor( 32, 32, 34 );
 	ImVec4 LinesCol = ImColor( 30, 30, 33 );
-	ImVec4 BackgroundCol = ImColor( 15, 15, 15 );
+	ImVec4 BackgroundCol = ImColor(10,10,10);
 
 	ImVec4 ChildCol = ImColor( 23, 23, 23 );
 	ImVec4 ChildBorderCol = ImColor( 31, 31, 31 );
@@ -26,10 +26,10 @@ public:
 	ImVec4 TitleBar = ImColor( 15, 15, 18 );
 	ImVec4 TitleBarBorder = ImColor( 21, 21, 24 );
 
-	ImVec4 SideBar = ImColor( 14, 14, 16 );
+	ImVec4 SideBar = ImColor(10,10,10);
 	ImVec4 SideBarBorder = ImColor( 21, 21, 23 );
 
-	ImVec4 ButtonHovered = ImColor( 245, 112, 163, 220 );
+	ImVec4 ButtonHovered = ImColor(138,43,226,220);
 
 	ImVec4 InputBackground = ImColor( 16, 16, 16, 255 );
 	ImVec4 InputBorder = ImColor( 22, 22, 22, 255 );

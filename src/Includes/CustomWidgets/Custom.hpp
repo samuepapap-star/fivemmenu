@@ -118,66 +118,135 @@ namespace Custom {
 		//ImGui::Image( g_Variables.Logo, ImVec2( 60, 60 ) );
 	}
 
-	inline bool Tab( const char * icon, const char * label, bool active )
+	inline bool Tab(const char* icon, const char* label, bool active)
 	{
-		struct Tab_t {
-			ImVec4 BackgroundColor;
-			ImVec2 BackgroundGrow;
-			ImVec4 IconColor;
-			ImVec4 TextColor;
-			float UnSelectedAnim;
-		};
-
-		ImGuiWindow * window = ImGui::GetCurrentWindow( );
-		ImDrawList * DrawList = window->DrawList;
-
-		if ( window->SkipItems ) {
+		if (!g_MenuInfo.IsOpen)
 			return false;
-		}
 
-		ImGuiContext & g = *GImGui;
-		const ImGuiStyle & style = g.Style;
-		const ImGuiID id = window->GetID( label );
-		const ImGuiIO IO = g.IO;
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		if (window->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		ImGuiIO& io = g.IO;
+		const ImGuiID id = window->GetID(label);
 
 		const ImVec2 pos = window->DC.CursorPos;
-		const ImRect rect( pos, pos + ImVec2( 134, 34 ) );
-		ImGui::ItemSize( rect, style.FramePadding.y );
-		if ( !ImGui::ItemAdd( rect, id ) ) {
+		const ImVec2 size = ImVec2(150, 34);
+		const ImRect rect(pos, pos + size);
+
+		ImGui::ItemSize(size);
+		if (!ImGui::ItemAdd(rect, id)) return false;
+
+		bool hovered, held;
+		bool pressed = ImGui::ButtonBehavior(rect, id, &hovered, &held);
+		if (pressed) ImGui::MarkItemEdited(id);
+
+		struct TabAnim {
+			float indicatorY, indicatorH;
+			float bgY, bgH;
+			float iconAlpha, textAlpha;
+		};
+		static std::map<ImGuiID, TabAnim> anims;
+		auto& anim = anims[id];
+
+		const float targetY = pos.y + 2.f;
+		const float targetBgH = 30.f;
+		const float targetIndH = 22.f;
+
+		if (ImGui::GetStyle().Alpha <= 0.01f)
+		{
+			anim.indicatorY = pos.y;
+			anim.indicatorH = 0.f;
+			anim.bgY = pos.y;
+			anim.bgH = 0.f;
+			anim.iconAlpha = 0.f;
+			anim.textAlpha = 0.f;
 			return false;
 		}
 
-		bool hovered, held;
-		bool pressed = ImGui::ButtonBehavior( rect, id, &hovered, &held );
-		if ( pressed ) { ImGui::MarkItemEdited( id ); }
+		float speed = io.DeltaTime * 10.f;
 
-		static std::map<ImGuiID, Tab_t> anim;
-		auto TabAnim = anim.find( id );
-
-		if ( TabAnim == anim.end( ) ) {
-			anim.insert( { id, Tab_t( ) } );
-			TabAnim = anim.find( id );
+		if (active) {
+			anim.indicatorY = ImLerp(anim.indicatorY, targetY, speed);
+			anim.indicatorH = ImLerp(anim.indicatorH, targetIndH, speed);
+			anim.bgY = ImLerp(anim.bgY, targetY, speed);
+			anim.bgH = ImLerp(anim.bgH, targetBgH, speed);
+			anim.iconAlpha = ImLerp(anim.iconAlpha, 1.f, speed);
+			anim.textAlpha = ImLerp(anim.textAlpha, 1.f, speed);
+		}
+		else {
+			const float centerY = pos.y + size.y * 0.5f;
+			anim.indicatorY = ImLerp(anim.indicatorY, centerY, speed);
+			anim.indicatorH = ImLerp(anim.indicatorH, 0.f, speed);
+			anim.bgY = ImLerp(anim.bgY, centerY, speed);
+			anim.bgH = ImLerp(anim.bgH, 0.f, speed);
+			anim.iconAlpha = ImLerp(anim.iconAlpha, 0.6f, speed);
+			anim.textAlpha = ImLerp(anim.textAlpha, 0.6f, speed);
 		}
 
-		float NormalizedTime = ImClamp( IO.DeltaTime * 10.f, 0.0f, 1.0f );
-		float NormalizedTime2 = ImClamp( IO.DeltaTime * 8.f, 0.0f, 1.0f );
-		TabAnim->second.BackgroundColor = ImLerp( TabAnim->second.BackgroundColor, active ? ImVec4( g_Col.Base.x, g_Col.Base.y, g_Col.Base.z, 30.f / 255.f ) : ImVec4( g_Col.Base.x, g_Col.Base.y, g_Col.Base.z, 0.f ), Custom::EaseInOutCirc( NormalizedTime ) );
-		TabAnim->second.IconColor = ImLerp( TabAnim->second.IconColor, active ? ImColor( g_Col.Base ) : ImColor( 60, 60, 60 ), Custom::EaseInOutCirc( NormalizedTime ) );
-		TabAnim->second.TextColor = ImLerp( TabAnim->second.TextColor, active ? ImColor( 200, 200, 200 ) : ImColor( 60, 60, 60 ), Custom::EaseInOutCirc( NormalizedTime ) );
-		TabAnim->second.BackgroundGrow = ImLerp( TabAnim->second.BackgroundGrow, active ? ImVec2( 4, 4 ) : ImVec2( 0, 0 ), Custom::EaseInOutCirc( NormalizedTime2 ) );
-		TabAnim->second.UnSelectedAnim = ImLerp( TabAnim->second.UnSelectedAnim, hovered && !active ? 4.f : 0.f, IO.DeltaTime * 8.f );
+		ImDrawList* draw = ImGui::GetWindowDrawList();
 
-		const float rounding = 6.f;
-		DrawList->AddRectFilled( ImVec2( rect.Min.x - TabAnim->second.BackgroundGrow.x, rect.Min.y - TabAnim->second.BackgroundGrow.x ), ImVec2( rect.Max.x + TabAnim->second.BackgroundGrow.x, rect.Max.y + TabAnim->second.BackgroundGrow.x ), ImGui::GetColorU32( TabAnim->second.BackgroundColor ), rounding, 0 );
+		if (anim.bgH > 0.1f) {
+			draw->AddRectFilled(
+				ImVec2(rect.Min.x, anim.bgY),
+				ImVec2(rect.Max.x - 12.f, anim.bgY + anim.bgH),
+				ImColor(30, 30, 30, 255),
+				5.f
+			);
+		}
 
-		auto IconTextSize = Utils::CalcTextSize( g_Variables.FontAwesomeSolid, g_Variables.FontAwesomeSolid->FontSize, icon );
-		DrawList->AddText( g_Variables.FontAwesomeSolid, g_Variables.FontAwesomeSolid->FontSize, ImVec2( rect.Min.x + 8 + TabAnim->second.UnSelectedAnim, pos.y + ( ( rect.GetHeight( ) - IconTextSize.y ) / 2 ) ), ImGui::GetColorU32( TabAnim->second.IconColor ), icon );
+		if (anim.indicatorH > 0.1f) {
+			draw->AddRectFilled(
+				ImVec2(rect.Min.x, anim.indicatorY + 2.0f),
+				ImVec2(rect.Min.x + 3, anim.indicatorY + anim.indicatorH + 2.0f),
+				ImColor(g_Col.Base),
+				2.f
+			);
+		}
 
-		auto TextSize = Utils::CalcTextSize( g_Variables.m_FontNormal, g_Variables.m_FontNormal->FontSize, label );
-		DrawList->AddText( g_Variables.m_FontNormal, g_Variables.m_FontNormal->FontSize, ImVec2( rect.Min.x + IconTextSize.x + 20 + TabAnim->second.UnSelectedAnim, pos.y + ( ( rect.GetHeight( ) - TextSize.y ) / 2 ) ), ImGui::GetColorU32( TabAnim->second.TextColor ), label );
+		const float iconPad = 12.f;
+		ImVec2 iconSize = Utils::CalcTextSize(g_Variables.FontAwesomeSolid, g_Variables.FontAwesomeSolid->FontSize, icon);
+		ImVec2 iconPos = ImVec2(rect.Min.x + iconPad, rect.Min.y + (size.y - iconSize.y) * 0.5f);
+
+		if (anim.iconAlpha > 0.01f)
+		{
+			const int passes = 30;
+			const float maxRadius = 27.0f;
+			const float xOffset = 9.0f;
+			const float yOffset = 9.0f;
+			const float alphaMultiplier = 0.01f;
+
+			const ImVec4 glowBaseColor = ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,alphaMultiplier * anim.iconAlpha);
+
+			for (int i = 0; i < passes; ++i)
+			{
+				float t = (float)i / (float)(passes - 1);
+				float radius = ImLerp(3.0f, maxRadius, t);
+				float alpha = glowBaseColor.w * (1.0f - t);
+				ImColor col = ImColor(glowBaseColor.x, glowBaseColor.y, glowBaseColor.z, alpha);
+
+				draw->AddCircleFilled(
+					iconPos + ImVec2(xOffset, yOffset),
+					radius,
+					col,
+					64
+				);
+			}
+		}
 
 
-		IMGUI_TEST_ENGINE_ITEM_INFO( id, label, g.LastItemData.StatusFlags );
+		draw->AddText(g_Variables.FontAwesomeSolid, g_Variables.FontAwesomeSolid->FontSize,
+			iconPos,
+			ImColor(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,anim.iconAlpha), icon);
+
+		const float spacing = 6.f;
+		const float textStart = rect.Min.x + iconPad + iconSize.x + spacing;
+		ImVec2 labelSize = Utils::CalcTextSize(g_Variables.m_FontNormal, g_Variables.m_FontNormal->FontSize, label);
+		draw->AddText(g_Variables.m_FontNormal, g_Variables.m_FontNormal->FontSize,
+			ImVec2(textStart, rect.Min.y + (size.y - labelSize.y) * 0.5f),
+			ImColor(255, 255, 255, int(anim.textAlpha * 255.f)), label);
+
 		return pressed;
 	}
 
@@ -315,33 +384,80 @@ namespace Custom {
 		//return Check;
 	}
 
-    inline bool CheckBox(const char* Label, bool* Checked, bool bToolTip=false,
-        const char* ToolTipMsg="", const char* ToolTipIcon="") {
-        ImGuiWindow* window=ImGui::GetCurrentWindow();
-        if(window->SkipItems) return false;
-        const ImGuiID id=window->GetID(Label);
-        const float width=ImGui::GetContentRegionAvail().x;
-        const ImVec2 pos=window->DC.CursorPos;
-        const ImRect rect(pos,pos+ImVec2(width,28.f));
-        ImGui::ItemSize(rect);
-        if(!ImGui::ItemAdd(rect,id)) return false;
-        bool hovered=false,held=false;
-        const bool pressed=ImGui::ButtonBehavior(rect,id,&hovered,&held);
-        if(pressed){*Checked=!*Checked;ImGui::MarkItemEdited(id);}
-        ImGuiStorage* storage=ImGui::GetStateStorage();
-        float t=storage->GetFloat(id,*Checked?1.f:0.f);
-        t=ImLerp(t,*Checked?1.f:0.f,ImClamp(ImGui::GetIO().DeltaTime*12.f,0.f,1.f));
-        storage->SetFloat(id,t);
-        auto* draw=window->DrawList;
-        const ImVec2 toggle=pos+ImVec2(width-36.f,4.f);
-        const ImVec4 color=ImLerp(ImVec4(.19f,.19f,.19f,1.f),g_Col.Base,t);
-        draw->AddText(pos+ImVec2(0,5),ImGui::GetColorU32(ImVec4(.9f,.9f,.9f,1.f)),Label);
-        draw->AddRectFilled(toggle,toggle+ImVec2(36,20),ImGui::GetColorU32(color),10.f);
-        draw->AddCircleFilled(toggle+ImVec2(10+16*t,10),8.f,ImGui::GetColorU32(ImVec4(1,1,1,1)),20);
-        draw->AddLine(pos+ImVec2(0,27),pos+ImVec2(width,27),ImGui::GetColorU32(ImVec4(.12f,.12f,.12f,1)));
-        if(bToolTip) ToolTip(Label,ToolTipMsg,ToolTipIcon,hovered && g_MenuInfo.IsOpen);
-        return pressed;
-    }
+    inline bool CheckBox(const char* Label, bool* Checked, bool bToolTip = false, const char* ToolTipMsg = "", const char* ToolTipIcon = "")
+	{
+		ImGuiWindow* Window = ImGui::GetCurrentWindow();
+		if (Window->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+
+		std::string UniqueID = std::string(Label) + std::to_string(reinterpret_cast<uintptr_t>(Checked));
+		const ImGuiID id = Window->GetID(UniqueID.c_str());
+
+		float Width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x - (Window->ScrollbarY ? 5.f : 0.f);
+
+		const ImVec2 CheckBoxSize(28, 28);
+
+		const ImVec2 Pos = Window->DC.CursorPos;
+		const ImRect Rect(Pos, Pos + ImVec2(Width, CheckBoxSize.y - 4));
+		const ImRect Clickable(Pos, Pos + ImVec2(CheckBoxSize.x + ImGui::CalcTextSize(Label).x + 8, CheckBoxSize.y));
+
+		ImGui::ItemSize(Rect, style.FramePadding.y);
+
+		if (!ImGui::ItemAdd(Rect, id, &Clickable))
+			return false;
+
+		bool Hovered, Held;
+		bool Pressed = ImGui::ButtonBehavior(Clickable, id, &Hovered, &Held);
+		if (Pressed) {
+			*Checked = !(*Checked);
+			ImGui::MarkItemEdited(id);
+		}
+
+		struct CheckBoxAnim_t {
+			float Anim = 1.f;
+			ImVec4 LabelColor;
+			ImVec4 IconColor;
+		};
+		static std::map<ImGuiID, CheckBoxAnim_t> anim;
+		auto& CheckAnim = anim[id];
+
+		CheckAnim.Anim = ImLerp(CheckAnim.Anim, *Checked ? 0.f : 1.f, ImGui::GetIO().DeltaTime * 12.f);
+		CheckAnim.LabelColor = ImLerp(CheckAnim.LabelColor, *Checked ? g_Col.FeaturesText : g_Col.SecundaryFeaturesText, ImGui::GetIO().DeltaTime * 8.f);
+		CheckAnim.IconColor = ImLerp(CheckAnim.IconColor, Hovered || *Checked ? g_Col.Base : ImVec4(g_Col.Base.x, g_Col.Base.y, g_Col.Base.z, 0.f), ImGui::GetIO().DeltaTime * 8.f);
+
+		const ImVec2 BoxMin = Rect.Min;
+		const ImVec2 BoxMax = Rect.Min + CheckBoxSize;
+		const ImRect BoxRect(BoxMin, BoxMax);
+
+		Window->DrawList->AddRectFilled(BoxRect.Min + ImVec2(1, 1), BoxRect.Max - ImVec2(1, 1), ImColor(14, 14, 14, (int)(g.Style.Alpha * 255)), 5);
+
+		if (std::abs(CheckAnim.Anim) < 0.9f) {
+			Window->DrawList->AddRectFilled(
+				BoxRect.Min + ImVec2(BoxRect.GetWidth() / 2 * CheckAnim.Anim + 1, BoxRect.GetHeight() / 2 * CheckAnim.Anim + 1),
+				BoxRect.Max - ImVec2(BoxRect.GetWidth() / 2 * CheckAnim.Anim + 1, BoxRect.GetHeight() / 2 * CheckAnim.Anim + 1),
+				ImColor(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,g.Style.Alpha), 5);
+		}
+
+		Window->DrawList->AddRect(BoxRect.Min, BoxRect.Max, ImGui::GetColorU32((ImVec4)ImColor(20, 20, 20)), 5);
+
+		// --- Checkmark
+		float CheckSize = (CheckBoxSize.x - 12) * (1.0f - CheckAnim.Anim);
+		if (std::abs(CheckAnim.Anim) < 0.7f)
+			ImGui::RenderCheckMark(Window->DrawList, BoxRect.Min + ImVec2(CheckBoxSize.x / 2, CheckBoxSize.y / 2) - ImVec2(CheckSize / 2, CheckSize / 2), ImColor(255, 255, 255, (int)(g.Style.Alpha * 255)), CheckSize);
+
+		// --- Texto
+		ImVec2 TextSize = ImGui::CalcTextSize(Label);
+		Window->DrawList->AddText(ImVec2(Rect.Min.x + CheckBoxSize.x + 8.f, Pos.y + Rect.GetHeight() / 2 - TextSize.y / 2), ImGui::GetColorU32(CheckAnim.LabelColor), Label);
+
+		// --- Tooltip
+		if (bToolTip)
+			ToolTip(Label, ToolTipMsg, ToolTipIcon, Hovered && g_MenuInfo.IsOpen);
+
+		return Pressed;
+	}
 
 	inline bool CheckBoxCfg( const char * Label, bool * Checked, std::function<void( )> Components, bool bToolTip = false, const char * ToolTipMsg = "", const char * ToolTipIcon = "" ) {
 		ImGuiWindow * Window = ImGui::GetCurrentWindow( );
@@ -808,88 +924,80 @@ namespace Custom {
 		return Pressed;
 	}
 
-	inline bool Button( const char * label, const ImVec2 & size_arg, ImGuiButtonFlags flags, bool bToolTip = false, const char * ToolTipMsg = "", const char * ToolTipIcon = "" )
+	inline bool Button(const char* label, const ImVec2& size_arg, ImGuiButtonFlags flags, bool bToolTip = false, const char* ToolTipMsg = "", const char* ToolTipIcon = "")
 	{
-		struct button13Anims {
-			float closing_anim;
-			float closing_alpha;
+		struct button14Anims {
+			float closing_anim_X;
+			float closing_anim_Y;
 			float label_alpha;
-			bool animation_complete;
+			float closing_alpha;
 		};
 
-		ImGuiWindow * window = GetCurrentWindow( );
-		if ( window->SkipItems )
+		ImGuiWindow* window = GetCurrentWindow();
+		if (window->SkipItems)
 			return false;
 
-		ImGuiContext & g = *GImGui;
-		const ImGuiStyle & style = g.Style;
-		const ImGuiID id = window->GetID( label );
-		const ImVec2 label_size = CalcTextSize( label, NULL, true );
-		ImDrawList * draw = GetWindowDrawList( );
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+		const ImGuiID id = window->GetID(label);
+		const ImVec2 label_size = CalcTextSize(label, NULL, true);
+		ImDrawList* draw = GetWindowDrawList();
 
-		static std::map<ImGuiID, button13Anims> anim; // #include <map> on top of this file, where is "imgui.h" located.
-		auto it_anim = anim.find( id );
-		if ( it_anim == anim.end( ) )
-		{
-			anim.insert( { id, button13Anims( ) } );
-			it_anim = anim.find( id );
-		}
+		static std::map<ImGuiID, button14Anims> anim;
+		auto& a = anim[id];
 
 		ImVec2 pos = window->DC.CursorPos;
-		if ( ( flags & ImGuiButtonFlags_AlignTextBaseLine ) && style.FramePadding.y < window->DC.CurrLineTextBaseOffset ) // Try to vertically align buttons that are smaller/have no padding so that text baseline matches (bit hacky, since it shouldn't be a flag)
+		if ((flags & ImGuiButtonFlags_AlignTextBaseLine) && style.FramePadding.y < window->DC.CurrLineTextBaseOffset)
 			pos.y += window->DC.CurrLineTextBaseOffset - style.FramePadding.y;
-		ImVec2 size = CalcItemSize( size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f );
+		ImVec2 size = CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
 
-		const ImRect bb( pos, pos + size );
-		ItemSize( size, style.FramePadding.y );
-		if ( !ItemAdd( bb, id ) )
+		const ImRect bb(pos, pos + size);
+		ItemSize(size, style.FramePadding.y);
+		if (!ItemAdd(bb, id))
 			return false;
 
-		if ( g.LastItemData.InFlags & ImGuiItemFlags_ButtonRepeat )
+		if (g.LastItemData.InFlags & ImGuiItemFlags_ButtonRepeat)
 			flags |= ImGuiButtonFlags_Repeat;
 
 		bool hovered, held;
-		bool pressed = ButtonBehavior( bb, id, &hovered, &held, flags );
+		bool pressed = ButtonBehavior(bb, id, &hovered, &held, flags);
 
-		if ( bToolTip ) {
-			ToolTip( label, ToolTipMsg, ToolTipIcon, hovered && g_MenuInfo.IsOpen );
-		}
+		if (bToolTip)
+			ToolTip(label, ToolTipMsg, ToolTipIcon, hovered && g_MenuInfo.IsOpen);
 
-		it_anim->second.closing_anim = ImLerp( it_anim->second.closing_anim, ( hovered ? size.y : 0 ), g.IO.DeltaTime * 8.f );
+		// Injetar animações do ButtonEx
+		a.closing_anim_X = ImLerp(a.closing_anim_X, (hovered || held ? size.x / 2.f : 0), g.IO.DeltaTime * 6.f);
+		a.closing_anim_Y = ImLerp(a.closing_anim_Y, (hovered || held ? size.y / 2.f : 0), g.IO.DeltaTime * 6.f);
 
-		if ( hovered || pressed ) {
-			if ( it_anim->second.label_alpha < 255.f )
-				it_anim->second.label_alpha += 5.f / GetIO( ).Framerate * 160.f;
-
-			if ( it_anim->second.closing_alpha < 255.f )
-				it_anim->second.closing_alpha += 15.f / GetIO( ).Framerate * 160.f;
+		if (hovered || pressed) {
+			a.label_alpha = ImMin(a.label_alpha + 5.f / g.IO.Framerate * 160.f, 255.f);
+			a.closing_alpha = ImMin(a.closing_alpha + 15.f / g.IO.Framerate * 160.f, 255.f);
 		}
 		else {
-			if ( it_anim->second.label_alpha > 0.f )
-				it_anim->second.label_alpha -= 5.f / GetIO( ).Framerate * 160.f;
-
-			if ( it_anim->second.closing_alpha > 0.f )
-				it_anim->second.closing_alpha -= 10.f / GetIO( ).Framerate * 160.f;
+			a.label_alpha = ImMax(a.label_alpha - 5.f / g.IO.Framerate * 160.f, 0.f);
+			a.closing_alpha = ImMax(a.closing_alpha - 10.f / g.IO.Framerate * 160.f, 0.f);
 		}
 
-		// Render
-		const ImU32 inside_solid_col = GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ) );
-		const ImU32 outside_solid_col = GetColorU32( ImVec4( ImColor( 24, 24, 26 ) ) );
-		const ImU32 inside_hover_col = GetColorU32( ImVec4( ImColor( 107, 105, 255, ( int ) it_anim->second.closing_alpha ) ) );
+		const ImU32 bg_col = GetColorU32(ImVec4(ImColor(16, 16, 18)));
+		const ImU32 border_col = GetColorU32(ImVec4(ImColor(24, 24, 26)));
+		const ImU32 hover_col = ImColor(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,a.closing_alpha/255.f);
 
-		draw->AddRectFilled( ImVec2( bb.Min.x, bb.Min.y ), ImVec2( bb.Max.x, bb.Max.y ), inside_solid_col, 6 );
-		draw->AddRect( bb.Min, bb.Max, outside_solid_col, 6 );
-		draw->AddRectFilled( ImVec2( bb.Min.x, bb.Max.y - it_anim->second.closing_anim ), ImVec2( bb.Max.x, bb.Max.y ), inside_hover_col, 6 );
+		draw->AddRectFilled(bb.Min, bb.Max, bg_col, 6);
+		draw->AddRect(bb.Min, bb.Max, border_col, 6);
+		draw->AddRectFilled(
+			ImVec2(bb.Min.x, (bb.Min.y + size.y / 2.f) - a.closing_anim_Y),
+			ImVec2(bb.Min.x + a.closing_anim_X * 2.f, (bb.Max.y - size.y / 2.f) + a.closing_anim_Y),
+			hover_col, 6);
 
-		PushStyleColor( ImGuiCol_Text, ColorConvertFloat4ToU32( ImColor( 140, 140, 140, 255 - ( int ) it_anim->second.label_alpha ) ) );
-		RenderTextClipped( bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, style.ButtonTextAlign, &bb );
-		PopStyleColor( );
+		PushStyleColor(ImGuiCol_Text, ColorConvertFloat4ToU32(ImColor(140, 140, 140, 255 - (int)a.label_alpha)));
+		RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, style.ButtonTextAlign, &bb);
+		PopStyleColor();
 
-		PushStyleColor( ImGuiCol_Text, ColorConvertFloat4ToU32( ImColor( 20, 20, 20, ( int ) it_anim->second.label_alpha ) ) );
-		RenderTextClipped( bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, style.ButtonTextAlign, &bb );
-		PopStyleColor( );
+		PushStyleColor(ImGuiCol_Text, ColorConvertFloat4ToU32(ImColor(20, 20, 20, (int)a.label_alpha)));
+		RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, style.ButtonTextAlign, &bb);
+		PopStyleColor();
 
-		IMGUI_TEST_ENGINE_ITEM_INFO( id, label, g.LastItemData.StatusFlags );
+		IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
 
 		return pressed;
 	}
