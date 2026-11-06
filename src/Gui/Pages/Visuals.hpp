@@ -20,7 +20,7 @@ namespace Visuals {
 
 		//ImGui::PushStyleVar( ImGuiStyleVar_::ImGuiStyleVar_ItemSpacing, ImVec2( 6, 0 ) );
 
-		if ( Custom::SubTab( xorstr( "Jogadores" ), 0 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "ESP" ), 0 == iSubTabCount ) ) {
 			iSubTabCount = 0;
 		}
 		ImGui::SameLine( );

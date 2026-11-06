@@ -70,7 +70,7 @@ namespace AltosInterface {
         item("Tiro automático",g_MenuInfo.Combat,1);
         item("Mira silenciosa",g_MenuInfo.Combat,2);
         y+=8.f;section("Visual");
-        item("Jogadores",g_MenuInfo.Visuals);
+        item("ESP",g_MenuInfo.Visuals);
         item("Mundo",g_MenuInfo.World);
         item("Personagem",g_MenuInfo.Local);
         item("Recursos extras",g_MenuInfo.Exploits);
