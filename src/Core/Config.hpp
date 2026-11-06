@@ -115,6 +115,7 @@ namespace Core {
 			inline static bool HighlightVisible;
 			inline static bool IgnoreDead;
             inline static bool PossibleNoclip = false;
+            inline static bool AdmListDemo = false;
 			inline static bool DistanceFromMe;
 			inline static bool FriendsMarker;
 			inline static int FriendsMarkerBind;
@@ -291,6 +292,7 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ] = ESP->HighlightVisible;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ] = ESP->IgnoreDead;
                 FeaturesCfg["ESP"]["PossibleNoclip"] = ESP->PossibleNoclip;
+                FeaturesCfg["ESP"]["AdmListDemo"] = ESP->AdmListDemo;
                 FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
                 FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
                 FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
@@ -441,6 +443,7 @@ namespace Core {
 				ESP->HighlightVisible = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ];
 				ESP->IgnoreDead = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ];
                 ESP->PossibleNoclip = FeaturesCfg["ESP"].value("PossibleNoclip", false);
+                ESP->AdmListDemo = FeaturesCfg["ESP"].value("AdmListDemo", false);
                 ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
                 if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
                 ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);

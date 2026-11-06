@@ -97,6 +97,9 @@ namespace Visuals {
 						);
 						Custom::CheckBox( xorstr( "Mostrar meu personagem" ), &g_Config.ESP->ShowLocalPlayer );
 						Custom::CheckBox( xorstr( "Ignorar mortos" ), &g_Config.ESP->IgnoreDead );
+                        Custom::CheckBox("ADM list (alerta simulado)", &g_Config.ESP->AdmListDemo);
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Apenas animação demonstrativa da lipeee. Não consulta jogadores nem detecta administradores.");
                         Custom::CheckBox("Possível noclip", &g_Config.ESP->PossibleNoclip);
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Indícios de voo ou ausência de colisão por 3 segundos. Pode marcar quedas ou paraquedas. Não identifica administradores.");

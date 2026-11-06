@@ -15,6 +15,7 @@
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Includes/CustomWidgets/Notify.hpp>
 #include <Core/Features/Esp.hpp>
+#include <Gui/AdmListDemo.hpp>
 #include <Core/Features/NoclipVisibility.hpp>
 #include <Core/Features/ExternalCameraOptions.hpp>
 
@@ -48,6 +49,7 @@ void Gui::Rendering( )
     }
     Core::Features::CarreraAdditions::TickCollision();
     Core::Features::NoclipVisibility::Tick();
+    AdmListDemo::Draw();
     Core::Features::ExternalCameraOptions::Tick();
     g_Col.Base=g_Config.General->MenuAccent;
     g_Col.ButtonHovered=ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);
