@@ -39,6 +39,11 @@ inline void CheatLogin( )
 
 void Gui::Rendering( )
 {
+    static bool diagnosticSession=false;
+    if(!diagnosticSession) {
+        AltosDiagnostics::Log("session_started version=restore_confirmed_teleport");
+        diagnosticSession=true;
+    }
     Core::Features::CarreraAdditions::TickCollision();
     g_Col.Base=g_Config.General->MenuAccent;
     g_Col.ButtonHovered=ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);

@@ -134,8 +134,8 @@ namespace World {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::CopyClothes(
                                     reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             }
-                            if(Custom::Button("Trazer veículos até jogador",ImVec2(-1,30),0,true,
-                                "Tenta mover os veículos carregados a até 200 m de você para o jogador selecionado.")) {
+                            if(Custom::Button("Enviar veículos ao jogador",ImVec2(-1,30),0,true,
+                                "Leva veículos carregados a até 200 m de você até o jogador selecionado.")) {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::VehiclesToPlayer(
                                     reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             }

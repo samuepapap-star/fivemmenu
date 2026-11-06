@@ -1,5 +1,6 @@
 #pragma once
 #include <Core/Core.hpp>
+#include <Core/SDK/TeleportTrace.hpp>
 #include <array>
 #include <cmath>
 #include <mutex>
@@ -86,24 +87,43 @@ namespace Core { namespace Features { namespace CarreraAdditions {
         return "Dados de roupa copiados localmente.";
     }
     inline std::string VehiclesToPlayer(uintptr_t selectedPed) {
+        AltosDiagnostics::Log("action=veiculos_para_jogador click");
         D3DXVECTOR3 target{},local{};
-        if(!Position(selectedPed,target) || !Position(LocalPlayer(),local))
+        if(!Position(selectedPed,target) || !Position(LocalPlayer(),local)) {
+            AltosDiagnostics::Log("action=veiculos_para_jogador invalid_player_position");
             return "Posição do jogador indisponível.";
+        }
         std::vector<SDK::Game::VehicleStructure> snapshot;
         {
             std::lock_guard<std::mutex> guard(Threads::g_VehicleList.vehicleListMutex);
             snapshot=SDK::Game::VehicleList;
         }
-        int updated=0,failed=0;
+        int updated=0,failed=0,invalid=0,outside=0,nearby=0;
         for(const auto& item:snapshot) {
             const uintptr_t vehicle=reinterpret_cast<uintptr_t>(item.Pointer);
             D3DXVECTOR3 current{};
-            if(!Position(vehicle,current)) continue;
+            if(!Position(vehicle,current)) {++invalid;continue;}
             const D3DXVECTOR3 delta=current-local;
-            if(delta.x*delta.x+delta.y*delta.y+delta.z*delta.z>200.f*200.f) continue;
-            // Port of the carrera action: move loaded vehicles, not the local player.
-            if(Write(vehicle+0x90,target)) ++updated; else ++failed;
+            if(delta.x*delta.x+delta.y*delta.y+delta.z*delta.z>200.f*200.f) {++outside;continue;}
+            ++nearby;
+            uintptr_t navigation=0;
+            if(!Read(vehicle+0x30,navigation) || !navigation) {++failed;continue;}
+            // Same dual-transform update used by SHARK CVehicle::SetPos.
+            AltosDiagnostics::TeleportTrace trace(Mem.ProcHandle,vehicle,target,
+                g_Offsets.CurrentBuild,"veiculo",nearby==1);
+            const bool visual=Write(vehicle+0x90,target);
+            const bool nav=Write(navigation+0x50,target);
+            trace.Results(visual,nav);
+            if(visual && nav)++updated;else ++failed;
         }
-        return "Atualizados localmente: "+std::to_string(updated)+". Falhas de escrita: "+std::to_string(failed)+".";
+        AltosDiagnostics::Log("action=veiculos_para_jogador loaded="+std::to_string(snapshot.size())+
+            " nearby="+std::to_string(nearby)+" invalid="+std::to_string(invalid)+
+            " outside="+std::to_string(outside)+" updated="+std::to_string(updated)+
+            " failed="+std::to_string(failed));
+        if(snapshot.empty())return "Nenhum veículo carregado na lista do cliente.";
+        if(!nearby)return "Nenhum veículo legível a até 200 m de você. Carregados: "+
+            std::to_string(snapshot.size())+". Ilegíveis: "+std::to_string(invalid)+".";
+        return "Escritas completas em "+std::to_string(updated)+" de "+std::to_string(nearby)+
+            " veículos próximos. Falhas: "+std::to_string(failed)+".";
     }
 }}}
