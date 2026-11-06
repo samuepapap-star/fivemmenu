@@ -18,7 +18,6 @@
 
 #include <Security/Api/api.hpp>
 
-int PauseLoop;
 inline std::mutex DrawMtx;
 
 inline void CheatLogin( )
@@ -46,13 +45,43 @@ void Gui::Rendering( )
 	}
 	ImGui::SetNextWindowSize( g_MenuInfo.MenuSize );
 
-	if ( !PauseLoop ) { ImGui::SetNextWindowPos( g_Variables.g_vGameWindowSize / 2 - g_MenuInfo.MenuSize / 2 ); PauseLoop++; }
+    const ImVec2 display = ImGui::GetIO().DisplaySize;
+    static bool positionInitialized = false;
+    if (!positionInitialized && display.x > 0.f && display.y > 0.f) {
+        const float x = display.x > g_MenuInfo.MenuSize.x ? (display.x - g_MenuInfo.MenuSize.x) * 0.5f : 0.f;
+        const float y = display.y > g_MenuInfo.MenuSize.y ? (display.y - g_MenuInfo.MenuSize.y) * 0.5f : 0.f;
+        ImGui::SetNextWindowPos(ImVec2(x, y), ImGuiCond_Always);
+        positionInitialized = true;
+    }
 
-	ImGui::Begin( " ", nullptr, ImGuiWindowFlags );
+    ImGui::Begin(" ", nullptr, ImGuiWindowFlags | ImGuiWindowFlags_NoMove);
+    // Keep the header reachable after resolution changes or an off-screen move.
+    auto clampPosition = [&](ImVec2 pos) {
+        const float maxX = display.x > g_MenuInfo.MenuSize.x ? display.x - g_MenuInfo.MenuSize.x : 0.f;
+        const float maxY = display.y > g_MenuInfo.MenuSize.y ? display.y - g_MenuInfo.MenuSize.y : 0.f;
+        pos.x = pos.x < 0.f ? 0.f : (pos.x > maxX ? maxX : pos.x);
+        pos.y = pos.y < 0.f ? 0.f : (pos.y > maxY ? maxY : pos.y);
+        return pos;
+    };
+    if (display.x > 0.f && display.y > 0.f)
+        ImGui::SetWindowPos(clampPosition(ImGui::GetWindowPos()));
+
 	ImGui::PushFont( g_Variables.m_FontNormal );
 	{
 
 		Custom::DrawBackground( g_MenuInfo.IsLogged );
+        // Drag the top strip without changing the layout of the menu controls.
+        const ImVec2 savedCursor = ImGui::GetCursorPos();
+        ImGui::SetCursorPos(ImVec2(0.f, 0.f));
+        ImGui::InvisibleButton("##MenuDragHandle", ImVec2(g_MenuInfo.MenuSize.x, 36.f));
+        if (g_MenuInfo.IsOpen && ImGui::IsItemActive() &&
+            ImGui::IsMouseDragging(ImGuiMouseButton_Left) && display.x > 0.f && display.y > 0.f) {
+            ImVec2 pos = ImGui::GetWindowPos();
+            const ImVec2 delta = ImGui::GetIO().MouseDelta;
+            ImGui::SetWindowPos(clampPosition(ImVec2(pos.x + delta.x, pos.y + delta.y)));
+        }
+        ImGui::SetCursorPos(savedCursor);
+
 		if ( g_MenuInfo.IsLogged )
 		{
 
