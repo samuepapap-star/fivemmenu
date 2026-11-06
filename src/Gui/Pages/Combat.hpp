@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Features/SilentAim.hpp>
 #include <Includes/Includes.hpp>
 #include <windows.h>
 #include <Core/Features/ExternalCameraOptions.hpp>
@@ -145,6 +146,7 @@ namespace Combat {
 						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.SilentAim->Enabled );
 						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.SilentAim->ShowFov );
                         ImGui::ColorEdit4("Cor do FOV##SilentAim", &g_Config.SilentAim->FovColor.Value.x, ImGuiColorEditFlags_AlphaBar);
+                        ImGui::TextWrapped("%s",Core::Features::g_SilentAim.StatusText());
 						Custom::CheckBox( xorstr( "Balas mágicas" ), &g_Config.SilentAim->MagicBullets );
 						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.SilentAim->OnlyVisible );
 						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.SilentAim->IgnoreNPCs );
