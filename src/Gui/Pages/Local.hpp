@@ -248,6 +248,14 @@ namespace Local {
 						{
 							CurrentVehicle->Fix( );
 						}
+                        ImGui::BeginDisabled(!InVehicle || !CurrentVehicle || g_Config.Player->VehicleGodMode);
+                        if (Custom::Button("Destruir veículo atual", ImVec2(-1,33), 0)) {
+                            const std::string result = Core::Features::CarreraAdditions::DestroyCurrentVehicle();
+                            NotifyManager::Send(result.c_str(), 4000);
+                        }
+                        ImGui::EndDisabled();
+                        ImGui::TextWrapped("Danifica o motor do veículo atual. Não apaga o veículo. Desative a invencibilidade para usar.");
+
 
 						ImGui::PopStyleVar( );
 					}

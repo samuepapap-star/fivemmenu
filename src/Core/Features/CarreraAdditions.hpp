@@ -23,6 +23,34 @@ namespace Core { namespace Features { namespace CarreraAdditions {
         uintptr_t world=0,ped=0;
         return Read(g_Offsets.m_World,world) && world && Read(world+8,ped) ? ped : 0;
     }
+    inline std::string DestroyCurrentVehicle() {
+        // Quarntime's negative-condition action, adapted to this SDK's engine field.
+        // Operates only on the vehicle the local ped is currently occupying.
+        const uintptr_t ped = LocalPlayer();
+        if (!ped || !reinterpret_cast<CPed*>(ped)->InVehicle())
+            return "Entre em um veículo para usar esta função.";
+        uintptr_t vehicle = 0;
+        if (!Read(ped + g_Offsets.m_LastVehicle, vehicle) || !vehicle)
+            return "Veículo atual indisponível.";
+        if (!g_Offsets.m_VehicleEngineHealth)
+            return "Campo de condição do motor indisponível nesta build.";
+        BYTE invincible = 0;
+        if (!Read(vehicle + 0x189, invincible))
+            return "Não foi possível verificar a proteção do veículo.";
+        if (g_Config.Player->VehicleGodMode || invincible)
+            return "Desative a invencibilidade do veículo antes de danificá-lo.";
+        float engine = 0.f;
+        const uintptr_t condition = vehicle + g_Offsets.m_VehicleEngineHealth;
+        if (!Read(condition, engine) || !std::isfinite(engine))
+            return "Não foi possível ler a condição do motor.";
+        uintptr_t currentVehicle = 0;
+        if (LocalPlayer() != ped || !reinterpret_cast<CPed*>(ped)->InVehicle() ||
+            !Read(ped + g_Offsets.m_LastVehicle, currentVehicle) || currentVehicle != vehicle)
+            return "O veículo atual mudou. Tente novamente.";
+        if (!Write(condition, -4000.f))
+            return "Falha ao escrever o dano no motor.";
+        return "Valor de dano enviado ao motor. Efeito no jogo não confirmado.";
+    }
     inline bool Position(uintptr_t entity,D3DXVECTOR3& pos) {
         return entity && Read(entity+0x90,pos) &&
             std::isfinite(pos.x) && std::isfinite(pos.y) && std::isfinite(pos.z);
