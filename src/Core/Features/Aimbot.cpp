@@ -52,7 +52,10 @@ void Core::Features::cAimbot::Start( )
 	while ( true )
 	{
 
-		if ( g_Config.Aimbot->Enabled && g_Config.Aimbot->KeyBind && GetAsyncKeyState( g_Config.Aimbot->KeyBind ) & 0x8000 && GetForegroundWindow( ) != g_Variables.g_hCheatWindow )
+		if (g_Config.Aimbot->Enabled && !g_MenuInfo.IsOpen &&
+            GetForegroundWindow() == g_Variables.g_hGameWindow &&
+            (g_Config.Aimbot->KeyBind == 0 ||
+             (GetAsyncKeyState(g_Config.Aimbot->KeyBind) & 0x8000) != 0))
 		{
 			CPed * Ped = Core::SDK::Game::GetClosestPed( g_Config.Aimbot->MaxDistance, g_Config.Aimbot->IgnoreNPCs, g_Config.Aimbot->OnlyVisible );
 			if ( !Ped ) continue;

@@ -27,7 +27,10 @@ void Core::Features::cSilentAim::HookSilent( )
 {
 	while ( true )
 	{
-		if ( g_Config.SilentAim->Enabled && g_Config.SilentAim->KeyBind != 0 && GetAsyncKeyState( g_Config.SilentAim->KeyBind ) & 0x8000 && GetForegroundWindow( ) != g_Variables.g_hCheatWindow )
+		if (g_Config.SilentAim->Enabled && !g_MenuInfo.IsOpen &&
+            GetForegroundWindow() == g_Variables.g_hGameWindow &&
+            (g_Config.SilentAim->KeyBind == 0 ||
+             (GetAsyncKeyState(g_Config.SilentAim->KeyBind) & 0x8000) != 0))
 		{
 			CPed * Ped = Core::SDK::Game::GetClosestPed( g_Config.SilentAim->MaxDistance, g_Config.SilentAim->IgnoreNPCs, g_Config.SilentAim->OnlyVisible );
 			if ( !Ped ) { continue; }

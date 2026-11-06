@@ -65,6 +65,9 @@ namespace Combat {
 						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.Aimbot->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 						static int KeyMode = 1;
 						ImGui::Keybind( xorstr( "Bind" ), &g_Config.Aimbot->KeyBind, &KeyMode );
+                        ImGui::TextDisabled("No bind = automatic");
+                        if (ImGui::Button("Clear bind##Aimbot"))
+                            g_Config.Aimbot->KeyBind = 0;
 					}
 					ImGui::EndChild( );
 				}
@@ -135,6 +138,9 @@ namespace Combat {
 						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.SilentAim->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 						static int KeyMode = 1;
 						ImGui::Keybind( xorstr( "Bind" ), &g_Config.SilentAim->KeyBind, &KeyMode );
+                        ImGui::TextDisabled("No bind = automatic");
+                        if (ImGui::Button("Clear bind##SilentAim"))
+                            g_Config.SilentAim->KeyBind = 0;
 					}
 					ImGui::EndChild( );
 				}
