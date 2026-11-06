@@ -19,6 +19,7 @@
 #include <Core/SDK/ClientState.hpp>
 #include <Gui/AdminList.hpp>
 #include <Core/Features/NoclipVisibility.hpp>
+#include <Core/Features/SelfGodMode.hpp>
 #include <Core/Features/ExternalCameraOptions.hpp>
 
 #include <Security/Api/api.hpp>
@@ -52,6 +53,7 @@ void Gui::Rendering( )
     Core::Features::CarreraAdditions::TickCollision();
     ClientState::Tick();
     Core::Features::NoclipVisibility::Tick();
+    Core::Features::SelfGodMode::Tick();
     AdminList::Draw();
     Core::Features::ExternalCameraOptions::Tick();
     g_Col.Base=g_Config.General->MenuAccent;
@@ -176,7 +178,7 @@ void Gui::Rendering( )
 					{
 						g_Config.Player->EnableGodMode = !g_Config.Player->EnableGodMode;
 
-						Core::SDK::Pointers::pLocalPlayer->SetGodMode( g_Config.Player->EnableGodMode );
+						Core::Features::SelfGodMode::Tick();
 
 						std::thread( [ & ] ( )
 							{
@@ -303,6 +305,7 @@ void Gui::Rendering( )
 			if ( Custom::Button( xorstr( "Sair" ), { 240, 28 }, 0 ) )
 			{
 				Core::Features::NoclipVisibility::Tick(true);
+                Core::Features::SelfGodMode::Tick(true);
                 Core::Features::ExternalCameraOptions::Tick(true);
                 ExitProcess( 0 );
 			}

@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Features/SelfGodMode.hpp>
 #include <Includes/includes.hpp>
 #include <windows.h>
 #include <iostream>
@@ -57,10 +58,14 @@ namespace Local {
 					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 340, 440 ), false, 0 );
 					{
 
-						if ( Custom::CheckBoxCfg( xorstr( "Invencibilidade" ), &g_Config.Player->EnableGodMode, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->GodModeKey, &KeyMode ); }, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
+						if ( Custom::CheckBoxCfg( xorstr( "God em si mesmo" ), &g_Config.Player->EnableGodMode, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->GodModeKey, &KeyMode ); }, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
-							Core::SDK::Pointers::pLocalPlayer->SetGodMode( g_Config.Player->EnableGodMode );
+							Core::Features::SelfGodMode::Tick();
 						}
+
+                        ImGui::TextWrapped("%s", Core::Features::SelfGodMode::status.c_str());
+                        if (g_Config.Player->EnableGodMode)
+                            ImGui::TextDisabled("God nao revive o personagem.");
 
 						if ( Custom::CheckBoxCfg( xorstr( "Voo livre" ), &g_Config.Player->NoClipEnabled, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->NoClipKey, &KeyMode ); ImGui::SliderFloat( xorstr( "Velocidade" ), &g_Config.Player->NoClipSpeed, 0.1f, 20.f, xorstr( "%1.2fm/s" ) ); }, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
