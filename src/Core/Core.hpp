@@ -232,6 +232,29 @@ namespace Core {
 
 			g_Offsets.CurrentBuild = 3258;
 		}
+		else if ( g_Offsets.CurrentBuild == 3889 )
+		{
+            // Globals resolved in the user's 2026-11-06 compatibility report.
+            // Do not reuse the build 1604 fallback for this executable.
+            g_Offsets.m_World = Mem.ModBase + 0x2503A58;
+            g_Offsets.m_ReplayInterFace = Mem.ModBase + 0x1EC2BB8;
+            g_Offsets.m_ViewPort = Mem.ModBase + 0x1F6B320;
+            g_Offsets.m_CamGameplayDirector = Mem.ModBase + 0x1F6C480;
+            g_Offsets.m_BlipList = 0; // No verified waypoint-list address yet.
+
+            g_Offsets.m_MaxHealth = 0x284;
+            g_Offsets.m_WeaponManager = 0x10B8;
+            g_Offsets.m_EntityType = 0x1098;
+            g_Offsets.m_PlayerInfo = 0x10A8;
+            g_Offsets.m_Armor = 0x150C;
+
+            // Existing modern layout; these feature-specific fields still need
+            // in-game testing. Basic initialization validates the fields above.
+            g_Offsets.m_LastVehicle = 0xD10;
+            g_Offsets.m_FragInst = 0x1430;
+            g_Offsets.m_PlayerId = 0xE8;
+            g_Offsets.m_PedFlag = 0x1444;
+		}
 		else {
 			g_Offsets.m_World = Mem.ModBase + 0x247F840;
 			g_Offsets.m_ReplayInterFace = Mem.ModBase + 0x1EFD4C8;
@@ -355,5 +378,6 @@ namespace Core {
 	}
 
 }
+
 
 

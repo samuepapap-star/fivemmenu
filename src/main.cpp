@@ -6,6 +6,7 @@
 #include <Core/SDK/SDK.hpp>
 #include <Core/SDK/SupportedBuild.hpp>
 #include <Core/SDK/Build3889Probe.hpp>
+#include <Core/SDK/Build3889Compatibility.hpp>
 #include <Core/SDK/TeleportTrace.hpp>
 #include <Core/Core.hpp>
 #include <Gui/gui.hpp>
@@ -82,7 +83,8 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 		std::string ProcessName = Mem.GetNameByPid( ProcIdFiveM );
 		if ( ProcessName.empty( ) ) { return 0; };
 
-		if (ProcessName == "FiveM_b3889_GTAProcess.exe" || ProcessName == "FiveM_b3889_GameProcess.exe") {
+		if (ClientBuild::Detect(ProcessName) == 3889 &&
+            std::string(cmdline ? cmdline : "").find("--diagnostico-3889") != std::string::npos) {
 			Build3889Probe::Run(ProcIdFiveM);
 			return 0;
 		}
@@ -113,6 +115,15 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
         }
 
 		std::thread( &AntiCrack::DoProtect ).detach( );
+        if (g_Offsets.CurrentBuild == 3889) {
+            const std::string error = Build3889Compatibility::Validate(Mem.ProcHandle, Mem.ModBase);
+            if (!error.empty()) {
+                AltosDiagnostics::Log("build3889_initialization_failed " + error);
+                MessageBoxA(nullptr, error.c_str(), "Compatibilidade 3889", MB_ICONERROR);
+                return 0;
+            }
+            AltosDiagnostics::Log("build3889_initialized compatibility_report_20261106 waypoint_unavailable");
+        }
 		GetOffsets();
 		Gui::cOverlay.Render( );
 		return 0;
@@ -120,4 +131,5 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 
 	return 0;
 }
+
 
