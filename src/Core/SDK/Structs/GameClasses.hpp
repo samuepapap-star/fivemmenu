@@ -129,32 +129,22 @@ public:
 		return Mem.Read<D3DXVECTOR3>( reinterpret_cast< uintptr_t >( this ) + 0x90 );
 	}
 
-    bool SetPos(D3DXVECTOR3 Pos) {
-        if (!this || !Mem.ProcHandle)
-            return false;
+	void SetPos(D3DXVECTOR3 Pos) {
+		if (!this) { return; }
+		bool InsideVehicle = InVehicle();
+		uintptr_t LastVeh = reinterpret_cast<uintptr_t>(GetLastVehicle());
 
-        // Port of SHARK Features::TeleportTo: update both player transforms.
-        // Do not depend on LastVehicle, which can refer to a despawned vehicle.
-        const uintptr_t ped = reinterpret_cast<uintptr_t>(this);
-        uintptr_t navigation = 0;
-        SIZE_T transferred = 0;
-        if (!ReadProcessMemory(Mem.ProcHandle, reinterpret_cast<LPCVOID>(ped + 0x30),
-                &navigation, sizeof(navigation), &transferred) ||
-            transferred != sizeof(navigation) || !navigation) {
-            OutputDebugStringA("[Wexize] Teleport failed: player navigation unavailable.");
-            return false;
-        }
-
-        const bool visualMoved = WriteProcessMemory(Mem.ProcHandle,
-            reinterpret_cast<LPVOID>(ped + 0x90), &Pos, sizeof(Pos), &transferred) &&
-            transferred == sizeof(Pos);
-        const bool navigationMoved = WriteProcessMemory(Mem.ProcHandle,
-            reinterpret_cast<LPVOID>(navigation + 0x50), &Pos, sizeof(Pos), &transferred) &&
-            transferred == sizeof(Pos);
-        if (!visualMoved || !navigationMoved)
-            OutputDebugStringA("[Wexize] Teleport failed: position write rejected.");
-        return visualMoved && navigationMoved;
-    }
+		if (LastVeh && InsideVehicle) {
+			uintptr_t Navigation = Mem.Read<uintptr_t>(LastVeh + 0x30);
+			Mem.Write<D3DXVECTOR3>(Navigation + 0x30, D3DXVECTOR3(0, 0, 0));
+			Mem.Write<D3DXVECTOR3>(LastVeh + 0x90, Pos);
+		}
+		else if (!InsideVehicle) {
+			uintptr_t Navigation = this->GetNavigation();
+			Mem.Write<D3DXVECTOR3>(Navigation + 0x30, D3DXVECTOR3{ 0, 0, 0 });
+			Mem.Write<D3DXVECTOR3>(reinterpret_cast<uintptr_t>(this) + 0x90, Pos);
+		}
+	}
 
 	void SeatBealt(bool toggle) {
 		if (!this) { return; }
