@@ -15,6 +15,7 @@
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Includes/CustomWidgets/Notify.hpp>
 #include <Core/Features/Esp.hpp>
+#include <Core/Features/ExternalCameraOptions.hpp>
 
 #include <Security/Api/api.hpp>
 #include <Gui/AltosInterface.hpp>
@@ -45,6 +46,7 @@ void Gui::Rendering( )
         diagnosticSession=true;
     }
     Core::Features::CarreraAdditions::TickCollision();
+    Core::Features::ExternalCameraOptions::Tick();
     g_Col.Base=g_Config.General->MenuAccent;
     g_Col.ButtonHovered=ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);
 
@@ -281,7 +283,8 @@ void Gui::Rendering( )
 
 			if ( Custom::Button( xorstr( "Sair" ), { 240, 28 }, 0 ) )
 			{
-				ExitProcess( 0 );
+				Core::Features::ExternalCameraOptions::Tick(true);
+                ExitProcess( 0 );
 			}
 
 

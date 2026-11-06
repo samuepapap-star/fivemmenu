@@ -59,7 +59,16 @@ namespace Visuals {
 							}
 						}
 
-						Custom::CheckBox( xorstr( "Nomes dos jogadores" ), &g_Config.ESP->UserNames );
+						Custom::CheckBox("Caixa de cantos", &g_Config.ESP->CornerBox);
+                        Custom::CheckBox("ESP estático (limites do modelo)", &g_Config.ESP->StaticESP);
+                        ImGui::SliderInt("Largura da caixa", &g_Config.ESP->BoxSize, 0, 30);
+                        ImGui::SliderFloat("Opacidade do preenchimento", &g_Config.ESP->FilledBoxCol.Value.w, 0.f, 1.f);
+                        ImGui::Combo("Posição da vida", &g_Config.ESP->HealthBarState, "Acima\0Direita\0Abaixo\0Esquerda\0");
+                        ImGui::Combo("Posição do colete", &g_Config.ESP->ArmorBarState, "Acima\0Direita\0Abaixo\0Esquerda\0");
+                        Custom::CheckBox("Mostrar prévia", &g_Config.ESP->PreviewEnabled);
+                        ImGui::ColorEdit4("Cor da caixa", &g_Config.ESP->BoxCol.Value.x);
+                        ImGui::ColorEdit4("Cor do esqueleto", &g_Config.ESP->SkeletonCol.Value.x);
+                        Custom::CheckBox( xorstr( "Nomes dos jogadores" ), &g_Config.ESP->UserNames );
 						Custom::CheckBox( xorstr( "Nomes das armas" ), &g_Config.ESP->WeaponName );
 						Custom::CheckBox( xorstr( "Distância" ), &g_Config.ESP->DistanceFromMe );
 
@@ -97,8 +106,10 @@ namespace Visuals {
 				{
 					ImGui::BeginChild( xorstr( "Prévia" ), ImVec2( 340, 440 ), false, ImGuiWindowFlags_NoScrollbar );
 					{
-						Custom::g_EspPreview.DragDropHandler( );
-						Custom::g_EspPreview.Draw( );
+						if (g_Config.ESP->PreviewEnabled) {
+                            Custom::g_EspPreview.DragDropHandler();
+                            Custom::g_EspPreview.Draw();
+                        }
 					}
 					ImGui::EndChild( );
 				}

@@ -1,5 +1,6 @@
 #include "Esp.hpp"
 #include <chrono>
+#include "ExternalAimMath.hpp"
 
 
 
@@ -31,6 +32,7 @@ void Core::Features::cEsp::Draw( )
 	for ( auto & Entity : Core::SDK::Game::EntityList )
 	{
 		CPed * Ped = Entity.Ped;
+        if (!Ped) continue;
 		auto DrawList = ImGui::GetBackgroundDrawList( );
 
 		auto & CurrentESPAnim = vEspAnimations[ Ped ];
@@ -84,26 +86,52 @@ void Core::Features::cEsp::Draw( )
         } else {
             noclipObservations.erase(Ped);
         }
-		D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault( 0 );
-		D3DXVECTOR2 EntityTop = Core::SDK::Game::WorldToScreen( HeadPos + D3DXVECTOR3( 0, 0, 0.2 ) ); //Head
-
-		D3DXVECTOR2 EntityBottom = Core::SDK::Game::WorldToScreen(
-			Ped->GetBonePosDefault( 8 ) - ( g_Offsets.CurrentBuild >= 2802 ? D3DXVECTOR3( 0, 0, 2 ) : D3DXVECTOR3( 0, 0, 1.2 ) ) //Abdomen
-		);
-
-
-		if ( !Core::SDK::Game::IsOnScreen( EntityTop ) || !Core::SDK::Game::IsOnScreen( EntityBottom ) )
-			continue;
-
-		float Height = EntityBottom.y - EntityTop.y;
-		float Width = Height * 0.2f;
-
-		const float BoxLeft = EntityTop.x - Width;
-		const float BoxRight = EntityBottom.x + Width;
-
-		ImVec2 BoxMin( BoxLeft, EntityTop.y );
-		ImVec2 BoxMax( BoxRight, EntityBottom.y );
-		ImVec2 BoxCenter = ImVec2( ( BoxMin.x + BoxMax.x ) * 0.5f, ( BoxMin.y + BoxMax.y ) * 0.5f );
+        // Supplied source: head/feet geometry and projected model bounds.
+        D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault(0);
+        const auto head = Core::SDK::Game::WorldToScreen(HeadPos);
+        const auto leftFoot = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(3));
+        const auto rightFoot = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(4));
+        const auto position = Core::SDK::Game::WorldToScreen(Entity.Pos);
+        const auto window = g_Variables.g_vGameWindowSize;
+        const auto validScreen = [&](D3DXVECTOR2 point) {
+            return ExternalAimMath::Inside(point.x, point.y, window.x, window.y);
+        };
+        if (!validScreen(head) || !validScreen(leftFoot) || !validScreen(rightFoot) || !validScreen(position)) continue;
+        float Height = std::fabs(head.y - (leftFoot.y + rightFoot.y) * 0.5f) * 1.35f;
+        float fullWidth = Height / (1.80f + ImClamp(Cfg->BoxSize, 0, 30) / 100.f);
+        D3DXVECTOR2 EntityTop(position.x, position.y - Height * 0.5f);
+        D3DXVECTOR2 EntityBottom(position.x, position.y + Height * 0.5f);
+        float BoxLeft = position.x - fullWidth * 0.5f;
+        float BoxRight = position.x + fullWidth * 0.5f;
+        if (Cfg->StaticESP) {
+            const uintptr_t model = Mem.Read<uintptr_t>(reinterpret_cast<uintptr_t>(Ped) + 0x20);
+            if (!model) continue;
+            const auto mins = Mem.Read<D3DXVECTOR3>(model + 0x30);
+            const auto maxs = Mem.Read<D3DXVECTOR3>(model + 0x40);
+            if (!std::isfinite(mins.x) || !std::isfinite(mins.y) || !std::isfinite(mins.z) ||
+                !std::isfinite(maxs.x) || !std::isfinite(maxs.y) || !std::isfinite(maxs.z) ||
+                mins.x >= maxs.x || mins.y >= maxs.y || mins.z >= maxs.z) continue;
+            float x0 = FLT_MAX, y0 = FLT_MAX, x1 = -FLT_MAX, y1 = -FLT_MAX;
+            bool valid = true;
+            for (int corner = 0; corner < 8; ++corner) {
+                const D3DXVECTOR3 point = Entity.Pos + D3DXVECTOR3(
+                    corner & 1 ? maxs.x : mins.x, corner & 2 ? maxs.y : mins.y, corner & 4 ? maxs.z : mins.z);
+                const auto projected = Core::SDK::Game::WorldToScreen(point);
+                if (!validScreen(projected)) { valid = false; break; }
+                x0 = (std::min)(x0, projected.x); x1 = (std::max)(x1, projected.x);
+                y0 = (std::min)(y0, projected.y); y1 = (std::max)(y1, projected.y);
+            }
+            if (!valid) continue;
+            const float half = (x1 - x0) * 0.5f * (1.80f / (1.80f + ImClamp(Cfg->BoxSize, 0, 30) / 100.f));
+            BoxLeft = (x0 + x1) * 0.5f - half; BoxRight = (x0 + x1) * 0.5f + half;
+            EntityTop = D3DXVECTOR2((x0 + x1) * 0.5f, y0);
+            EntityBottom = D3DXVECTOR2((x0 + x1) * 0.5f, y1);
+            Height = y1 - y0;
+        }
+        if (!std::isfinite(Height) || Height <= 1.f || BoxRight <= BoxLeft) continue;
+        float Width = (BoxRight - BoxLeft) * 0.5f;
+        ImVec2 BoxMin(BoxLeft, EntityTop.y), BoxMax(BoxRight, EntityBottom.y);
+        ImVec2 BoxCenter((BoxLeft + BoxRight) * 0.5f, (EntityTop.y + EntityBottom.y) * 0.5f);
 
 
 
@@ -204,15 +232,25 @@ void Core::Features::cEsp::Draw( )
 			DrawList->AddLine( ImVec2( g_Variables.g_vGameWindowCenter.x, g_Variables.g_vGameWindowPos.y + g_Variables.g_vGameWindowSize.y ), ImVec2( BoxCenter.x, BoxMax.y ), Cfg->SnapLinesCol, 1.5 );
 		}
 
-		if ( Cfg->Box )
-		{
-			if ( Cfg->FilledBox )
-				DrawList->AddRectFilled( { BoxLeft, EntityTop.y }, { BoxRight, EntityBottom.y }, Cfg->FilledBoxCol, 0, 0 );
-
-			DrawList->AddRect( { BoxLeft - 1, EntityTop.y - 1 }, { BoxRight + 1, EntityBottom.y + 1 }, ImColor( 0, 0, 0, 200 ), 0, 0, 1.5 );
-			DrawList->AddRect( { BoxLeft + 1, EntityTop.y + 1 }, { BoxRight - 1, EntityBottom.y - 1 }, ImColor( 0, 0, 0, 200 ), 0, 0, 1.5 );
-			DrawList->AddRect( { BoxLeft, EntityTop.y }, { BoxRight, EntityBottom.y }, Cfg->BoxCol, 0, 0, 1.5 );
-		}
+        if ((Cfg->Box || Cfg->CornerBox) && Cfg->FilledBox)
+            DrawList->AddRectFilled(BoxMin, BoxMax, Cfg->FilledBoxCol);
+        if (Cfg->Box) {
+            DrawList->AddRect(BoxMin, BoxMax, IM_COL32(0,0,0,220), 0, 0, 3.f);
+            DrawList->AddRect(BoxMin, BoxMax, Cfg->BoxCol, 0, 0, 1.f);
+        }
+        if (Cfg->CornerBox) {
+            const float length = (BoxRight - BoxLeft) * 0.25f;
+            for (int i = 0; i < 4; ++i) {
+                const float x = i & 1 ? BoxRight : BoxLeft;
+                const float y = i & 2 ? EntityBottom.y : EntityTop.y;
+                const float dx = i & 1 ? -length : length;
+                const float dy = i & 2 ? -length : length;
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), IM_COL32(0,0,0,220), 3.f);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), IM_COL32(0,0,0,220), 3.f);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), Cfg->BoxCol, 1.f);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), Cfg->BoxCol, 1.f);
+            }
+        }
 
 		if ( Cfg->Skeleton )
 		{
@@ -525,10 +563,10 @@ void Core::Features::cEsp::Draw( )
 
 		if ( Cfg->HealthBar )
 		{
-			float MaxHealth = Entity.MaxHealth;
+			float MaxHealth = (std::max)(1.f, Entity.MaxHealth);
 
 			CurrentESPAnim.Health = ImLerp( CurrentESPAnim.Health, Health, ImGui::GetIO( ).DeltaTime * 4 );
-			float AnimHealth = CurrentESPAnim.Health;
+			float AnimHealth = ImClamp(CurrentESPAnim.Health, 0.f, MaxHealth);
 
 			float FullHealthBar = Height / 100 * 100;
 			float DecreaseHealthBar = FullHealthBar * ( AnimHealth / MaxHealth );
@@ -591,15 +629,15 @@ void Core::Features::cEsp::Draw( )
 
 		if ( Cfg->ArmorBar )
 		{
-			float MaxHealth = Entity.MaxHealth;
+			float MaxHealth = 100.f;
 			float Armor = Entity.Armor;
 
 			if ( Armor > 0 )
 			{
-				MaxHealth = MaxHealth / 2;
+				MaxHealth = 100.f;
 
 				CurrentESPAnim.Armor = ImLerp( CurrentESPAnim.Armor, Armor, ImGui::GetIO( ).DeltaTime * 4 );
-				float AnimArmor = CurrentESPAnim.Armor;
+				float AnimArmor = ImClamp(CurrentESPAnim.Armor, 0.f, MaxHealth);
 
 				float FullArmorBar = Height / 100 * 100;
 				float DecreaseHealthBar = FullArmorBar * ( AnimArmor / MaxHealth );

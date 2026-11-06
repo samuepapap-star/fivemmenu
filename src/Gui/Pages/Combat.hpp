@@ -1,6 +1,7 @@
 #pragma once
 #include <Includes/Includes.hpp>
 #include <windows.h>
+#include <Core/Features/ExternalCameraOptions.hpp>
 #include <iostream>
 #include <thread>
 
@@ -49,7 +50,18 @@ namespace Combat {
 						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.Aimbot->Enabled );
 						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.Aimbot->ShowFov );
 						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.Aimbot->OnlyVisible );
-						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.Aimbot->IgnoreNPCs );
+						ImGui::Combo("Alvos", &g_Config.Aimbot->TargetType, "Todos\0Somente jogadores\0Somente NPCs\0");
+                        ImGui::Combo("Modo de mira", &g_Config.Aimbot->AimMode, "Mouse\0Câmera\0");
+                        ImGui::Combo("Prioridade", &g_Config.Aimbot->SelectionMode, "Distância\0Proximidade da mira\0");
+                        Custom::CheckBox("Retículo central", &g_Config.Aimbot->Crosshair);
+                        Custom::CheckBox("Alterar FOV da câmera", &g_Config.Aimbot->CameraFovEnabled);
+                        ImGui::SliderFloat("FOV da câmera", &g_Config.Aimbot->CameraFov, 50.f, 160.f, "%.0f");
+                        ImGui::BeginDisabled(!Core::Features::ExternalCameraOptions::RangeBuildSupported());
+                        Custom::CheckBox("Alterar alcance da arma", &g_Config.Aimbot->WeaponRangeEnabled);
+                        ImGui::SliderFloat("Alcance da arma", &g_Config.Aimbot->WeaponRange, 1.f, 1000.f, "%.0f m");
+                        ImGui::EndDisabled();
+                        if (!Core::Features::ExternalCameraOptions::RangeBuildSupported())
+                            ImGui::TextWrapped("Alcance indisponível nesta build: campo não identificado pela source.");
                         Custom::CheckBox("Modo Legit", &g_Config.Aimbot->LegitMode, true, "Aumenta a suavização da mira.");
                         Custom::CheckBox("Suavização X/Y separada", &g_Config.Aimbot->SeparateSmooth);
 					}
@@ -62,7 +74,7 @@ namespace Combat {
 					ImGui::BeginChild( xorstr( "Ajustes" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::SliderInt( xorstr( "Campo de visão" ), &g_Config.Aimbot->FOV, 0, 400, xorstr( "%d" ), 0 );
-						ImGui::Combo("Região de mira", &g_Config.Aimbot->Hitbox, "Cabeça\0Tronco\0");
+						ImGui::Combo("Região de mira", &g_Config.Aimbot->Hitbox, "Cabeça\0Tronco\0Perna esquerda\0Perna direita\0Braço direito\0Braço esquerdo\0");
                         if (g_Config.Aimbot->SeparateSmooth) {
                             ImGui::SliderInt("Suavização X", &g_Config.Aimbot->SmoothHorizontal, 1, 100);
                             ImGui::SliderInt("Suavização Y", &g_Config.Aimbot->SmoothVertical, 1, 100);

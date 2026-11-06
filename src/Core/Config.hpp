@@ -40,6 +40,15 @@ namespace Core {
             inline static int SmoothHorizontal = 12;
             inline static int SmoothVertical = 12;
             inline static int Hitbox = 0;
+            inline static int AimMode = 0;
+            inline static int TargetType = 0;
+            inline static int SelectionMode = 1;
+            inline static bool CameraFovEnabled = false;
+            inline static float CameraFov = 70.f;
+            inline static bool WeaponRangeEnabled = false;
+            inline static float WeaponRange = 1000.f;
+            inline static bool Crosshair = false;
+
 			inline static int KeyBind;
 			inline static ImColor FovColor { 255, 255, 255 };
 		} *Aimbot;
@@ -79,6 +88,11 @@ namespace Core {
 			inline static bool Box;
 			inline static bool FilledBox;
 			inline static int BoxState = 0;
+            inline static bool CornerBox = false;
+            inline static bool StaticESP = false;
+            inline static int BoxSize = 0;
+            inline static bool PreviewEnabled = true;
+
 			inline static bool Skeleton;
 			inline static bool HealthBar;
 			inline static ImVec2 HealthBarPos;
@@ -209,6 +223,15 @@ namespace Core {
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Prediction" ) ] = Aimbot->Prediction;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FOV" ) ] = Aimbot->FOV;
                 FeaturesCfg["Aimbot"]["Hitbox"] = Aimbot->Hitbox;
+                FeaturesCfg["Aimbot"]["AimMode"] = Aimbot->AimMode;
+                FeaturesCfg["Aimbot"]["TargetType"] = Aimbot->TargetType;
+                FeaturesCfg["Aimbot"]["SelectionMode"] = Aimbot->SelectionMode;
+                FeaturesCfg["Aimbot"]["CameraFovEnabled"] = Aimbot->CameraFovEnabled;
+                FeaturesCfg["Aimbot"]["CameraFov"] = Aimbot->CameraFov;
+                FeaturesCfg["Aimbot"]["WeaponRangeEnabled"] = Aimbot->WeaponRangeEnabled;
+                FeaturesCfg["Aimbot"]["WeaponRange"] = Aimbot->WeaponRange;
+                FeaturesCfg["Aimbot"]["Crosshair"] = Aimbot->Crosshair;
+
                 FeaturesCfg["Aimbot"]["LegitMode"] = Aimbot->LegitMode;
                 FeaturesCfg["Aimbot"]["SeparateSmooth"] = Aimbot->SeparateSmooth;
                 FeaturesCfg["Aimbot"]["SmoothHorizontal"] = Aimbot->SmoothHorizontal;
@@ -264,6 +287,11 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ] = ESP->HighlightVisible;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ] = ESP->IgnoreDead;
                 FeaturesCfg["ESP"]["PossibleNoclip"] = ESP->PossibleNoclip;
+                FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
+                FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
+                FeaturesCfg["ESP"]["BoxSize"] = ESP->BoxSize;
+                FeaturesCfg["ESP"]["PreviewEnabled"] = ESP->PreviewEnabled;
+
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMe" ) ] = ESP->DistanceFromMe;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMeState" ) ] = ESP->DistanceFromMeState;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "MaxDistance" ) ] = ESP->MaxDistance;
@@ -343,6 +371,15 @@ namespace Core {
 				Aimbot->Prediction = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Prediction" ) ];
 				Aimbot->FOV = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FOV" ) ];
                 Aimbot->Hitbox = FeaturesCfg["Aimbot"].value("Hitbox", 0);
+                Aimbot->AimMode = FeaturesCfg["Aimbot"].value("AimMode", 0);
+                Aimbot->TargetType = FeaturesCfg["Aimbot"].value("TargetType", 0);
+                Aimbot->SelectionMode = FeaturesCfg["Aimbot"].value("SelectionMode", 1);
+                Aimbot->CameraFovEnabled = FeaturesCfg["Aimbot"].value("CameraFovEnabled", false);
+                Aimbot->CameraFov = FeaturesCfg["Aimbot"].value("CameraFov", 70.f);
+                Aimbot->WeaponRangeEnabled = FeaturesCfg["Aimbot"].value("WeaponRangeEnabled", false);
+                Aimbot->WeaponRange = FeaturesCfg["Aimbot"].value("WeaponRange", 1000.f);
+                Aimbot->Crosshair = FeaturesCfg["Aimbot"].value("Crosshair", false);
+
                 Aimbot->LegitMode = FeaturesCfg["Aimbot"].value("LegitMode", false);
                 Aimbot->SeparateSmooth = FeaturesCfg["Aimbot"].value("SeparateSmooth", false);
                 Aimbot->SmoothHorizontal = ImClamp(FeaturesCfg["Aimbot"].value("SmoothHorizontal", 12), 1, 100);
@@ -397,6 +434,11 @@ namespace Core {
 				ESP->HighlightVisible = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ];
 				ESP->IgnoreDead = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ];
                 ESP->PossibleNoclip = FeaturesCfg["ESP"].value("PossibleNoclip", false);
+                ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
+                ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);
+                ESP->BoxSize = FeaturesCfg["ESP"].value("BoxSize", 0);
+                ESP->PreviewEnabled = FeaturesCfg["ESP"].value("PreviewEnabled", true);
+
 				ESP->DistanceFromMe = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMe" ) ];
 				ESP->DistanceFromMeState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMeState" ) ];
 				ESP->ShowLocalPlayer = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "ShowLocalPlayer" ) ];

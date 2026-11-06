@@ -1,79 +1,73 @@
 #include "Aimbot.hpp"
+#include "ExternalAimMath.hpp"
 
-void Core::Features::cAimbot::SetViewAngles( CPed * Ped, D3DXVECTOR3 BonePos )
+// External adaptation of the supplied source's mouse and stepped camera modes.
+// SilentAim and TriggerBot keep their existing, independent implementations.
+void Core::Features::cAimbot::SetViewAngles(CPed*, D3DXVECTOR3 target)
 {
-	if (!Core::SDK::Pointers::pCamGamePlayDirector || !Core::SDK::Pointers::pLocalPlayer) return;
-	uintptr_t CamFollowPedCamera = Mem.Read<uintptr_t>( Core::SDK::Pointers::pCamGamePlayDirector + 0x2C0 );
-    if (!CamFollowPedCamera) return;
-	D3DXVECTOR3 CamPos = Mem.Read<D3DXVECTOR3>( CamFollowPedCamera + 0x60 );
-
-	D3DXVECTOR3 CurrentViewAngles = Mem.Read<D3DXVECTOR3>( CamFollowPedCamera + 0x40 );
-	D3DXVec3Normalize( &CurrentViewAngles, &CurrentViewAngles );
-
-	uintptr_t CamFollowVehicle = Mem.Read<uintptr_t>( CamFollowPedCamera + 0x10 );
-
-	if ( !CamFollowPedCamera || !CamFollowVehicle ) return;
-
-	if ( Core::SDK::Pointers::pLocalPlayer->InVehicle( ) )
-	{
-		if ( Mem.Read<float>( CamFollowVehicle + 0x2AC ) == -2.f )
-		{
-			Mem.Write<float>( CamFollowVehicle + 0x2AC, 0.f );
-			Mem.Write<float>( CamFollowVehicle + 0x2C0, 111.f );
-			Mem.Write<float>( CamFollowVehicle + 0x2C4, 111.f );
-		}
-	}
-
-	D3DXVECTOR3 TargetViewAngles = BonePos - CamPos;
-	D3DXVec3Normalize( &TargetViewAngles, &TargetViewAngles );	
-	
-    const auto settings = g_Config.Aimbot;
-    float horizontal = static_cast<float>(settings->SeparateSmooth ? settings->SmoothHorizontal : settings->AimbotSpeed);
-    float vertical = static_cast<float>(settings->SeparateSmooth ? settings->SmoothVertical : settings->AimbotSpeed);
-    if (settings->LegitMode) {
-        // Adapted from carrera: the mode changes smoothing, not license/anti-cheat state.
-        const float legitFactor = (100.f / 15.f) * 0.57f;
-        horizontal *= legitFactor;
-        vertical *= legitFactor;
+    const auto cfg = g_Config.Aimbot;
+    if (!Core::SDK::Pointers::pCamGamePlayDirector) return;
+    const uintptr_t camera = Mem.Read<uintptr_t>(Core::SDK::Pointers::pCamGamePlayDirector + 0x2C0);
+    if (!camera) return;
+    const auto origin = Mem.Read<D3DXVECTOR3>(camera + 0x60);
+    D3DXVECTOR3 direction = target - origin;
+    if (!std::isfinite(direction.x) || !std::isfinite(direction.y) || !std::isfinite(direction.z) ||
+        D3DXVec3Length(&direction) < 0.001f) return;
+    D3DXVec3Normalize(&direction, &direction);
+    float sx = static_cast<float>(cfg->SeparateSmooth ? cfg->SmoothHorizontal : cfg->AimbotSpeed);
+    float sy = static_cast<float>(cfg->SeparateSmooth ? cfg->SmoothVertical : cfg->AimbotSpeed);
+    sx = ImClamp(sx, 1.f, 100.f); sy = ImClamp(sy, 1.f, 100.f);
+    if (cfg->LegitMode) { sx *= 3.8f; sy *= 3.8f; }
+    for (const uintptr_t offset : {uintptr_t(0x40), uintptr_t(0x3D0)}) {
+        const auto angles = Mem.Read<D3DXVECTOR3>(camera + offset);
+        D3DXVECTOR3 next(ExternalAimMath::Step(angles.x, direction.x, sx),
+            ExternalAimMath::Step(angles.y, direction.y, sx),
+            ExternalAimMath::Step(angles.z, direction.z, sy));
+        Mem.Write<D3DXVECTOR3>(camera + offset, next);
     }
-    horizontal = ImClamp(horizontal, 1.f, 1000.f);
-    vertical = ImClamp(vertical, 1.f, 1000.f);
-    const D3DXVECTOR3 delta = TargetViewAngles - CurrentViewAngles;
-    D3DXVECTOR3 finalAngles(CurrentViewAngles.x + delta.x / horizontal,
-        CurrentViewAngles.y + delta.y / horizontal, CurrentViewAngles.z + delta.z / vertical);
-    D3DXVec3Normalize(&finalAngles, &finalAngles);
-    Mem.Write<D3DXVECTOR3>(CamFollowPedCamera + 0x40, finalAngles);
-    Mem.Write<D3DXVECTOR3>(CamFollowPedCamera + 0x3D0, finalAngles);
 }
 
-void Core::Features::cAimbot::Start( )
+void Core::Features::cAimbot::Start()
 {
-	while ( true )
-	{
-
-		if (g_Config.Aimbot->Enabled && !g_MenuInfo.IsOpen &&
-            GetForegroundWindow() == g_Variables.g_hGameWindow &&
-            (g_Config.Aimbot->KeyBind == 0 ||
-             (GetAsyncKeyState(g_Config.Aimbot->KeyBind) & 0x8000) != 0))
-		{
-			CPed * Ped = Core::SDK::Game::GetClosestPed( g_Config.Aimbot->MaxDistance, g_Config.Aimbot->IgnoreNPCs, g_Config.Aimbot->OnlyVisible );
-			if ( !Ped ) continue;
-
-			static const int bones[] = {0, 8};
-            const int selection = g_Config.Aimbot->Hitbox;
-            const int bone = selection >= 0 && selection < 2 ? bones[selection] : 0;
-            D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault(bone);
-			D3DXVECTOR2 ScreenHeadPos = Core::SDK::Game::WorldToScreen( HeadPos );
-
-			if ( Core::SDK::Game::IsOnScreen( ScreenHeadPos ) )
-			{
-				int Fov = std::hypot( ScreenHeadPos.x - g_Variables.g_vGameWindowCenter.x, ScreenHeadPos.y - g_Variables.g_vGameWindowCenter.y );
-				if ( Fov < g_Config.Aimbot->FOV )
-				{
-					SetViewAngles( Ped, HeadPos + D3DXVECTOR3(0, 0, bone == 0 ? 0.08f : 0.f) );
-				}
-			}
-		}
-		std::this_thread::sleep_for( std::chrono::nanoseconds( 1 ) );
-	}
+    while (true) {
+        // Always yield, including when no target exists.
+        std::this_thread::sleep_for(std::chrono::milliseconds(4));
+        const auto cfg = g_Config.Aimbot;
+        if (!cfg->Enabled || g_MenuInfo.IsOpen || !Core::SDK::Pointers::pLocalPlayer ||
+            GetForegroundWindow() != g_Variables.g_hGameWindow ||
+            (cfg->KeyBind && !(GetAsyncKeyState(cfg->KeyBind) & 0x8000))) continue;
+        CPed* selected = nullptr;
+        D3DXVECTOR3 target;
+        D3DXVECTOR2 screen;
+        float best = FLT_MAX;
+        const auto center = g_Variables.g_vGameWindowCenter;
+        const auto size = g_Variables.g_vGameWindowSize;
+        for (const auto& entity : Core::SDK::Game::EntityList) {
+            CPed* ped = entity.Ped;
+            if (!ped || ped == Core::SDK::Pointers::pLocalPlayer || entity.IsFriend ||
+                entity.Health <= (entity.PedType == 2 ? 101.f : 1.f) || entity.Distance > cfg->MaxDistance) continue;
+            if ((cfg->TargetType == 1 && entity.PedType != 2) ||
+                (cfg->TargetType == 2 && entity.PedType == 2)) continue;
+            if (cfg->OnlyVisible && !ped->IsVisible()) continue;
+            const auto point = ped->GetBonePosDefault(ExternalAimMath::Bone(cfg->Hitbox));
+            const auto projected = Core::SDK::Game::WorldToScreen(point);
+            if (!ExternalAimMath::Inside(projected.x, projected.y, size.x, size.y)) continue;
+            const float radius = std::hypot(projected.x - center.x, projected.y - center.y);
+            if (radius > cfg->FOV) continue;
+            const float rank = cfg->SelectionMode == 0 ? entity.Distance : radius;
+            if (rank < best) { best = rank; selected = ped; target = point; screen = projected; }
+        }
+        if (!selected) continue;
+        if (cfg->AimMode == 1) { SetViewAngles(selected, target); continue; }
+        float sx = float(cfg->SeparateSmooth ? cfg->SmoothHorizontal : cfg->AimbotSpeed);
+        float sy = float(cfg->SeparateSmooth ? cfg->SmoothVertical : cfg->AimbotSpeed);
+        sx = ImClamp(sx, 1.f, 100.f); sy = ImClamp(sy, 1.f, 100.f);
+        if (cfg->LegitMode) { sx *= 3.8f; sy *= 3.8f; }
+        INPUT input{};
+        input.type = INPUT_MOUSE;
+        input.mi.dx = LONG(std::lround((screen.x - center.x) / (sx + 1.5f)));
+        input.mi.dy = LONG(std::lround((screen.y - center.y) / (sy + 1.5f)));
+        input.mi.dwFlags = MOUSEEVENTF_MOVE;
+        if (input.mi.dx || input.mi.dy) SendInput(1, &input, sizeof(input));
+    }
 }
