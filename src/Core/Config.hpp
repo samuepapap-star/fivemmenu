@@ -18,6 +18,7 @@ namespace Core {
 			inline static bool ArrayListCol;
 			inline static bool VSync = true;
             inline static bool BindManager = false;
+            inline static ImVec4 MenuAccent = ImVec4(138.f/255.f,43.f/255.f,226.f/255.f,1.f);
 			inline static int ProcessPriority = 0;
 			inline static int MenuKey = VK_INSERT;
 		} *General;
@@ -169,15 +170,14 @@ namespace Core {
 			}
 		}
 
-        static void SetMenuAccent(float r, float g, float b) {
+        void SetMenuAccent(float r, float g, float b) {
             if (!std::isfinite(r) || !std::isfinite(g) || !std::isfinite(b)) return;
-            g_Col.Base = ImVec4(ImClamp(r,0.f,1.f),ImClamp(g,0.f,1.f),ImClamp(b,0.f,1.f),1.f);
-            g_Col.ButtonHovered = ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);
+            General->MenuAccent = ImVec4(ImClamp(r,0.f,1.f),ImClamp(g,0.f,1.f),ImClamp(b,0.f,1.f),1.f);
             ImGuiStyle &style=ImGui::GetStyle();
-            style.Colors[ImGuiCol_CheckMark]=g_Col.Base;
-            style.Colors[ImGuiCol_SliderGrab]=g_Col.Base;
-            style.Colors[ImGuiCol_SliderGrabActive]=g_Col.Base;
-            style.Colors[ImGuiCol_NavHighlight]=g_Col.Base;
+            style.Colors[ImGuiCol_CheckMark]=General->MenuAccent;
+            style.Colors[ImGuiCol_SliderGrab]=General->MenuAccent;
+            style.Colors[ImGuiCol_SliderGrabActive]=General->MenuAccent;
+            style.Colors[ImGuiCol_NavHighlight]=General->MenuAccent;
         }
 
 		std::string EncodeCurrentConfig( std::string CfgName )
@@ -194,7 +194,7 @@ namespace Core {
 				GeneralCfg[ xorstr( "VSync" ) ] = General->VSync;
 				GeneralCfg[ xorstr( "ProcessPriority" ) ] = General->ProcessPriority;
 				GeneralCfg[ xorstr( "MenuKey" ) ] = General->MenuKey;
-                GeneralCfg["MenuAccent"] = nlohmann::json::array({g_Col.Base.x,g_Col.Base.y,g_Col.Base.z});
+                GeneralCfg["MenuAccent"] = nlohmann::json::array({General->MenuAccent.x,General->MenuAccent.y,General->MenuAccent.z});
 
 				// Features - Aimbot
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Enabled" ) ] = Aimbot->Enabled;

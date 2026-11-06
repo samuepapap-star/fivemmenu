@@ -39,6 +39,8 @@ inline void CheatLogin( )
 
 void Gui::Rendering( )
 {
+    g_Col.Base=g_Config.General->MenuAccent;
+    g_Col.ButtonHovered=ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);
 
 	if ( !g_MenuInfo.IsLogged )
 	{
