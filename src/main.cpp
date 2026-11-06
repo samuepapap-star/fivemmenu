@@ -5,6 +5,7 @@
 #include <Includes/Utils.hpp>
 #include <Core/SDK/SDK.hpp>
 #include <Core/SDK/SupportedBuild.hpp>
+#include <Core/SDK/Build3889Probe.hpp>
 #include <Core/SDK/TeleportTrace.hpp>
 #include <Core/Core.hpp>
 #include <Gui/gui.hpp>
@@ -80,6 +81,11 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 	{
 		std::string ProcessName = Mem.GetNameByPid( ProcIdFiveM );
 		if ( ProcessName.empty( ) ) { return 0; };
+
+		if (ProcessName == "FiveM_b3889_GTAProcess.exe" || ProcessName == "FiveM_b3889_GameProcess.exe") {
+			Build3889Probe::Run(ProcIdFiveM);
+			return 0;
+		}
 
 		if ( !Mem.OpenProcByPid(ProcIdFiveM) ) {
 			//std::cout << xorstr( "[Error]: Failed to OpenProc\n" );
