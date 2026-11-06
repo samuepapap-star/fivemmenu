@@ -54,7 +54,12 @@ void Gui::Rendering( )
         positionInitialized = true;
     }
 
-    ImGui::Begin(" ", nullptr, ImGuiWindowFlags | ImGuiWindowFlags_NoMove);
+    ImGui::Begin(" ", nullptr, ImGuiWindowFlags | ImGuiWindowFlags_NoMove |
+        (g_MenuInfo.IsOpen ? 0 : ImGuiWindowFlags_NoInputs));
+    // Clip the menu and child controls when closed; background overlays still render.
+    const bool menuHidden = !g_MenuInfo.IsOpen;
+    if (menuHidden)
+        ImGui::PushClipRect(ImVec2(0.f, 0.f), ImVec2(0.f, 0.f), true);
     // Keep the header reachable after resolution changes or an off-screen move.
     auto clampPosition = [&](ImVec2 pos) {
         const float maxX = display.x > g_MenuInfo.MenuSize.x ? display.x - g_MenuInfo.MenuSize.x : 0.f;
@@ -316,5 +321,7 @@ void Gui::Rendering( )
 		ImGui::PopStyleVar( );
 		ImGui::PopFont( );
 	}
+    if (menuHidden)
+        ImGui::PopClipRect();
 	ImGui::End( );
 }
