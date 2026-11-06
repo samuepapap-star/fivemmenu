@@ -50,6 +50,8 @@ namespace Combat {
 						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.Aimbot->ShowFov );
 						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.Aimbot->OnlyVisible );
 						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.Aimbot->IgnoreNPCs );
+                        Custom::CheckBox("Modo Legit", &g_Config.Aimbot->LegitMode, true, "Aumenta a suavização da mira.");
+                        Custom::CheckBox("Suavização X/Y separada", &g_Config.Aimbot->SeparateSmooth);
 					}
 					ImGui::EndChild( );
 				}
@@ -61,7 +63,12 @@ namespace Combat {
 					{
 						ImGui::SliderInt( xorstr( "Campo de visão" ), &g_Config.Aimbot->FOV, 0, 400, xorstr( "%d" ), 0 );
 						ImGui::Combo("Região de mira", &g_Config.Aimbot->Hitbox, "Cabeça\0Tronco\0");
-                        ImGui::SliderInt( xorstr( "Suavização" ), &g_Config.Aimbot->AimbotSpeed, 0, 100, xorstr( "%d" ), 0 );
+                        if (g_Config.Aimbot->SeparateSmooth) {
+                            ImGui::SliderInt("Suavização X", &g_Config.Aimbot->SmoothHorizontal, 1, 100);
+                            ImGui::SliderInt("Suavização Y", &g_Config.Aimbot->SmoothVertical, 1, 100);
+                        } else {
+                            ImGui::SliderInt( xorstr( "Suavização" ), &g_Config.Aimbot->AimbotSpeed, 0, 100, xorstr( "%d" ), 0 );
+                        }
 						//ImGui::SliderInt( xorstr( "Suavização vertical" ), &g_Config.Aimbot->SmoothVertical, 0, 100, xorstr( "%d" ), 0 );
 						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.Aimbot->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 						static int KeyMode = 1;

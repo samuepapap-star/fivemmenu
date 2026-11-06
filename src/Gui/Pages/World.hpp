@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Features/CarreraAdditions.hpp>
 #include <Includes/includes.hpp>
 #include <windows.h>
 #include <iostream>
@@ -81,7 +82,7 @@ namespace World {
 				{
 					ImGui::BeginChild( xorstr( "Informações" ), ImVec2( 230, 180 ), false, 0 );
 					{
-						if ( SeletedIndex == -1 ) {
+						if (SeletedIndex < 0 || SeletedIndex >= static_cast<int>(Core::SDK::Game::EntityList.size())) {
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecione um jogador" ) );
 						}
 						else
@@ -104,9 +105,9 @@ namespace World {
 						}
 					}
 					ImGui::EndChild( );
-					ImGui::BeginChild( xorstr( "Ações" ), ImVec2( 230, 210 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Ações" ), ImVec2(340,260), false, 0 );
 					{
-						if ( SeletedIndex == -1 ) {
+						if (SeletedIndex < 0 || SeletedIndex >= static_cast<int>(Core::SDK::Game::EntityList.size())) {
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecione um jogador" ) );
 						}
 						else
@@ -129,9 +130,15 @@ namespace World {
 							//if ( Custom::Button( xorstr( "Observar" ), ImVec2( -1, 30 ), 0 ) ) 
 							//{
 							//}
-							//if ( Custom::Button( xorstr( "Copiar roupa" ), ImVec2( -1, 30 ), 0 ) ) 
-							//{
-							//}
+                            if(Custom::Button("Copiar roupa",ImVec2(-1,30),0)) {
+                                NotifyManager::Send(Core::Features::CarreraAdditions::CopyClothes(
+                                    reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
+                            }
+                            if(Custom::Button("Trazer veículos até jogador",ImVec2(-1,30),0,true,
+                                "Tenta mover os veículos carregados a até 200 m de você para o jogador selecionado.")) {
+                                NotifyManager::Send(Core::Features::CarreraAdditions::VehiclesToPlayer(
+                                    reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
+                            }
 							if ( Custom::Button( xorstr( "Copiar Discord" ), ImVec2( -1, 30 ), 0 ) )
 							{
 								std::string PlayerDiscord = SelectedPed.NetworkInfo.DiscordId;
@@ -202,7 +209,7 @@ namespace World {
 				{
 					ImGui::BeginChild( xorstr( "Informações" ), ImVec2( 230, 140 ), false, 0 );
 					{
-						if ( SeletedIndex == -1 ) {
+						if (SeletedIndex < 0 || SeletedIndex >= static_cast<int>(Core::SDK::Game::VehicleList.size())) {
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecione um veículo" ) );
 						}
 						else
@@ -224,7 +231,7 @@ namespace World {
 					ImGui::EndChild( );
 					ImGui::BeginChild( xorstr( "Ações" ), ImVec2( 230, 250 ), false, 0 );
 					{
-						if ( SeletedIndex == -1 ) {
+						if (SeletedIndex < 0 || SeletedIndex >= static_cast<int>(Core::SDK::Game::VehicleList.size())) {
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecione um veículo" ) );
 						}
 						else

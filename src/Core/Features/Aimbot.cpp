@@ -2,7 +2,9 @@
 
 void Core::Features::cAimbot::SetViewAngles( CPed * Ped, D3DXVECTOR3 BonePos )
 {
+	if (!Core::SDK::Pointers::pCamGamePlayDirector || !Core::SDK::Pointers::pLocalPlayer) return;
 	uintptr_t CamFollowPedCamera = Mem.Read<uintptr_t>( Core::SDK::Pointers::pCamGamePlayDirector + 0x2C0 );
+    if (!CamFollowPedCamera) return;
 	D3DXVECTOR3 CamPos = Mem.Read<D3DXVECTOR3>( CamFollowPedCamera + 0x60 );
 
 	D3DXVECTOR3 CurrentViewAngles = Mem.Read<D3DXVECTOR3>( CamFollowPedCamera + 0x40 );
@@ -25,26 +27,23 @@ void Core::Features::cAimbot::SetViewAngles( CPed * Ped, D3DXVECTOR3 BonePos )
 	D3DXVECTOR3 TargetViewAngles = BonePos - CamPos;
 	D3DXVec3Normalize( &TargetViewAngles, &TargetViewAngles );	
 	
-	D3DXVECTOR3 FinalAngles;
-
-
-	if ( g_Config.Aimbot->AimbotSpeed > 1 )
-	{
-
-		auto Delta = TargetViewAngles - CurrentViewAngles;
-		FinalAngles.x = CurrentViewAngles.x + Delta.x / g_Config.Aimbot->AimbotSpeed;
-		FinalAngles.y = CurrentViewAngles.y + Delta.y / g_Config.Aimbot->AimbotSpeed;
-		FinalAngles.z = CurrentViewAngles.z + Delta.z / g_Config.Aimbot->AimbotSpeed;
-
-		D3DXVec3Normalize( &FinalAngles, &FinalAngles );
-		Mem.Write<D3DXVECTOR3>( CamFollowPedCamera + 0x40, FinalAngles );
-		Mem.Write<D3DXVECTOR3>( CamFollowPedCamera + 0x3D0, FinalAngles );
-	}
-	else {
-
-		Mem.Write<D3DXVECTOR3>( CamFollowPedCamera + 0x40, TargetViewAngles );
-		Mem.Write<D3DXVECTOR3>( CamFollowPedCamera + 0x3D0, TargetViewAngles );
-	}
+    const auto settings = g_Config.Aimbot;
+    float horizontal = static_cast<float>(settings->SeparateSmooth ? settings->SmoothHorizontal : settings->AimbotSpeed);
+    float vertical = static_cast<float>(settings->SeparateSmooth ? settings->SmoothVertical : settings->AimbotSpeed);
+    if (settings->LegitMode) {
+        // Adapted from carrera: the mode changes smoothing, not license/anti-cheat state.
+        const float legitFactor = (100.f / 15.f) * 0.57f;
+        horizontal *= legitFactor;
+        vertical *= legitFactor;
+    }
+    horizontal = ImClamp(horizontal, 1.f, 1000.f);
+    vertical = ImClamp(vertical, 1.f, 1000.f);
+    const D3DXVECTOR3 delta = TargetViewAngles - CurrentViewAngles;
+    D3DXVECTOR3 finalAngles(CurrentViewAngles.x + delta.x / horizontal,
+        CurrentViewAngles.y + delta.y / horizontal, CurrentViewAngles.z + delta.z / vertical);
+    D3DXVec3Normalize(&finalAngles, &finalAngles);
+    Mem.Write<D3DXVECTOR3>(CamFollowPedCamera + 0x40, finalAngles);
+    Mem.Write<D3DXVECTOR3>(CamFollowPedCamera + 0x3D0, finalAngles);
 }
 
 void Core::Features::cAimbot::Start( )

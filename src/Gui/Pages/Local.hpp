@@ -5,6 +5,7 @@
 #include <thread>
 
 #include <Core/Core.hpp>
+#include <Core/Features/CarreraAdditions.hpp>
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Core/Features/Exploits/HandlingEditor.hpp>
 
@@ -84,7 +85,10 @@ namespace Local {
 							Core::SDK::Pointers::pLocalPlayer->SetConfigFlag( ePedConfigFlag::Shrink, g_Config.Player->ShrinkEnabled );
 						}
 
-						if ( Custom::CheckBox( xorstr( "Evitar quedas" ), &g_Config.Player->NoRagDollEnabled ) )
+						Custom::CheckBox("Sem colisão", &g_Config.Player->NoCollisionEnabled);
+                        if(g_Config.Player->NoCollisionEnabled)
+                            ImGui::TextWrapped("%s",Core::Features::CarreraAdditions::collisionStatus.c_str());
+                        if ( Custom::CheckBox( xorstr( "Evitar quedas" ), &g_Config.Player->NoRagDollEnabled ) )
 						{
 							Core::SDK::Pointers::pLocalPlayer->NoRagDoll( g_Config.Player->NoRagDollEnabled );
 						}

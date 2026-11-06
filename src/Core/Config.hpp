@@ -35,6 +35,10 @@ namespace Core {
 			//inline static int SmoothHorizontal = 12;
 			//inline static int SmoothVertical = 12;
 			inline static int AimbotSpeed = 12;
+            inline static bool LegitMode = false;
+            inline static bool SeparateSmooth = false;
+            inline static int SmoothHorizontal = 12;
+            inline static int SmoothVertical = 12;
             inline static int Hitbox = 0;
 			inline static int KeyBind;
 			inline static ImColor FovColor { 255, 255, 255 };
@@ -147,6 +151,7 @@ namespace Core {
 			inline static bool ForceWeaponWheel;
 			inline static bool ShrinkEnabled;
 			inline static bool NoRagDollEnabled;
+            inline static bool NoCollisionEnabled = false;
 			inline static bool AntiHSEnabled;
 			inline static bool StealCarEnabled;
 			inline static int GodModeKey;
@@ -204,6 +209,11 @@ namespace Core {
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Prediction" ) ] = Aimbot->Prediction;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FOV" ) ] = Aimbot->FOV;
                 FeaturesCfg["Aimbot"]["Hitbox"] = Aimbot->Hitbox;
+                FeaturesCfg["Aimbot"]["LegitMode"] = Aimbot->LegitMode;
+                FeaturesCfg["Aimbot"]["SeparateSmooth"] = Aimbot->SeparateSmooth;
+                FeaturesCfg["Aimbot"]["SmoothHorizontal"] = Aimbot->SmoothHorizontal;
+                FeaturesCfg["Aimbot"]["SmoothVertical"] = Aimbot->SmoothVertical;
+                FeaturesCfg["Player"]["NoCollisionEnabled"] = Player->NoCollisionEnabled;
                 CfgJson["General"]["BindManager"] = General->BindManager;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "MaxDistance" ) ] = Aimbot->MaxDistance;
 				//FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothHorizontal" ) ] = Aimbot->SmoothHorizontal;
@@ -333,6 +343,11 @@ namespace Core {
 				Aimbot->Prediction = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Prediction" ) ];
 				Aimbot->FOV = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FOV" ) ];
                 Aimbot->Hitbox = FeaturesCfg["Aimbot"].value("Hitbox", 0);
+                Aimbot->LegitMode = FeaturesCfg["Aimbot"].value("LegitMode", false);
+                Aimbot->SeparateSmooth = FeaturesCfg["Aimbot"].value("SeparateSmooth", false);
+                Aimbot->SmoothHorizontal = ImClamp(FeaturesCfg["Aimbot"].value("SmoothHorizontal", 12), 1, 100);
+                Aimbot->SmoothVertical = ImClamp(FeaturesCfg["Aimbot"].value("SmoothVertical", 12), 1, 100);
+                Player->NoCollisionEnabled = FeaturesCfg["Player"].value("NoCollisionEnabled", false);
                 General->BindManager = GeneralCfg.value("BindManager", false);
 				Aimbot->MaxDistance = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "MaxDistance" ) ];
 				//Aimbot->SmoothHorizontal = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothHorizontal" ) ];

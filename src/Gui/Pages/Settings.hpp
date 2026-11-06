@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Features/CarreraAdditions.hpp>
 #include <Gui/Pages/NamedConfigs.hpp>
 #include <Includes/Includes.hpp>
 #include <windows.h>
@@ -77,6 +78,8 @@ namespace Settings {
 
 						if ( Custom::Button( xorstr( "Encerrar" ), ImVec2( -1, 30 ), 0 ) ) 
 						{
+                            g_Config.Player->NoCollisionEnabled=false;
+                            Core::Features::CarreraAdditions::TickCollision(true);
 							exit( 0 );
 						}
 					}
