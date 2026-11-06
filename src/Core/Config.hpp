@@ -159,7 +159,7 @@ namespace Core {
 			inline static bool InfiniteAmmoEnabled;
 			inline static bool NoReloadEnabled;
 			inline static bool NoClipEnabled;
-            inline static bool NoClipInvisible = false;
+            inline static bool InvisibleEnabled = false;
 			inline static bool HandlingEditor;
 			inline static int NoClipKey;
 			inline static float NoClipSpeed = 2.0f;
@@ -327,7 +327,7 @@ namespace Core {
 				// Features - Player
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipKey" ) ] = Player->NoClipKey;
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipSpeed" ) ] = Player->NoClipSpeed;
-                FeaturesCfg["Player"]["NoClipInvisible"] = Player->NoClipInvisible;
+                FeaturesCfg["Player"]["InvisibleEnabled"] = Player->InvisibleEnabled;
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "GodModeKey" ) ] = Player->GodModeKey;
 
 				std::string CfgJsonStr = CfgJson.dump( );
@@ -477,7 +477,7 @@ namespace Core {
 				// Features - Player
 				Player->NoClipKey = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipKey" ) ];
 				Player->NoClipSpeed = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipSpeed" ) ];
-                Player->NoClipInvisible = FeaturesCfg["Player"].value("NoClipInvisible", false);
+                Player->InvisibleEnabled = FeaturesCfg["Player"].value("InvisibleEnabled", FeaturesCfg["Player"].value("NoClipInvisible", false));
 				Player->GodModeKey = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "GodModeKey" ) ];
 
 				ESP->UpdateCfgESP = true;

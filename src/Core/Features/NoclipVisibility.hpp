@@ -2,7 +2,7 @@
 #include <Core/SDK/SDK.hpp>
 
 namespace Core { namespace Features { namespace NoclipVisibility {
-// External adaptation of SHARK's NoClipInvisible. Only changes the local ped.
+// Independent player visibility control adapted from SHARK. Does not alter noclip.
 // Keep its original values so disabling the option does not force default values.
 template<class T> inline bool Read(uintptr_t address, T& value) {
     SIZE_T bytes = 0;
@@ -42,7 +42,7 @@ inline void Tick(bool forceRestore = false) {
     const uintptr_t ped = reinterpret_cast<uintptr_t>(Core::SDK::Pointers::pLocalPlayer);
     const DWORD processId = Mem.ProcHandle ? GetProcessId(Mem.ProcHandle) : 0;
     const bool enabled = !forceRestore && g_MenuInfo.IsLogged && processId && ped &&
-        g_Config.Player->NoClipEnabled && g_Config.Player->NoClipInvisible;
+        g_Config.Player->InvisibleEnabled;
     if (!enabled) { Restore(ped, processId); return; }
 
     uintptr_t netObject = 0;

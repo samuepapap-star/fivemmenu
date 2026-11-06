@@ -115,9 +115,9 @@ namespace Local {
 							}
 						}
 
-                        Custom::CheckBox("Invisível no voo livre", &g_Config.Player->NoClipInvisible);
+                        Custom::CheckBox("Invisível", &g_Config.Player->InvisibleEnabled);
                         if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Aplica somente enquanto Voo livre estiver ativo. Você aparece semitransparente na própria tela. Visibilidade para outros jogadores não validada.");
+                            ImGui::SetTooltip("Independente do Voo livre: permite andar normalmente. Você aparece semitransparente na própria tela. Visibilidade para outros jogadores não validada.");
 
 						if ( Custom::CheckBox( xorstr( "Rolamento infinito" ), &g_Config.Player->InfiniteCombatRoll ) )
 						{
