@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/SDK/ClientState.hpp>
 #include <Core/Features/NoclipVisibility.hpp>
 #include <Core/Features/ExternalCameraOptions.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
@@ -68,6 +69,8 @@ namespace Settings {
 						static int KeyMode = 1;
 						ImGui::Keybind( xorstr( "Tecla do menu" ), &g_Config.General->MenuKey, &KeyMode );
 
+                        ClientState::Render();
+
 						if ( Custom::Button( xorstr( "Encerrar" ), ImVec2( -1, 30 ), 0 ) ) 
 						{
                             g_Config.Player->NoCollisionEnabled=false;
@@ -119,4 +122,5 @@ namespace Settings {
 		ImGui::PopStyleVar( );
 	}
 }
+
 

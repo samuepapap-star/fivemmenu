@@ -24,7 +24,7 @@ namespace Core
                      //   continue;
 
                     Core::SDK::Pointers::pWorld = Mem.Read<CPedFactory *>( g_Offsets.m_World );
-                    Core::SDK::Pointers::pLocalPlayer = Core::SDK::Pointers::pWorld->GetLocalPlayer( );
+                    Core::SDK::Pointers::pLocalPlayer = Core::SDK::Pointers::pWorld ? Core::SDK::Pointers::pWorld->GetLocalPlayer() : nullptr;
                     Core::SDK::Pointers::pReplayInterFace = Mem.Read<CReplayInterFace *>( g_Offsets.m_ReplayInterFace );
                     Core::SDK::Pointers::pViewPort = Mem.Read<uintptr_t>( g_Offsets.m_ViewPort );
                     Core::SDK::Pointers::pCamGamePlayDirector = Mem.Read<uintptr_t>( g_Offsets.m_CamGameplayDirector );
@@ -35,3 +35,4 @@ namespace Core
         inline cUpdatePtrs g_UpdatePtrs;
     }
 }
+

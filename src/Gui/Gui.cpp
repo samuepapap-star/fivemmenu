@@ -16,6 +16,7 @@
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Includes/CustomWidgets/Notify.hpp>
 #include <Core/Features/Esp.hpp>
+#include <Core/SDK/ClientState.hpp>
 #include <Gui/AdminList.hpp>
 #include <Core/Features/NoclipVisibility.hpp>
 #include <Core/Features/ExternalCameraOptions.hpp>
@@ -45,10 +46,11 @@ void Gui::Rendering( )
 {
     static bool diagnosticSession=false;
     if(!diagnosticSession) {
-        AltosDiagnostics::Log("session_started version=restore_confirmed_teleport");
+        AltosDiagnostics::Log("session_started version=client_state_diagnostics");
         diagnosticSession=true;
     }
     Core::Features::CarreraAdditions::TickCollision();
+    ClientState::Tick();
     Core::Features::NoclipVisibility::Tick();
     AdminList::Draw();
     Core::Features::ExternalCameraOptions::Tick();
@@ -334,5 +336,6 @@ void Gui::Rendering( )
         ImGui::End();
     }
 }
+
 
 

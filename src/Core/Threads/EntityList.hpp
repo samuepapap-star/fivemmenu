@@ -31,10 +31,11 @@ namespace Core
                     if ( !g_MenuInfo.IsLogged && !g_Variables.g_bPassedByThisVerify )
                         continue;
 
-                    if ( !Core::SDK::Pointers::pReplayInterFace ) 
+                    if ( !Core::SDK::Pointers::pReplayInterFace || !Core::SDK::Pointers::pLocalPlayer ) 
                         continue;
 
                     CPedInterFace = Core::SDK::Pointers::pReplayInterFace->InterfacePed( );
+                    if (!CPedInterFace) continue;
                     CPedList = CPedInterFace->PedList( );
 
                     if ( !CPedInterFace || !CPedList )
@@ -42,7 +43,8 @@ namespace Core
 
                     size_t Size = Core::SDK::Game::EntityList.size( );
                     size_t Index = 0;
-                    static const int PedCount = CPedInterFace->MaxPed();
+                    const int PedCount = CPedInterFace->MaxPed();
+                    if (PedCount <= 0 || PedCount > 4096) continue;
 
                     {
                         std::lock_guard<std::mutex> Guard( EntityListMutex );
@@ -74,6 +76,10 @@ namespace Core
                             }
 
                             Core::SDK::Game::EntityStruct CachedEntity = CachedEntities[ CurrentPed ];
+                            CachedEntity.Id = CurrentPed->GetID();
+                            CachedEntity.Index = i;
+                            CachedEntity.MaxHealth = CurrentPed->GetMaxHealth();
+                            CachedEntity.PedType = CurrentPed->GetPedType();
                             CachedEntity.Health = CurrentPed->GetHealth( );
                             CachedEntity.Armor = CurrentPed->GetArmor( );
                             CachedEntity.Pos = CurrentPed->GetPos( );
