@@ -60,7 +60,10 @@ void Core::Features::cAimbot::Start( )
 			CPed * Ped = Core::SDK::Game::GetClosestPed( g_Config.Aimbot->MaxDistance, g_Config.Aimbot->IgnoreNPCs, g_Config.Aimbot->OnlyVisible );
 			if ( !Ped ) continue;
 
-			D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault( 0 /*Head*/ );
+			static const int bones[] = {0, 8};
+            const int selection = g_Config.Aimbot->Hitbox;
+            const int bone = selection >= 0 && selection < 2 ? bones[selection] : 0;
+            D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault(bone);
 			D3DXVECTOR2 ScreenHeadPos = Core::SDK::Game::WorldToScreen( HeadPos );
 
 			if ( Core::SDK::Game::IsOnScreen( ScreenHeadPos ) )
@@ -68,7 +71,7 @@ void Core::Features::cAimbot::Start( )
 				int Fov = std::hypot( ScreenHeadPos.x - g_Variables.g_vGameWindowCenter.x, ScreenHeadPos.y - g_Variables.g_vGameWindowCenter.y );
 				if ( Fov < g_Config.Aimbot->FOV )
 				{
-					SetViewAngles( Ped, HeadPos + D3DXVECTOR3( 0, 0, 0.08 ) );
+					SetViewAngles( Ped, HeadPos + D3DXVECTOR3(0, 0, bone == 0 ? 0.08f : 0.f) );
 				}
 			}
 		}

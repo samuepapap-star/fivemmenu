@@ -301,7 +301,7 @@ public:
 	{
 		if ( !this ) { return D3DXVECTOR3( 0, 0, 0 ); }
 		D3DXMATRIX Mtx = Mem.Read<D3DXMATRIX>( reinterpret_cast< uintptr_t >( this ) + 0x60 );
-		D3DXVECTOR3 BonePos = Mem.Read<D3DXVECTOR3>( reinterpret_cast< uintptr_t >( this ) + ( g_Offsets.CurrentBuild >= 2802 ? 0x410 : 0x430 + Bone * 0x10 ) );;
+		D3DXVECTOR3 BonePos = Mem.Read<D3DXVECTOR3>( reinterpret_cast< uintptr_t >( this ) + ((g_Offsets.CurrentBuild >= 2802 ? 0x410 : 0x430) + Bone * 0x10) );;
 
 		D3DXVECTOR4 Transform;
 		D3DXVec3Transform( &Transform, &BonePos, &Mtx );

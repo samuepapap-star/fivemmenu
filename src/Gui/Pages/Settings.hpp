@@ -1,4 +1,5 @@
 #pragma once
+#include <Gui/Pages/NamedConfigs.hpp>
 #include <Includes/Includes.hpp>
 #include <windows.h>
 #include <iostream>
@@ -44,6 +45,7 @@ namespace Settings {
 					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 230, 400 ), false, 0 );
 					{
 						Custom::CheckBox( xorstr( "VSync" ), &g_Config.General->VSync );
+                        Custom::CheckBox("Bind Manager", &g_Config.General->BindManager);
 						if ( Custom::CheckBox( xorstr( "Stream Proof" ), &g_Config.General->StreamProof ) )
 						{
 							if ( g_Config.General->StreamProof )
@@ -102,6 +104,7 @@ namespace Settings {
 
 							cfgImport.detach( );
 						}
+                        NamedConfigs::Render();
 						ImGui::PopStyleVar( );
 					}
 					ImGui::EndChild( );

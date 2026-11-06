@@ -48,7 +48,7 @@ namespace Combat {
 					{
 						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.Aimbot->Enabled );
 						Custom::CheckBox( xorstr( "Show Fov" ), &g_Config.Aimbot->ShowFov );
-						//Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.Aimbot->OnlyVisible );
+						Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.Aimbot->OnlyVisible );
 						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.Aimbot->IgnoreNPCs );
 					}
 					ImGui::EndChild( );
@@ -60,7 +60,8 @@ namespace Combat {
 					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 230, 400 ), false, 0 );
 					{
 						ImGui::SliderInt( xorstr( "Field of View" ), &g_Config.Aimbot->FOV, 0, 400, xorstr( "%d" ), 0 );
-						ImGui::SliderInt( xorstr( "Smooth" ), &g_Config.Aimbot->AimbotSpeed, 0, 100, xorstr( "%d" ), 0 );
+						ImGui::Combo("Hitbox", &g_Config.Aimbot->Hitbox, "Head\0Torso\0");
+                        ImGui::SliderInt( xorstr( "Smooth" ), &g_Config.Aimbot->AimbotSpeed, 0, 100, xorstr( "%d" ), 0 );
 						//ImGui::SliderInt( xorstr( "Smooth Vertical" ), &g_Config.Aimbot->SmoothVertical, 0, 100, xorstr( "%d" ), 0 );
 						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.Aimbot->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 						static int KeyMode = 1;
@@ -90,7 +91,7 @@ namespace Combat {
 						}
 
 						Custom::CheckBox( xorstr( "Smart Triggerbot" ), &g_Config.TriggerBot->SmartTrigger );
-						//Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.TriggerBot->OnlyVisible );
+						Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.TriggerBot->OnlyVisible );
 						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.TriggerBot->IgnoreNPCs );
 					}
 					ImGui::EndChild( );
@@ -122,7 +123,7 @@ namespace Combat {
 						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.SilentAim->Enabled );
 						Custom::CheckBox( xorstr( "Show Fov" ), &g_Config.SilentAim->ShowFov );
 						Custom::CheckBox( xorstr( "Magic Bullets" ), &g_Config.SilentAim->MagicBullets );
-						//Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.SilentAim->OnlyVisible );
+						Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.SilentAim->OnlyVisible );
 						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.SilentAim->IgnoreNPCs );
 					}
 					ImGui::EndChild( );

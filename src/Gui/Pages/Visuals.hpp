@@ -73,7 +73,7 @@ namespace Visuals {
 						Custom::CheckBox( xorstr( "Health Bar" ), &g_Config.ESP->HealthBar );
 						Custom::CheckBox( xorstr( "Armor Bar" ), &g_Config.ESP->ArmorBar );
 						Custom::CheckBox( xorstr( "SnapLines" ), &g_Config.ESP->SnapLines );
-						//Custom::CheckBox( xorstr( "Highlight Visible" ), &g_Config.ESP->HighlightVisible );
+						Custom::CheckBox( xorstr( "Highlight Visible" ), &g_Config.ESP->HighlightVisible );
 						Custom::CheckBoxCfg( xorstr( "Friend Marker" ), &g_Config.ESP->FriendsMarker, [ ]
 							{
 								static int KeyMode = 1;
@@ -87,7 +87,7 @@ namespace Visuals {
                             ImGui::SetTooltip("Air/no-collision flags for 3 seconds. May flag falls or parachutes. Does not identify staff.");
 						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.ESP->IgnoreNPCs );
 
-						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.ESP->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
+						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.ESP->MaxDistance, 0, 5000, xorstr( "%dm" ), 0 );
 					}
 					ImGui::EndChild( );
 				}

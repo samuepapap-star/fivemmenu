@@ -324,4 +324,30 @@ void Gui::Rendering( )
     if (menuHidden)
         ImGui::PopClipRect();
 	ImGui::End( );
+    if (g_Config.General->BindManager) {
+        ImGui::SetNextWindowBgAlpha(0.8f);
+        ImGui::Begin("Active binds", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+        auto row = [](const char* label, bool enabled, int key) {
+            if (!enabled) return;
+            if (!key) ImGui::Text("%s: automatic", label);
+            else {
+                char text[64] = {};
+                if (key <= VK_XBUTTON2) {
+                    const char* mouse = key == VK_LBUTTON ? "Mouse 1" : key == VK_RBUTTON ? "Mouse 2" :
+                        key == VK_MBUTTON ? "Mouse 3" : key == VK_XBUTTON1 ? "Mouse 4" : key == VK_XBUTTON2 ? "Mouse 5" : "Key";
+                    strcpy_s(text, mouse);
+                } else {
+                    const UINT scan = MapVirtualKeyA(key, MAPVK_VK_TO_VSC);
+                    GetKeyNameTextA(static_cast<LONG>(scan << 16), text, sizeof(text));
+                }
+                ImGui::Text("%s: %s %s", label, text, (GetAsyncKeyState(key) & 0x8000) ? "[held]" : "");
+            }
+        };
+        row("Aimbot", g_Config.Aimbot->Enabled, g_Config.Aimbot->KeyBind);
+        row("SilentAim", g_Config.SilentAim->Enabled, g_Config.SilentAim->KeyBind);
+        row("TriggerBot", g_Config.TriggerBot->Enabled, g_Config.TriggerBot->KeyBind);
+        row("GodMode", g_Config.Player->EnableGodMode, g_Config.Player->GodModeKey);
+        row("NoClip", g_Config.Player->NoClipEnabled, g_Config.Player->NoClipKey);
+        ImGui::End();
+    }
 }

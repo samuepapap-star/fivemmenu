@@ -16,6 +16,7 @@ namespace Core {
 			inline static bool ArrayList;
 			inline static bool ArrayListCol;
 			inline static bool VSync = true;
+            inline static bool BindManager = false;
 			inline static int ProcessPriority = 0;
 			inline static int MenuKey = VK_INSERT;
 		} *General;
@@ -32,6 +33,7 @@ namespace Core {
 			//inline static int SmoothHorizontal = 12;
 			//inline static int SmoothVertical = 12;
 			inline static int AimbotSpeed = 12;
+            inline static int Hitbox = 0;
 			inline static int KeyBind;
 			inline static ImColor FovColor { 255, 255, 255 };
 		} *Aimbot;
@@ -166,7 +168,7 @@ namespace Core {
 			}
 		}
 
-		std::string SaveCurrentConfig( std::string CfgName )
+		std::string EncodeCurrentConfig( std::string CfgName )
 		{
 			try {
 				nlohmann::json CfgJson;
@@ -188,12 +190,14 @@ namespace Core {
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "IgnoreNPCs" ) ] = Aimbot->IgnoreNPCs;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Prediction" ) ] = Aimbot->Prediction;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FOV" ) ] = Aimbot->FOV;
+                FeaturesCfg["Aimbot"]["Hitbox"] = Aimbot->Hitbox;
+                CfgJson["General"]["BindManager"] = General->BindManager;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "MaxDistance" ) ] = Aimbot->MaxDistance;
 				//FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothHorizontal" ) ] = Aimbot->SmoothHorizontal;
 				//FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothVertical" ) ] = Aimbot->SmoothHorizontal;
 				FeaturesCfg[xorstr("Aimbot")][xorstr("AimSpeed")] = Aimbot->AimbotSpeed;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "KeyBind" ) ] = Aimbot->KeyBind;
-				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( Aimbot->KeyBind );
+				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( Aimbot->FovColor );
 
 				// Features - TriggerBot
 				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "Enabled" ) ] = TriggerBot->Enabled;
@@ -204,7 +208,7 @@ namespace Core {
 				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "MaxDistance" ) ] = TriggerBot->MaxDistance;
 				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "Delay" ) ] = TriggerBot->Delay;
 				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "KeyBind" ) ] = TriggerBot->KeyBind;
-				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( TriggerBot->KeyBind );
+				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( TriggerBot->FovColor );
 
 				// Features - SilentAim
 				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "Enabled" ) ] = SilentAim->Enabled;
@@ -216,7 +220,7 @@ namespace Core {
 				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "KeyBind" ) ] = SilentAim->KeyBind;
 				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "MissChance" ) ] = SilentAim->MissChance;
 				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "MagicBullets" ) ] = SilentAim->MagicBullets;
-				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "FovColor" ) ] = ImColToJson( SilentAim->KeyBind );
+				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "FovColor" ) ] = ImColToJson( SilentAim->FovColor );
 
 				// Features - ESP
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "Enabled" ) ] = ESP->Enabled;
@@ -267,16 +271,21 @@ namespace Core {
 
 				std::string CfgJsonStr = CfgJson.dump( );
 
-				Utils::PasteClipboard( Utils::EncodeB64( Utils::Str2Hex( Utils::EncodeB64( CfgJsonStr ) ) ).c_str( ) );
-
-				return xorstr( "Config Exported to Clipboard." );
+				return Utils::EncodeB64(Utils::Str2Hex(Utils::EncodeB64(CfgJsonStr)));
 			}
 			catch ( const std::exception & e ) {
-				return xorstr( "Failed to save config." );
+				return "";
 			}
 		}
 
-		std::string LoadCfg( std::string CfgName, std::string CfgCode )
+        std::string SaveCurrentConfig(std::string CfgName) {
+            const std::string code = EncodeCurrentConfig(CfgName);
+            if (code.empty()) return "Failed to save config.";
+            Utils::PasteClipboard(code.c_str());
+            return "Config Exported to Clipboard.";
+        }
+
+        std::string LoadCfg( std::string CfgName, std::string CfgCode )
 		{
 			try {
 				std::string DecCfgCodeStr = Utils::DecodeB64( Utils::Hex2Str( Utils::DecodeB64( CfgCode ) ) );
@@ -304,6 +313,8 @@ namespace Core {
 				Aimbot->IgnoreNPCs = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "IgnoreNPCs" ) ];
 				Aimbot->Prediction = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Prediction" ) ];
 				Aimbot->FOV = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FOV" ) ];
+                Aimbot->Hitbox = FeaturesCfg["Aimbot"].value("Hitbox", 0);
+                General->BindManager = GeneralCfg.value("BindManager", false);
 				Aimbot->MaxDistance = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "MaxDistance" ) ];
 				//Aimbot->SmoothHorizontal = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothHorizontal" ) ];
 				//Aimbot->SmoothVertical = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothVertical" ) ];
