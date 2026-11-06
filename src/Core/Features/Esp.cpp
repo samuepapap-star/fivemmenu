@@ -1,4 +1,5 @@
 #include "Esp.hpp"
+#include <chrono>
 
 
 
@@ -10,6 +11,22 @@ void Core::Features::cEsp::Draw( )
 		return;
 
 	static std::unordered_map<CPed *, Core::SDK::Game::EspAnim> vEspAnimations;
+    using NoclipClock = std::chrono::steady_clock;
+    struct NoclipObservation {
+        NoclipClock::time_point since;
+        NoclipClock::time_point lastSeen;
+    };
+    static std::unordered_map<CPed *, NoclipObservation> noclipObservations;
+    const auto now = NoclipClock::now();
+    if (!Cfg->PossibleNoclip)
+        noclipObservations.clear();
+    for (auto it = noclipObservations.begin(); it != noclipObservations.end();) {
+        if (now - it->second.lastSeen > std::chrono::seconds(1))
+            it = noclipObservations.erase(it);
+        else
+            ++it;
+    }
+
 
 	for ( auto & Entity : Core::SDK::Game::EntityList )
 	{
@@ -48,6 +65,25 @@ void Core::Features::cEsp::Draw( )
 			}
 		}
 
+
+        bool possibleNoclip = false;
+        if (Cfg->PossibleNoclip && Ped && !IsLocalPlayer && PedType == 2 && Health > 101.f) {
+            const bool candidate = !Ped->InVehicle() &&
+                !Ped->HasFlag(ePedConfigFlag::IsSwimming) &&
+                !Ped->HasFlag(ePedConfigFlag::IsOnGround) &&
+                (Ped->HasFlag(ePedConfigFlag::IsInTheAir) ||
+                 Ped->HasFlag(ePedConfigFlag::NoCollision));
+            if (candidate) {
+                auto inserted = noclipObservations.emplace(Ped, NoclipObservation{now, now});
+                auto & observation = inserted.first->second;
+                observation.lastSeen = now;
+                possibleNoclip = now - observation.since >= std::chrono::seconds(3);
+            } else {
+                noclipObservations.erase(Ped);
+            }
+        } else {
+            noclipObservations.erase(Ped);
+        }
 		D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault( 0 );
 		D3DXVECTOR2 EntityTop = Core::SDK::Game::WorldToScreen( HeadPos + D3DXVECTOR3( 0, 0, 0.2 ) ); //Head
 
@@ -70,6 +106,14 @@ void Core::Features::cEsp::Draw( )
 		ImVec2 BoxCenter = ImVec2( ( BoxMin.x + BoxMax.x ) * 0.5f, ( BoxMin.y + BoxMax.y ) * 0.5f );
 
 
+
+        if (possibleNoclip) {
+            const char * label = "Possivel noclip";
+            const ImVec2 textSize = ImGui::CalcTextSize(label);
+            const ImVec2 labelPos(BoxCenter.x - textSize.x * 0.5f, BoxMin.y - 40.f);
+            DrawList->AddText(ImVec2(labelPos.x + 1.f, labelPos.y + 1.f), IM_COL32(0, 0, 0, 255), label);
+            DrawList->AddText(labelPos, IM_COL32(255, 190, 60, 255), label);
+        }
 		float FirstTextBoxTop = BoxMin.y - 18;
 
 		float FirstTextBoxBottom = BoxMax.y + 4;
@@ -670,7 +714,7 @@ void Core::Features::cEsp::DrawVehicle( )
 			continue;
 
 		D3DXVECTOR2 VehicleLocation = Core::SDK::Game::WorldToScreen(
-			Vehicle->GetPos( ) //Usei aqui pra n„o ter esse delay do esp por causa da thread
+			Vehicle->GetPos( ) //Usei aqui pra n√£o ter esse delay do esp por causa da thread
 		);
 
 		if ( !VehicleLocation )

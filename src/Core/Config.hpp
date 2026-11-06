@@ -90,6 +90,7 @@ namespace Core {
 			inline static bool ShowLocalPlayer;
 			inline static bool HighlightVisible;
 			inline static bool IgnoreDead;
+            inline static bool PossibleNoclip = false;
 			inline static bool DistanceFromMe;
 			inline static bool FriendsMarker;
 			inline static int FriendsMarkerBind;
@@ -235,6 +236,7 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreNPCs" ) ] = ESP->IgnoreNPCs;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ] = ESP->HighlightVisible;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ] = ESP->IgnoreDead;
+                FeaturesCfg["ESP"]["PossibleNoclip"] = ESP->PossibleNoclip;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMe" ) ] = ESP->DistanceFromMe;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMeState" ) ] = ESP->DistanceFromMeState;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "MaxDistance" ) ] = ESP->MaxDistance;
@@ -349,6 +351,7 @@ namespace Core {
 				ESP->IgnoreNPCs = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreNPCs" ) ];
 				ESP->HighlightVisible = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ];
 				ESP->IgnoreDead = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ];
+                ESP->PossibleNoclip = FeaturesCfg["ESP"].value("PossibleNoclip", false);
 				ESP->DistanceFromMe = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMe" ) ];
 				ESP->DistanceFromMeState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMeState" ) ];
 				ESP->ShowLocalPlayer = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "ShowLocalPlayer" ) ];

@@ -82,6 +82,9 @@ namespace Visuals {
 						);
 						Custom::CheckBox( xorstr( "Show LocalPlayer" ), &g_Config.ESP->ShowLocalPlayer );
 						Custom::CheckBox( xorstr( "Ignore Dead" ), &g_Config.ESP->IgnoreDead );
+                        Custom::CheckBox("Possible Noclip", &g_Config.ESP->PossibleNoclip);
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Air/no-collision flags for 3 seconds. May flag falls or parachutes. Does not identify staff.");
 						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.ESP->IgnoreNPCs );
 
 						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.ESP->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
