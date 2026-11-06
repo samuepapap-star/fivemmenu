@@ -14,7 +14,9 @@ class cSharkSilentState {
     std::vector<uint8_t> original,patch;
     std::chrono::steady_clock::time_point nextScan{};
     std::atomic<int> state{0};
+    std::atomic<int> lastResult{0};
     void Status(int value) {
+        if(value!=0)lastResult.store(value);
         if(state.exchange(value)!=value)
             AltosDiagnostics::Log("silent_shark status="+std::to_string(value));
     }
@@ -82,7 +84,12 @@ class cSharkSilentState {
     }
 public:
     const char* StatusText() const {
-        switch(state.load()) {
+        int value=state.load();
+        if(value==0 && g_Config.SilentAim->Enabled) {
+            const int previous=lastResult.load();
+            if(previous!=4)value=previous;
+        }
+        switch(value) {
         case 1:return "Aguardando alvo valido dentro do FOV";
         case 2:return "Instrucoes da mira silenciosa nao identificadas nesta revisao";
         case 3:return "Falha ao preparar a mira silenciosa";
