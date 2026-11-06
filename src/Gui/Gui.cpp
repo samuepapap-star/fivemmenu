@@ -151,7 +151,7 @@ void Gui::Rendering( )
 
 						std::thread( [ & ] ( )
 							{
-								NotifyManager::Send( xorstr( "GodMode has been " ) + ( std::string ) ( g_Config.Player->EnableGodMode ? xorstr( "enabled!" ) : xorstr( "disabled!" ) ), 2000 );
+								NotifyManager::Send( xorstr( "Invencibilidade " ) + ( std::string ) ( g_Config.Player->EnableGodMode ? xorstr( "ativado!" ) : xorstr( "desativado!" ) ), 2000 );
 							}
 						).detach( );
 
@@ -165,7 +165,7 @@ void Gui::Rendering( )
 
 						std::thread( [ & ] ( )
 							{
-								NotifyManager::Send( xorstr( "NoClip has been " ) + ( std::string ) ( g_Config.Player->NoClipEnabled ? xorstr( "enabled!" ) : xorstr( "disabled!" ) ), 2000 );
+								NotifyManager::Send( xorstr( "Voo livre " ) + ( std::string ) ( g_Config.Player->NoClipEnabled ? xorstr( "ativado!" ) : xorstr( "desativado!" ) ), 2000 );
 							}
 						).detach( );
 					}
@@ -235,7 +235,7 @@ void Gui::Rendering( )
 
 
 			ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( ImColor( 80, 80, 80 ) ) ); {
-				Custom::TextCentered( xorstr( "Thank you for choosing us" ), 1 );
+				Custom::TextCentered( xorstr( "Obrigado por escolher ALTOS PODERES" ), 1 );
 			}
 			ImGui::PopStyleColor( );
 
@@ -245,15 +245,15 @@ void Gui::Rendering( )
 
 			ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( ImColor( 163, 163, 163 ) ) ); {
 
-				const char * text = xorstr( "Please copy your discord id to continue to  Wexize" );
+				const char * text = xorstr( "Copie seu ID do Discord para continuar no ALTOS PODERES" );
 				ImVec2 textSize = ImGui::CalcTextSize( text );
 				float posX = ( g_MenuInfo.MenuSize.x - textSize.x ) * 0.5f;
 
 				ImGui::SetCursorPosX( posX );
 
-				ImGui::Text( xorstr( "Please copy your discord id to continue to" ) );
+				ImGui::Text( xorstr( "Copie seu ID do Discord para continuar no" ) );
 				ImGui::SameLine( );
-				ImGui::TextColored( g_Col.Base, xorstr( "Wexize" ) );
+				ImGui::TextColored( g_Col.Base, xorstr( "ALTOS PODERES" ) );
 			}
 			ImGui::PopStyleColor( );
 
@@ -264,14 +264,14 @@ void Gui::Rendering( )
 			ImGui::SetCursorPosX( ( ( g_MenuInfo.MenuSize.x - 240 ) * 0.5f ) );
 
 
-			if ( Custom::Button( xorstr( "Ready" ), { 240, 28 }, 0 ) )
+			if ( Custom::Button( xorstr( "Continuar" ), { 240, 28 }, 0 ) )
 			{
 				std::thread { CheatLogin }.detach( );
 			}
 
 			ImGui::SetCursorPosX( ( ( g_MenuInfo.MenuSize.x - 240 ) * 0.5f ) );
 
-			if ( Custom::Button( xorstr( "Exit" ), { 240, 28 }, 0 ) )
+			if ( Custom::Button( xorstr( "Sair" ), { 240, 28 }, 0 ) )
 			{
 				ExitProcess( 0 );
 			}
@@ -288,10 +288,10 @@ void Gui::Rendering( )
 	ImGui::End( );
     if (g_Config.General->BindManager) {
         ImGui::SetNextWindowBgAlpha(0.8f);
-        ImGui::Begin("Active binds", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+        ImGui::Begin("Teclas ativas", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
         auto row = [](const char* label, bool enabled, int key) {
             if (!enabled) return;
-            if (!key) ImGui::Text("%s: automatic", label);
+            if (!key) ImGui::Text("%s: automático", label);
             else {
                 char text[64] = {};
                 if (key <= VK_XBUTTON2) {
@@ -302,14 +302,14 @@ void Gui::Rendering( )
                     const UINT scan = MapVirtualKeyA(key, MAPVK_VK_TO_VSC);
                     GetKeyNameTextA(static_cast<LONG>(scan << 16), text, sizeof(text));
                 }
-                ImGui::Text("%s: %s %s", label, text, (GetAsyncKeyState(key) & 0x8000) ? "[held]" : "");
+                ImGui::Text("%s: %s %s", label, text, (GetAsyncKeyState(key) & 0x8000) ? "[pressionada]" : "");
             }
         };
-        row("Aimbot", g_Config.Aimbot->Enabled, g_Config.Aimbot->KeyBind);
-        row("SilentAim", g_Config.SilentAim->Enabled, g_Config.SilentAim->KeyBind);
-        row("TriggerBot", g_Config.TriggerBot->Enabled, g_Config.TriggerBot->KeyBind);
-        row("GodMode", g_Config.Player->EnableGodMode, g_Config.Player->GodModeKey);
-        row("NoClip", g_Config.Player->NoClipEnabled, g_Config.Player->NoClipKey);
+        row("Mira assistida", g_Config.Aimbot->Enabled, g_Config.Aimbot->KeyBind);
+        row("Mira silenciosa", g_Config.SilentAim->Enabled, g_Config.SilentAim->KeyBind);
+        row("Tiro automático", g_Config.TriggerBot->Enabled, g_Config.TriggerBot->KeyBind);
+        row("Invencibilidade", g_Config.Player->EnableGodMode, g_Config.Player->GodModeKey);
+        row("Voo livre", g_Config.Player->NoClipEnabled, g_Config.Player->NoClipKey);
         ImGui::End();
     }
 }

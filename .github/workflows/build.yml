@@ -46,6 +46,7 @@ jobs:
 
       - name: Compila Release x64
         run: |
+          $env:CL = "/utf-8"
           msbuild "Wexize Revamp.sln" /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /m /nologo
         shell: pwsh
 

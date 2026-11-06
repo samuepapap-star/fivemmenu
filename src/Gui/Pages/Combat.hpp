@@ -17,15 +17,15 @@ namespace Combat {
 
 		//ImGui::PushStyleVar( ImGuiStyleVar_::ImGuiStyleVar_ItemSpacing, ImVec2( 6, 0 ) );
 
-		if ( Custom::SubTab( xorstr( "Aimbot" ), 0 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Mira assistida" ), 0 == iSubTabCount ) ) {
 			iSubTabCount = 0;
 		}
 		ImGui::SameLine( );
-		if ( Custom::SubTab( xorstr( "TriggerBot" ), 1 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Tiro automático" ), 1 == iSubTabCount ) ) {
 			iSubTabCount = 1;
 		}
 		ImGui::SameLine( );
-		if ( Custom::SubTab( xorstr( "SilentAim" ), 2 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Mira silenciosa" ), 2 == iSubTabCount ) ) {
 			iSubTabCount = 2;
 		}
 
@@ -44,12 +44,12 @@ namespace Combat {
 			case 0: //Aimbot
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.Aimbot->Enabled );
-						Custom::CheckBox( xorstr( "Show Fov" ), &g_Config.Aimbot->ShowFov );
-						Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.Aimbot->OnlyVisible );
-						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.Aimbot->IgnoreNPCs );
+						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.Aimbot->Enabled );
+						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.Aimbot->ShowFov );
+						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.Aimbot->OnlyVisible );
+						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.Aimbot->IgnoreNPCs );
 					}
 					ImGui::EndChild( );
 				}
@@ -57,17 +57,17 @@ namespace Combat {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Ajustes" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						ImGui::SliderInt( xorstr( "Field of View" ), &g_Config.Aimbot->FOV, 0, 400, xorstr( "%d" ), 0 );
-						ImGui::Combo("Hitbox", &g_Config.Aimbot->Hitbox, "Head\0Torso\0");
-                        ImGui::SliderInt( xorstr( "Smooth" ), &g_Config.Aimbot->AimbotSpeed, 0, 100, xorstr( "%d" ), 0 );
-						//ImGui::SliderInt( xorstr( "Smooth Vertical" ), &g_Config.Aimbot->SmoothVertical, 0, 100, xorstr( "%d" ), 0 );
-						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.Aimbot->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
+						ImGui::SliderInt( xorstr( "Campo de visão" ), &g_Config.Aimbot->FOV, 0, 400, xorstr( "%d" ), 0 );
+						ImGui::Combo("Região de mira", &g_Config.Aimbot->Hitbox, "Cabeça\0Tronco\0");
+                        ImGui::SliderInt( xorstr( "Suavização" ), &g_Config.Aimbot->AimbotSpeed, 0, 100, xorstr( "%d" ), 0 );
+						//ImGui::SliderInt( xorstr( "Suavização vertical" ), &g_Config.Aimbot->SmoothVertical, 0, 100, xorstr( "%d" ), 0 );
+						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.Aimbot->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 						static int KeyMode = 1;
-						ImGui::Keybind( xorstr( "Bind" ), &g_Config.Aimbot->KeyBind, &KeyMode );
-                        ImGui::TextDisabled("No bind = automatic");
-                        if (ImGui::Button("Clear bind##Aimbot"))
+						ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Aimbot->KeyBind, &KeyMode );
+                        ImGui::TextDisabled("Sem tecla = automático");
+                        if (ImGui::Button("Remover tecla##Aimbot"))
                             g_Config.Aimbot->KeyBind = 0;
 					}
 					ImGui::EndChild( );
@@ -78,21 +78,21 @@ namespace Combat {
 			case 1: //Trigger
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.TriggerBot->Enabled );
+						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.TriggerBot->Enabled );
 
 						if (!g_Config.TriggerBot->SmartTrigger) {
-						Custom::CheckBox( xorstr( "Show Fov" ), &g_Config.TriggerBot->ShowFov );
+						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.TriggerBot->ShowFov );
 						}
 						else
 						{
 							g_Config.TriggerBot->ShowFov = false;
 						}
 
-						Custom::CheckBox( xorstr( "Smart Triggerbot" ), &g_Config.TriggerBot->SmartTrigger );
-						Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.TriggerBot->OnlyVisible );
-						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.TriggerBot->IgnoreNPCs );
+						Custom::CheckBox( xorstr( "Tiro inteligente" ), &g_Config.TriggerBot->SmartTrigger );
+						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.TriggerBot->OnlyVisible );
+						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.TriggerBot->IgnoreNPCs );
 					}
 					ImGui::EndChild( );
 				}
@@ -100,16 +100,16 @@ namespace Combat {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Ajustes" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						if (!g_Config.TriggerBot->SmartTrigger) {
-							ImGui::SliderInt(xorstr("Field of View"), &g_Config.TriggerBot->FOV, 0, 400, xorstr("%d"), 0);
-							ImGui::SliderInt(xorstr("Max Distance"), &g_Config.TriggerBot->MaxDistance, 0, 1000, xorstr("%dm"), 0);
+							ImGui::SliderInt(xorstr("Campo de visão"), &g_Config.TriggerBot->FOV, 0, 400, xorstr("%d"), 0);
+							ImGui::SliderInt(xorstr("Distância máxima"), &g_Config.TriggerBot->MaxDistance, 0, 1000, xorstr("%dm"), 0);
 						}
 						
-						ImGui::SliderInt( xorstr( "Delay" ), &g_Config.TriggerBot->Delay, 0, 10, xorstr( "%d" ), 0 );
+						ImGui::SliderInt( xorstr( "Atraso" ), &g_Config.TriggerBot->Delay, 0, 10, xorstr( "%d" ), 0 );
 						static int KeyMode = 1;
-						ImGui::Keybind( xorstr( "Bind" ), &g_Config.TriggerBot->KeyBind, &KeyMode );
+						ImGui::Keybind( xorstr( "Tecla" ), &g_Config.TriggerBot->KeyBind, &KeyMode );
 					}
 					ImGui::EndChild( );
 				}
@@ -118,13 +118,13 @@ namespace Combat {
 			case 2: //Silent
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.SilentAim->Enabled );
-						Custom::CheckBox( xorstr( "Show Fov" ), &g_Config.SilentAim->ShowFov );
-						Custom::CheckBox( xorstr( "Magic Bullets" ), &g_Config.SilentAim->MagicBullets );
-						Custom::CheckBox( xorstr( "Only Visible" ), &g_Config.SilentAim->OnlyVisible );
-						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.SilentAim->IgnoreNPCs );
+						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.SilentAim->Enabled );
+						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.SilentAim->ShowFov );
+						Custom::CheckBox( xorstr( "Balas mágicas" ), &g_Config.SilentAim->MagicBullets );
+						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.SilentAim->OnlyVisible );
+						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.SilentAim->IgnoreNPCs );
 					}
 					ImGui::EndChild( );
 				}
@@ -132,15 +132,15 @@ namespace Combat {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Ajustes" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						ImGui::SliderInt( xorstr( "Field of View" ), &g_Config.SilentAim->FOV, 0, 400, xorstr( "%d" ), 0 );
-						ImGui::SliderInt( xorstr( "Miss Chance" ), &g_Config.SilentAim->MissChance, 0, 100, xorstr( "%dx" ), 0 );
-						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.SilentAim->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
+						ImGui::SliderInt( xorstr( "Campo de visão" ), &g_Config.SilentAim->FOV, 0, 400, xorstr( "%d" ), 0 );
+						ImGui::SliderInt( xorstr( "Chance de errar" ), &g_Config.SilentAim->MissChance, 0, 100, xorstr( "%dx" ), 0 );
+						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.SilentAim->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 						static int KeyMode = 1;
-						ImGui::Keybind( xorstr( "Bind" ), &g_Config.SilentAim->KeyBind, &KeyMode );
-                        ImGui::TextDisabled("No bind = automatic");
-                        if (ImGui::Button("Clear bind##SilentAim"))
+						ImGui::Keybind( xorstr( "Tecla" ), &g_Config.SilentAim->KeyBind, &KeyMode );
+                        ImGui::TextDisabled("Sem tecla = automático");
+                        if (ImGui::Button("Remover tecla##SilentAim"))
                             g_Config.SilentAim->KeyBind = 0;
 					}
 					ImGui::EndChild( );

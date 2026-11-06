@@ -6,11 +6,19 @@
 #include <cctype>
 
 namespace NamedConfigs {
+    inline std::string PortugueseStatus(const std::string &result) {
+        if(result=="Config Exported to Clipboard.") return "Configuração copiada.";
+        if(result=="Failed to save config.") return "Falha ao salvar configuração.";
+        if(result=="Config loaded with success.") return "Configuração carregada.";
+        if(result=="Error Loading Config!") return "Erro ao carregar configuração.";
+        return result;
+    }
+
     inline std::filesystem::path Directory() {
         char root[MAX_PATH] = {};
         DWORD size = GetEnvironmentVariableA("LOCALAPPDATA", root, MAX_PATH);
         if (!size || size >= MAX_PATH) return {};
-        std::filesystem::path path = std::filesystem::path(root) / "Wexize" / "Configs";
+        std::filesystem::path path = std::filesystem::path(root) / "ALTOS PODERES" / "Configurações";
         std::error_code error;
         std::filesystem::create_directories(path, error);
         return error ? std::filesystem::path{} : path;
@@ -25,48 +33,48 @@ namespace NamedConfigs {
         static char name[65] = "default";
         static std::string status;
         ImGui::Separator();
-        ImGui::TextUnformatted("Named configs");
-        ImGui::InputText("Name", name, sizeof(name));
+        ImGui::TextUnformatted("Configurações salvas");
+        ImGui::InputText("Nome", name, sizeof(name));
         const auto directory = Directory();
-        if (ImGui::Button("Save named")) {
-            if (!ValidName(name) || directory.empty()) status = "Use letters, digits, - or _.";
+        if (ImGui::Button("Salvar")) {
+            if (!ValidName(name) || directory.empty()) status = "Use letras, números, - ou _.";
             else {
                 const auto encoded = Core::g_Config.EncodeCurrentConfig(name);
-                if (encoded.empty()) status = "Encoding failed.";
+                if (encoded.empty()) status = "Falha ao codificar.";
                 else {
                     const auto path = directory / (std::string(name) + ".wcfg");
                     const auto temporary = directory / (std::string(name) + ".tmp");
                     std::ofstream file(temporary, std::ios::binary | std::ios::trunc);
                     file << encoded; file.close();
-                    if (file.fail()) status = "Save failed.";
+                    if (file.fail()) status = "Falha ao salvar.";
                     else if (!MoveFileExA(temporary.string().c_str(), path.string().c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-                        status = "Could not finish save.";
-                    else status = "Saved.";
+                        status = "Não foi possível concluir.";
+                    else status = "Salvo.";
                 }
             }
         }
         ImGui::SameLine();
-        if (ImGui::Button("Load named")) {
-            if (!ValidName(name) || directory.empty()) status = "Invalid name or folder.";
+        if (ImGui::Button("Carregar")) {
+            if (!ValidName(name) || directory.empty()) status = "Nome ou pasta inválidos.";
             else {
                 std::ifstream file(directory / (std::string(name) + ".wcfg"), std::ios::binary);
-                if (!file) status = "Config not found.";
+                if (!file) status = "Configuração não encontrada.";
                 else {
                     const std::string encoded((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-                    status = Core::g_Config.LoadCfg(name, encoded);
+                    status = PortugueseStatus(Core::g_Config.LoadCfg(name, encoded));
                 }
             }
         }
-        if (ImGui::Button("Delete named")) {
-            if (!ValidName(name) || directory.empty()) status = "Invalid name or folder.";
+        if (ImGui::Button("Excluir")) {
+            if (!ValidName(name) || directory.empty()) status = "Nome ou pasta inválidos.";
             else {
                 std::error_code error;
                 const bool removed = std::filesystem::remove(directory / (std::string(name) + ".wcfg"), error);
-                status = !error && removed ? "Deleted." : "Could not delete config.";
+                status = !error && removed ? "Excluído." : "Não foi possível excluir.";
             }
         }
         ImGui::SameLine();
-        if (ImGui::Button("Open folder") && !directory.empty())
+        if (ImGui::Button("Abrir pasta") && !directory.empty())
             ShellExecuteA(nullptr, "open", directory.string().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
         if (!status.empty()) ImGui::TextWrapped("%s", status.c_str());
         ImGui::BeginChild("SavedConfigsList", ImVec2(0, 90), true);

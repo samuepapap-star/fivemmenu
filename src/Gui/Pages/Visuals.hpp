@@ -20,11 +20,11 @@ namespace Visuals {
 
 		//ImGui::PushStyleVar( ImGuiStyleVar_::ImGuiStyleVar_ItemSpacing, ImVec2( 6, 0 ) );
 
-		if ( Custom::SubTab( xorstr( "Players" ), 0 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Jogadores" ), 0 == iSubTabCount ) ) {
 			iSubTabCount = 0;
 		}
 		ImGui::SameLine( );
-		if ( Custom::SubTab( xorstr( "Vehicles" ), 1 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Veículos" ), 1 == iSubTabCount ) ) {
 			iSubTabCount = 1;
 		}
 
@@ -45,49 +45,49 @@ namespace Visuals {
 			case 0: //Players
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals#ESP" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Geral#ESP" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.ESP->Enabled );
-						if ( Custom::CheckBox( xorstr( "Box" ), &g_Config.ESP->Box ) ) {
+						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.ESP->Enabled );
+						if ( Custom::CheckBox( xorstr( "Caixa" ), &g_Config.ESP->Box ) ) {
 							if ( !g_Config.ESP->Box ) {
 								g_Config.ESP->FilledBox = false;
 							}
 						}
-						if ( Custom::CheckBox( xorstr( "Filled Box" ), &g_Config.ESP->FilledBox ) ) {
+						if ( Custom::CheckBox( xorstr( "Caixa preenchida" ), &g_Config.ESP->FilledBox ) ) {
 							if ( !g_Config.ESP->Box ) {
 								g_Config.ESP->Box = true;
 							}
 						}
 
-						Custom::CheckBox( xorstr( "Player Names" ), &g_Config.ESP->UserNames );
-						Custom::CheckBox( xorstr( "Weapon Names" ), &g_Config.ESP->WeaponName );
-						Custom::CheckBox( xorstr( "Distance" ), &g_Config.ESP->DistanceFromMe );
+						Custom::CheckBox( xorstr( "Nomes dos jogadores" ), &g_Config.ESP->UserNames );
+						Custom::CheckBox( xorstr( "Nomes das armas" ), &g_Config.ESP->WeaponName );
+						Custom::CheckBox( xorstr( "Distância" ), &g_Config.ESP->DistanceFromMe );
 
 
-						if ( Custom::CheckBox( xorstr( "Skeleton" ), &g_Config.ESP->Skeleton ) )
+						if ( Custom::CheckBox( xorstr( "Esqueleto" ), &g_Config.ESP->Skeleton ) )
 						{
 							Core::SDK::Pointers::pLocalPlayer->RemoveKinematics( );
 						}
 
-						Custom::CheckBox( xorstr( "Head Circle" ), &g_Config.ESP->HeadCircle );
-						Custom::CheckBox( xorstr( "Health Bar" ), &g_Config.ESP->HealthBar );
-						Custom::CheckBox( xorstr( "Armor Bar" ), &g_Config.ESP->ArmorBar );
-						Custom::CheckBox( xorstr( "SnapLines" ), &g_Config.ESP->SnapLines );
-						Custom::CheckBox( xorstr( "Highlight Visible" ), &g_Config.ESP->HighlightVisible );
-						Custom::CheckBoxCfg( xorstr( "Friend Marker" ), &g_Config.ESP->FriendsMarker, [ ]
+						Custom::CheckBox( xorstr( "Círculo na cabeça" ), &g_Config.ESP->HeadCircle );
+						Custom::CheckBox( xorstr( "Barra de vida" ), &g_Config.ESP->HealthBar );
+						Custom::CheckBox( xorstr( "Barra de colete" ), &g_Config.ESP->ArmorBar );
+						Custom::CheckBox( xorstr( "Linhas" ), &g_Config.ESP->SnapLines );
+						Custom::CheckBox( xorstr( "Destacar visíveis" ), &g_Config.ESP->HighlightVisible );
+						Custom::CheckBoxCfg( xorstr( "Marcar amigo" ), &g_Config.ESP->FriendsMarker, [ ]
 							{
 								static int KeyMode = 1;
-								ImGui::Keybind( xorstr( "Bind" ), &g_Config.ESP->FriendsMarkerBind, &KeyMode );
+								ImGui::Keybind( xorstr( "Tecla" ), &g_Config.ESP->FriendsMarkerBind, &KeyMode );
 							}
 						);
-						Custom::CheckBox( xorstr( "Show LocalPlayer" ), &g_Config.ESP->ShowLocalPlayer );
-						Custom::CheckBox( xorstr( "Ignore Dead" ), &g_Config.ESP->IgnoreDead );
-                        Custom::CheckBox("Possible Noclip", &g_Config.ESP->PossibleNoclip);
+						Custom::CheckBox( xorstr( "Mostrar meu personagem" ), &g_Config.ESP->ShowLocalPlayer );
+						Custom::CheckBox( xorstr( "Ignorar mortos" ), &g_Config.ESP->IgnoreDead );
+                        Custom::CheckBox("Possível noclip", &g_Config.ESP->PossibleNoclip);
                         if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Air/no-collision flags for 3 seconds. May flag falls or parachutes. Does not identify staff.");
-						Custom::CheckBox( xorstr( "Ignore NPCs" ), &g_Config.ESP->IgnoreNPCs );
+                            ImGui::SetTooltip("Indícios de voo ou ausência de colisão por 3 segundos. Pode marcar quedas ou paraquedas. Não identifica administradores.");
+						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.ESP->IgnoreNPCs );
 
-						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.ESP->MaxDistance, 0, 5000, xorstr( "%dm" ), 0 );
+						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.ESP->MaxDistance, 0, 5000, xorstr( "%dm" ), 0 );
 					}
 					ImGui::EndChild( );
 				}
@@ -95,7 +95,7 @@ namespace Visuals {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Preview" ), ImVec2( 340, 440 ), false, ImGuiWindowFlags_NoScrollbar );
+					ImGui::BeginChild( xorstr( "Prévia" ), ImVec2( 340, 440 ), false, ImGuiWindowFlags_NoScrollbar );
 					{
 						Custom::g_EspPreview.DragDropHandler( );
 						Custom::g_EspPreview.Draw( );
@@ -108,13 +108,13 @@ namespace Visuals {
 			case 1: //Vehicles
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Globals" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						Custom::CheckBox( xorstr( "Toggle" ), &g_Config.VehicleESP->Enabled );
-						Custom::CheckBox( xorstr( "Vehicle Names" ), &g_Config.VehicleESP->VehName );
-						Custom::CheckBox( xorstr( "Locked/Unlocked" ), &g_Config.VehicleESP->ShowLockUnlock );
-						Custom::CheckBox( xorstr( "SnapLines" ), &g_Config.VehicleESP->SnapLines );
-						Custom::CheckBox( xorstr( "Distance" ), &g_Config.VehicleESP->DistanceFromMe );
+						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.VehicleESP->Enabled );
+						Custom::CheckBox( xorstr( "Nomes dos veículos" ), &g_Config.VehicleESP->VehName );
+						Custom::CheckBox( xorstr( "Trancado/Destrancado" ), &g_Config.VehicleESP->ShowLockUnlock );
+						Custom::CheckBox( xorstr( "Linhas" ), &g_Config.VehicleESP->SnapLines );
+						Custom::CheckBox( xorstr( "Distância" ), &g_Config.VehicleESP->DistanceFromMe );
 					}
 					ImGui::EndChild( );
 				}
@@ -122,9 +122,9 @@ namespace Visuals {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Settings" ), ImVec2( 340, 440 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Ajustes" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						ImGui::SliderInt( xorstr( "Max Distance" ), &g_Config.VehicleESP->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
+						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.VehicleESP->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 					}
 					ImGui::EndChild( );
 				}

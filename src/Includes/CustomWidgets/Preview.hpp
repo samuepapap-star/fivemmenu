@@ -361,8 +361,8 @@ namespace Custom
 		{
 			cDragWidget{ 1, 3, xorstr( "HealthBar" ), ImColor( 66, 245, 132 ) },
 			cDragWidget{ 1, 3, xorstr( "ArmorBar" ), ImColor( 85, 128, 200 ) },
-			cDragWidget{ 0, 0, xorstr( "Name" ), ImColor( g_Config.ESP->UserNamesCol ) },
-			cDragWidget{ 0, 2, xorstr( "Unarmed" ), ImColor( g_Config.ESP->WeaponNameCol ), false, true },
+			cDragWidget{ 0, 0, xorstr( "Nome" ), ImColor( g_Config.ESP->UserNamesCol ) },
+			cDragWidget{ 0, 2, xorstr( "Desarmado" ), ImColor( g_Config.ESP->WeaponNameCol ), false, true },
 			cDragWidget{ 0, 2, xorstr( "0m" ), ImColor( g_Config.ESP->DistanceCol ), false, true }
 		};
 
@@ -374,7 +374,7 @@ namespace Custom
 			for ( int i = 0; i < 4; i++ )
 			{
 				if ( WidgetType == 0 && ( i == 1 || i == 3 ) )
-					continue; // Ignore as posições 1 (Direita) e 3 (Esquerda) para widgets do tipo 0 (texto)
+					continue; // Ignore as posiÃ§Ãµes 1 (Direita) e 3 (Esquerda) para widgets do tipo 0 (texto)
 
 				ImVec2 Pos = Positions[ i ].Pos;
 				float dist = std::sqrt( ( CurrentPos.x - Pos.x ) * ( CurrentPos.x - Pos.x ) + ( CurrentPos.y - Pos.y ) * ( CurrentPos.y - Pos.y ) );

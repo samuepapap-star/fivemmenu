@@ -18,7 +18,7 @@ namespace AltosInterface {
         draw->AddText(pos + ImVec2((size.x-text.x)*.5f,21), ImGui::GetColorU32(ImVec4(.9f,.9f,.9f,1)), title);
         ImGui::SetCursorPos(ImVec2(53,16));
         ImGui::SetNextItemWidth(200.f);
-        ImGui::InputTextWithHint("##page_search","Search pages...",search,sizeof(search));
+        ImGui::InputTextWithHint("##page_search","Buscar páginas...",search,sizeof(search));
         ImGui::SetCursorPos(ImVec2(size.x-36,18));
         if (ImGui::InvisibleButton("##AltosClose",ImVec2(22,22)) && g_MenuInfo.IsOpen) {
             g_MenuInfo.IsOpen=false;
@@ -65,16 +65,16 @@ namespace AltosInterface {
             if(clicked) {g_MenuInfo.iTabCount=page;if(combatTab>=0)Combat::iSubTabCount=combatTab;}
             y+=33.f;
         };
-        section("Combat");
-        item("Aim-Assist",g_MenuInfo.Combat,0);
-        item("Trigger-Bot",g_MenuInfo.Combat,1);
-        item("Silent Aim",g_MenuInfo.Combat,2);
+        section("Combate");
+        item("Mira assistida",g_MenuInfo.Combat,0);
+        item("Tiro automático",g_MenuInfo.Combat,1);
+        item("Mira silenciosa",g_MenuInfo.Combat,2);
         y+=8.f;section("Visual");
-        item("Players",g_MenuInfo.Visuals);
-        item("World",g_MenuInfo.World);
-        item("Local",g_MenuInfo.Local);
-        item("Exploit",g_MenuInfo.Exploits);
-        y+=8.f;section("Others");
-        item("Config",g_MenuInfo.Settings);
+        item("Jogadores",g_MenuInfo.Visuals);
+        item("Mundo",g_MenuInfo.World);
+        item("Personagem",g_MenuInfo.Local);
+        item("Recursos extras",g_MenuInfo.Exploits);
+        y+=8.f;section("Outros");
+        item("Configurações",g_MenuInfo.Settings);
     }
 }
