@@ -98,27 +98,25 @@ namespace Gui
 
 			HWND ActiveWindow = GetForegroundWindow( );
 
-			if ( GetAsyncKeyState( g_Config.General->MenuKey ) & 1 ) {
-
-				if ( g_MenuInfo.IsOpen == false ) {
-					if ( ActiveWindow == g_Variables.g_hGameWindow ) {
-						g_MenuInfo.IsOpen = true;
-
-						#ifdef FULLSCREEN_EX
-						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE );
-						#else
-						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW );
-						#endif // FULLSCREEN_EX		
-					}
-					else {
-						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT );
-					}
-				}
-				else {
-					g_MenuInfo.IsOpen = false;
-					SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT );
-				}
-			}
+            // Toggle once per key press, including while the overlay has focus.
+            static bool menuKeyWasDown = false;
+            const bool menuKeyDown = (GetAsyncKeyState(g_Config.General->MenuKey) & 0x8000) != 0;
+            if (menuKeyDown && !menuKeyWasDown &&
+                (ActiveWindow == g_Variables.g_hGameWindow ||
+                 ActiveWindow == g_Variables.g_hCheatWindow)) {
+                g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
+#ifdef FULLSCREEN_EX
+                const LONG openStyle = WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+#else
+                const LONG openStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW;
+#endif
+                const LONG closedStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
+                SetWindowLong(g_Variables.g_hCheatWindow, GWL_EXSTYLE,
+                    g_MenuInfo.IsOpen ? openStyle : closedStyle);
+                if (!g_MenuInfo.IsOpen && ActiveWindow == g_Variables.g_hCheatWindow)
+                    SetForegroundWindow(g_Variables.g_hGameWindow);
+            }
+            menuKeyWasDown = menuKeyDown;
 
 			static float BgAlpha = 0.f;
 			BgAlpha = ImLerp( BgAlpha, g_MenuInfo.IsOpen ? 1.f : 0.f, ImGui::GetIO( ).DeltaTime * 8 );
