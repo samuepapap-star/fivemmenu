@@ -56,7 +56,7 @@ namespace Custom
 		void Draw( )
 		{
 			iBox_Height = 200;
-			iBox_Width = iBox_Height / 2.f;
+			iBox_Width = (iBox_Height / 2.f) * g_Config.ESP->BoxSize;
 
 			iBox_X = ImGui::GetWindowPos( ).x + ImGui::GetWindowSize( ).x / 2 - iBox_Width / 2;
 			iBox_Y = ImGui::GetWindowPos( ).y + ImGui::GetWindowSize( ).y / 2 - iBox_Height / 2;
@@ -73,7 +73,7 @@ namespace Custom
 			BoxAnimation = ImClamp( BoxAnimation + ( 6 * ImGui::GetIO( ).DeltaTime * ( g_Config.ESP->Box ? 1.f : -1.f ) ), 0.f, g_Config.ESP->BoxCol.Value.w );
 
 			static float BoxFillAnimation = 0.f;
-			BoxFillAnimation = ImClamp( BoxFillAnimation + ( 6 * ImGui::GetIO( ).DeltaTime * ( g_Config.ESP->FilledBox ? 1.f : -1.f ) ), 0.f, g_Config.ESP->FilledBoxCol.Value.w );
+			BoxFillAnimation = ImClamp( BoxFillAnimation + ( 6 * ImGui::GetIO( ).DeltaTime * ( g_Config.ESP->FilledBox ? 1.f : -1.f ) ), 0.f, g_Config.ESP->FillBoxAlpha );
 
 			if ( BoxFillAnimation != 0 )
 			{
@@ -374,7 +374,7 @@ namespace Custom
 			for ( int i = 0; i < 4; i++ )
 			{
 				if ( WidgetType == 0 && ( i == 1 || i == 3 ) )
-					continue; // Ignore as posições 1 (Direita) e 3 (Esquerda) para widgets do tipo 0 (texto)
+					continue; // Ignore as posiÃ§Ãµes 1 (Direita) e 3 (Esquerda) para widgets do tipo 0 (texto)
 
 				ImVec2 Pos = Positions[ i ].Pos;
 				float dist = std::sqrt( ( CurrentPos.x - Pos.x ) * ( CurrentPos.x - Pos.x ) + ( CurrentPos.y - Pos.y ) * ( CurrentPos.y - Pos.y ) );

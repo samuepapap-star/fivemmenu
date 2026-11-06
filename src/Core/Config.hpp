@@ -71,6 +71,8 @@ namespace Core {
 			inline static bool Box;
 			inline static bool FilledBox;
 			inline static int BoxState = 0;
+            inline static float BoxSize = 1.0f;
+            inline static float FillBoxAlpha = 0.16f;
 			inline static bool Skeleton;
 			inline static bool HealthBar;
 			inline static ImVec2 HealthBarPos;
@@ -222,6 +224,8 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "Enabled" ) ] = ESP->Enabled;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "Box" ) ] = ESP->Box;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "BoxState" ) ] = ESP->BoxState;
+                FeaturesCfg["ESP"]["BoxSize"] = ESP->BoxSize;
+                FeaturesCfg["ESP"]["FillBoxAlpha"] = ESP->FillBoxAlpha;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "Skeleton" ) ] = ESP->Skeleton;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HealthBar" ) ] = ESP->HealthBar;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HealthBarState" ) ] = ESP->HealthBarState;
@@ -337,6 +341,8 @@ namespace Core {
 				ESP->Enabled = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "Enabled" ) ];
 				ESP->Box = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "Box" ) ];
 				ESP->BoxState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "BoxState" ) ];
+                ESP->BoxSize = FeaturesCfg["ESP"].value("BoxSize", 1.0f);
+                ESP->FillBoxAlpha = FeaturesCfg["ESP"].value("FillBoxAlpha", 0.16f);
 				ESP->Skeleton = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "Skeleton" ) ];
 				ESP->HealthBar = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HealthBar" ) ];
 				ESP->HealthBarState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HealthBarState" ) ];

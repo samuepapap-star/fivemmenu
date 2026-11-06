@@ -59,7 +59,9 @@ namespace Visuals {
 							}
 						}
 
-						Custom::CheckBox( xorstr( "Player Names" ), &g_Config.ESP->UserNames );
+						ImGui::SliderFloat("Box Size", &g_Config.ESP->BoxSize, 0.5f, 1.8f, "%.2fx");
+                        ImGui::SliderFloat("FillBox Alpha", &g_Config.ESP->FillBoxAlpha, 0.f, 1.f, "%.2f");
+                        Custom::CheckBox( xorstr( "Player Names" ), &g_Config.ESP->UserNames );
 						Custom::CheckBox( xorstr( "Weapon Names" ), &g_Config.ESP->WeaponName );
 						Custom::CheckBox( xorstr( "Distance" ), &g_Config.ESP->DistanceFromMe );
 

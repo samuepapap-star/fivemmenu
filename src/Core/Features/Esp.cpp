@@ -96,7 +96,7 @@ void Core::Features::cEsp::Draw( )
 			continue;
 
 		float Height = EntityBottom.y - EntityTop.y;
-		float Width = Height * 0.2f;
+		float Width = Height * 0.2f * (Cfg->BoxSize < 0.5f ? 0.5f : (Cfg->BoxSize > 1.8f ? 1.8f : Cfg->BoxSize));
 
 		const float BoxLeft = EntityTop.x - Width;
 		const float BoxRight = EntityBottom.x + Width;
@@ -207,7 +207,7 @@ void Core::Features::cEsp::Draw( )
 		if ( Cfg->Box )
 		{
 			if ( Cfg->FilledBox )
-				DrawList->AddRectFilled( { BoxLeft, EntityTop.y }, { BoxRight, EntityBottom.y }, Cfg->FilledBoxCol, 0, 0 );
+				DrawList->AddRectFilled( { BoxLeft, EntityTop.y }, { BoxRight, EntityBottom.y }, ImColor(Cfg->FilledBoxCol.Value.x, Cfg->FilledBoxCol.Value.y, Cfg->FilledBoxCol.Value.z, Cfg->FillBoxAlpha), 0, 0 );
 
 			DrawList->AddRect( { BoxLeft - 1, EntityTop.y - 1 }, { BoxRight + 1, EntityBottom.y + 1 }, ImColor( 0, 0, 0, 200 ), 0, 0, 1.5 );
 			DrawList->AddRect( { BoxLeft + 1, EntityTop.y + 1 }, { BoxRight - 1, EntityBottom.y - 1 }, ImColor( 0, 0, 0, 200 ), 0, 0, 1.5 );
