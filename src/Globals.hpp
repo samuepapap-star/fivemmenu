@@ -192,7 +192,8 @@ public:
 		World,
 		Exploits,
 		Settings,
-		Login
+		Login,
+        Cars, Players, Weapons, Teleports
 	};
 
 	bool IsOpen;

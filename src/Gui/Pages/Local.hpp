@@ -17,8 +17,12 @@ namespace Local {
 	static float SubTabAlpha = 0.f;
 	static int iSubTab = 0;
 
-	void Render( )
+	void Render(int section = -1)
 	{
+        if (section >= 0) {
+            iSubTabCount = iSubTab = section;
+            SubTabAlpha = 1.f;
+        } else {
 		if ( Custom::SubTab( xorstr( "Principal" ), 0 == iSubTabCount ) ) {
 			iSubTabCount = 0;
 		}
@@ -39,6 +43,7 @@ namespace Local {
 
 		if ( SubTabAlpha == 0.f ) iSubTab = iSubTabCount;
 
+        }
 		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, SubTabAlpha * ImGui::GetStyle( ).Alpha );
 
 		ImGui::SetCursorPos( ImVec2( 184, 136 ) );
@@ -689,3 +694,4 @@ namespace Local {
 
 	}
 }
+

@@ -115,7 +115,8 @@ namespace Core {
 			inline static bool HighlightVisible;
 			inline static bool IgnoreDead;
             inline static bool PossibleNoclip = false;
-            inline static bool AdmListDemo = false;
+            inline static bool AdminList = false;
+            inline static bool AdminHighlight = false;
 			inline static bool DistanceFromMe;
 			inline static bool FriendsMarker;
 			inline static int FriendsMarkerBind;
@@ -292,7 +293,8 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ] = ESP->HighlightVisible;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ] = ESP->IgnoreDead;
                 FeaturesCfg["ESP"]["PossibleNoclip"] = ESP->PossibleNoclip;
-                FeaturesCfg["ESP"]["AdmListDemo"] = ESP->AdmListDemo;
+                FeaturesCfg["ESP"]["AdminList"] = ESP->AdminList;
+                FeaturesCfg["ESP"]["AdminHighlight"] = ESP->AdminHighlight;
                 FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
                 FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
                 FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
@@ -443,7 +445,8 @@ namespace Core {
 				ESP->HighlightVisible = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ];
 				ESP->IgnoreDead = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ];
                 ESP->PossibleNoclip = FeaturesCfg["ESP"].value("PossibleNoclip", false);
-                ESP->AdmListDemo = FeaturesCfg["ESP"].value("AdmListDemo", false);
+                ESP->AdminList = FeaturesCfg["ESP"].value("AdminList", false);
+                ESP->AdminHighlight = FeaturesCfg["ESP"].value("AdminHighlight", false);
                 ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
                 if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
                 ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);
@@ -492,4 +495,5 @@ namespace Core {
 	inline Config g_Config;
 
 }
+
 

@@ -11,11 +11,12 @@
 #include <Gui/Pages/World.hpp>
 #include <Gui/Pages/Settings.hpp>
 #include <Gui/Pages/Login.hpp>
+#include <Gui/Pages/Categories.hpp>
 
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Includes/CustomWidgets/Notify.hpp>
 #include <Core/Features/Esp.hpp>
-#include <Gui/AdmListDemo.hpp>
+#include <Gui/AdminList.hpp>
 #include <Core/Features/NoclipVisibility.hpp>
 #include <Core/Features/ExternalCameraOptions.hpp>
 
@@ -49,7 +50,7 @@ void Gui::Rendering( )
     }
     Core::Features::CarreraAdditions::TickCollision();
     Core::Features::NoclipVisibility::Tick();
-    AdmListDemo::Draw();
+    AdminList::Draw();
     Core::Features::ExternalCameraOptions::Tick();
     g_Col.Base=g_Config.General->MenuAccent;
     g_Col.ButtonHovered=ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);
@@ -131,14 +132,18 @@ void Gui::Rendering( )
 				Visuals::Render( );
 				break;
 			case g_MenuInfo.Local:
-				Local::Render( );
+				Local::Render(0);
 				break;
 			case g_MenuInfo.World:
 				World::Render( );
 				break;
 			case g_MenuInfo.Exploits:
-				Exploits::Render( );
+				Exploits::Render(1);
 				break;
+            case g_MenuInfo.Cars: Categories::Cars(); break;
+            case g_MenuInfo.Players: Categories::Players(); break;
+            case g_MenuInfo.Weapons: Categories::Weapons(); break;
+            case g_MenuInfo.Teleports: Categories::Teleports(); break;
 			case g_MenuInfo.Settings:
 				Settings::Render( );
 				break;
@@ -329,4 +334,5 @@ void Gui::Rendering( )
         ImGui::End();
     }
 }
+
 

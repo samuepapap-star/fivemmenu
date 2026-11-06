@@ -13,11 +13,15 @@ namespace World {
 	static float SubTabAlpha = 0.f;
 	static int iSubTab = 0;
 
-	void Render( )
+	void Render(int section = -1, int actionMode = 0)
 	{
 
 		//ImGui::PushStyleVar( ImGuiStyleVar_::ImGuiStyleVar_ItemSpacing, ImVec2( 6, 0 ) );
 
+        if (section >= 0) {
+            iSubTabCount = iSubTab = section;
+            SubTabAlpha = 1.f;
+        } else {
 		if ( Custom::SubTab( xorstr( "Jogadores" ), 0 == iSubTabCount ) ) {
 			iSubTabCount = 0;
 		}
@@ -33,6 +37,7 @@ namespace World {
 			iSubTab = iSubTabCount;
 
 
+        }
 		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, SubTabAlpha * ImGui::GetStyle( ).Alpha );
 
 		ImGui::SetCursorPos( ImVec2( 184, 136 ) );
@@ -132,30 +137,30 @@ namespace World {
 
 							ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 							bool Friend = SelectedPed.IsFriend;
-							if ( Custom::CheckBox( xorstr( "Amigo" ), &Friend ) )
+							if (actionMode == 0 && Custom::CheckBox( xorstr( "Amigo" ), &Friend ) )
 							{
 								Core::SDK::Game::FriendMap[ SelectedPed.Ped ] = Friend;
 							}
 
 							ImGui::Spacing( );
 
-							if ( Custom::Button( xorstr( "Teleportar" ), ImVec2( -1, 30 ), 0 ) )
+							if (actionMode == 2 && Custom::Button( xorstr( "Teleportar" ), ImVec2( -1, 30 ), 0 ) )
 							{
 								Core::SDK::Pointers::pLocalPlayer->SetPos( SelectedPed.Pos );
 							}
 							//if ( Custom::Button( xorstr( "Observar" ), ImVec2( -1, 30 ), 0 ) ) 
 							//{
 							//}
-                            if(Custom::Button("Copiar roupa",ImVec2(-1,30),0)) {
+                            if(actionMode == 0 && Custom::Button("Copiar roupa",ImVec2(-1,30),0)) {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::CopyClothes(
                                     reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             }
-                            if(Custom::Button("Enviar veículos ao jogador",ImVec2(-1,30),0,true,
+                            if(actionMode == 1 && Custom::Button("Enviar veículos ao jogador",ImVec2(-1,30),0,true,
                                 "Leva veículos carregados a até 200 m de você até o jogador selecionado.")) {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::VehiclesToPlayer(
                                     reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             }
-							if ( Custom::Button( xorstr( "Copiar Discord" ), ImVec2( -1, 30 ), 0 ) )
+							if (actionMode == 0 && Custom::Button( xorstr( "Copiar Discord" ), ImVec2( -1, 30 ), 0 ) )
 							{
 								std::string PlayerDiscord = SelectedPed.NetworkInfo.DiscordId;
 								if ( PlayerDiscord.empty( ) )
@@ -168,7 +173,7 @@ namespace World {
 									Utils::PasteClipboard( PlayerDiscord.c_str( ) );
 								}
 							}
-							if ( Custom::Button( xorstr( "Copiar Steam" ), ImVec2( -1, 30 ), 0 ) )
+							if (actionMode == 0 && Custom::Button( xorstr( "Copiar Steam" ), ImVec2( -1, 30 ), 0 ) )
 							{
 								std::string PlayerSteam = SelectedPed.NetworkInfo.SteamId;
 								if ( PlayerSteam.empty( ) )
@@ -271,17 +276,17 @@ namespace World {
 
 							if ( Core::SDK::Game::VehicleList[ SeletedIndex ].Pointer->IsLocked( ) )
 							{
-								if ( Custom::Button( xorstr( "Destrancar" ), ImVec2( -1, 30 ), 0 ) ) {
+								if (actionMode == 0 && Custom::Button( xorstr( "Destrancar" ), ImVec2( -1, 30 ), 0 ) ) {
 									Veh->DoorState( true );
 								}
 							}
 							else {
-								if ( Custom::Button( xorstr( "Trancar" ), ImVec2( -1, 30 ), 0 ) ) {
+								if (actionMode == 0 && Custom::Button( xorstr( "Trancar" ), ImVec2( -1, 30 ), 0 ) ) {
 									Veh->DoorState( false );
 								}
 							}
 
-							if ( Custom::Button( xorstr( "Teleportar" ), ImVec2( -1, 30 ), 0 ) ) {
+							if (actionMode == 2 && Custom::Button( xorstr( "Teleportar" ), ImVec2( -1, 30 ), 0 ) ) {
 								Core::SDK::Pointers::pLocalPlayer->SetPos( Veh->GetPos( ) );
 							}
 

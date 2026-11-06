@@ -62,13 +62,15 @@ namespace AltosInterface {
         item(ICON_FA_CROSSHAIRS,"Mira assistida",g_MenuInfo.Combat,0);
         item(ICON_FA_BOLT,"Tiro automático",g_MenuInfo.Combat,1);
         item(ICON_FA_PERSON_RUNNING,"Mira silenciosa",g_MenuInfo.Combat,2);
-        section("Recursos");
+        section("Categorias");
         item(ICON_FA_PERSON,"Personagem",g_MenuInfo.Local);
-        item(ICON_FA_LIST,"Listas",g_MenuInfo.World);
-        item(ICON_FA_BOMB,"Extras",g_MenuInfo.Exploits);
-        section("Visual");
-        item(ICON_FA_EARTH_AMERICAS,"ESP",g_MenuInfo.Visuals);
+        item(ICON_FA_LIST,"Jogadores",g_MenuInfo.Players);
+        item(ICON_FA_CAR,"Carro",g_MenuInfo.Cars);
+        item(ICON_FA_CROSSHAIRS,"Armas",g_MenuInfo.Weapons);
+        item(ICON_FA_EARTH_AMERICAS,"Teleportar",g_MenuInfo.Teleports);
+        item(ICON_FA_BOMB,"Recursos",g_MenuInfo.Exploits);
         section("Personalização");
         item(ICON_FA_GEAR,"Configurações",g_MenuInfo.Settings);
     }
 }
+

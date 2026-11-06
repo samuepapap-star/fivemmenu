@@ -15,11 +15,15 @@ namespace Visuals {
 	static float SubTabAlpha = 0.f;
 	static int iSubTab = 0;
 
-	void Render( ) {
+	void Render(int section = -1) {
 
 
 		//ImGui::PushStyleVar( ImGuiStyleVar_::ImGuiStyleVar_ItemSpacing, ImVec2( 6, 0 ) );
 
+        if (section >= 0) {
+            iSubTabCount = iSubTab = section;
+            SubTabAlpha = 1.f;
+        } else {
 		if ( Custom::SubTab( xorstr( "ESP" ), 0 == iSubTabCount ) ) {
 			iSubTabCount = 0;
 		}
@@ -35,6 +39,7 @@ namespace Visuals {
 			iSubTab = iSubTabCount;
 
 
+        }
 		ImGui::PushStyleVar( ImGuiStyleVar_Alpha, SubTabAlpha * ImGui::GetStyle( ).Alpha );
 
 		ImGui::SetCursorPos( ImVec2( 184, 136 ) );
@@ -97,9 +102,10 @@ namespace Visuals {
 						);
 						Custom::CheckBox( xorstr( "Mostrar meu personagem" ), &g_Config.ESP->ShowLocalPlayer );
 						Custom::CheckBox( xorstr( "Ignorar mortos" ), &g_Config.ESP->IgnoreDead );
-                        Custom::CheckBox("ADM list (alerta simulado)", &g_Config.ESP->AdmListDemo);
+                        Custom::CheckBox("ADM list (possíveis invisíveis)", &g_Config.ESP->AdminList);
+                        Custom::CheckBox("Destacar possíveis invisíveis", &g_Config.ESP->AdminHighlight);
                         if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Apenas animação demonstrativa da lipeee. Não consulta jogadores nem detecta administradores.");
+                            ImGui::SetTooltip("Usa indicadores locais de invisibilidade em jogadores carregados. Não confirma cargo de administrador.");
                         Custom::CheckBox("Possível noclip", &g_Config.ESP->PossibleNoclip);
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Indícios de voo ou ausência de colisão por 3 segundos. Pode marcar quedas ou paraquedas. Não identifica administradores.");
@@ -159,4 +165,5 @@ namespace Visuals {
 		ImGui::PopStyleVar( );
 	}
 }
+
 
