@@ -17,11 +17,11 @@ namespace World {
 
 		//ImGui::PushStyleVar( ImGuiStyleVar_::ImGuiStyleVar_ItemSpacing, ImVec2( 6, 0 ) );
 
-		if ( Custom::SubTab( xorstr( "Players" ), 0 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Jogadores" ), 0 == iSubTabCount ) ) {
 			iSubTabCount = 0;
 		}
 		ImGui::SameLine( );
-		if ( Custom::SubTab( xorstr( "Vehicles" ), 1 == iSubTabCount ) ) {
+		if ( Custom::SubTab( xorstr( "Veículos" ), 1 == iSubTabCount ) ) {
 			iSubTabCount = 1;
 		}
 
@@ -57,7 +57,7 @@ namespace World {
 				ImGui::BeginGroup( );
 				{
 
-					ImGui::BeginChild( xorstr( "List" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Lista" ), ImVec2( 230, 400 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 						for ( int i = 0; i < Core::SDK::Game::EntityList.size( ); i++ )
@@ -79,35 +79,35 @@ namespace World {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Info" ), ImVec2( 230, 180 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Informações" ), ImVec2( 230, 180 ), false, 0 );
 					{
 						if ( SeletedIndex == -1 ) {
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Select Player" ) );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecionar jogador" ) );
 						}
 						else
 						{
 							auto SelectedPed = Core::SDK::Game::EntityList[ SeletedIndex ];
 							ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 4 ) );
 
-							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Name:" ) ); ImGui::SameLine( );
+							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Nome:" ) ); ImGui::SameLine( );
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), SelectedPed.NetworkInfo.UserName.c_str());
 							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Id:" ) ); ImGui::SameLine( );
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), std::to_string( SelectedPed.Id ).c_str( ) );
-							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Distance:" ) ); ImGui::SameLine( );
+							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Distância:" ) ); ImGui::SameLine( );
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), std::to_string( SelectedPed.Distance ).c_str( ) );
-							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Weapon:" ) ); ImGui::SameLine( );
+							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Arma:" ) ); ImGui::SameLine( );
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), SelectedPed.WeaponName.c_str( ) );
-							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Friend:" ) ); ImGui::SameLine( );
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), SelectedPed.IsFriend ? xorstr( "True" ) : xorstr( "False" ) );
+							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Amigo:" ) ); ImGui::SameLine( );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), SelectedPed.IsFriend ? xorstr( "Sim" ) : xorstr( "Não" ) );
 
 							ImGui::PopStyleVar( );
 						}
 					}
 					ImGui::EndChild( );
-					ImGui::BeginChild( xorstr( "Actions" ), ImVec2( 230, 210 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Ações" ), ImVec2( 230, 210 ), false, 0 );
 					{
 						if ( SeletedIndex == -1 ) {
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Select Player" ) );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecionar jogador" ) );
 						}
 						else
 						{
@@ -115,24 +115,24 @@ namespace World {
 
 							ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 							bool Friend = SelectedPed.IsFriend;
-							if ( Custom::CheckBox( xorstr( "Friend" ), &Friend ) )
+							if ( Custom::CheckBox( xorstr( "Amigo" ), &Friend ) )
 							{
 								Core::SDK::Game::FriendMap[ SelectedPed.Ped ] = Friend;
 							}
 
 							ImGui::Spacing( );
 
-							if ( Custom::Button( xorstr( "Teleport" ), ImVec2( -1, 30 ), 0 ) )
+							if ( Custom::Button( xorstr( "Teleportar" ), ImVec2( -1, 30 ), 0 ) )
 							{
 								Core::SDK::Pointers::pLocalPlayer->SetPos( SelectedPed.Pos );
 							}
-							//if ( Custom::Button( xorstr( "Spectate" ), ImVec2( -1, 30 ), 0 ) ) 
+							//if ( Custom::Button( xorstr( "Observar" ), ImVec2( -1, 30 ), 0 ) ) 
 							//{
 							//}
-							//if ( Custom::Button( xorstr( "Copy Clothes" ), ImVec2( -1, 30 ), 0 ) ) 
+							//if ( Custom::Button( xorstr( "Copiar roupa" ), ImVec2( -1, 30 ), 0 ) ) 
 							//{
 							//}
-							if ( Custom::Button( xorstr( "Copy Discord" ), ImVec2( -1, 30 ), 0 ) )
+							if ( Custom::Button( xorstr( "Copiar Discord" ), ImVec2( -1, 30 ), 0 ) )
 							{
 								std::string PlayerDiscord = SelectedPed.NetworkInfo.DiscordId;
 								if ( PlayerDiscord.empty( ) )
@@ -145,7 +145,7 @@ namespace World {
 									Utils::PasteClipboard( PlayerDiscord.c_str( ) );
 								}
 							}
-							if ( Custom::Button( xorstr( "Copy Steam" ), ImVec2( -1, 30 ), 0 ) )
+							if ( Custom::Button( xorstr( "Copiar Steam" ), ImVec2( -1, 30 ), 0 ) )
 							{
 								std::string PlayerSteam = SelectedPed.NetworkInfo.SteamId;
 								if ( PlayerSteam.empty( ) )
@@ -176,13 +176,13 @@ namespace World {
 
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "List" ), ImVec2( 230, 400 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Lista" ), ImVec2( 230, 400 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 
 
 						{
-							std::lock_guard<std::mutex> lock( Core::Threads::g_VehicleList.vehicleListMutex ); // Protege a lista durante a renderiza��o
+							std::lock_guard<std::mutex> lock( Core::Threads::g_VehicleList.vehicleListMutex ); // Protege a lista durante a renderização
 
 							for ( int i = 0; i < Core::SDK::Game::VehicleList.size( ); i++ )
 							{
@@ -200,32 +200,32 @@ namespace World {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Info" ), ImVec2( 230, 140 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Informações" ), ImVec2( 230, 140 ), false, 0 );
 					{
 						if ( SeletedIndex == -1 ) {
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Select Vehicle" ) );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecionar veículo" ) );
 						}
 						else
 						{
 							ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 4 ) );
 
-							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Name:" ) ); ImGui::SameLine( );
+							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Nome:" ) ); ImGui::SameLine( );
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), Core::SDK::Game::VehicleList[ SeletedIndex ].Name.c_str( ) );
-							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Distance:" ) ); ImGui::SameLine( );
+							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Distância:" ) ); ImGui::SameLine( );
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), ( std::to_string( ( int ) Core::SDK::Game::VehicleList[ SeletedIndex ].Dist ) + xorstr( "m" ) ).c_str( ) );
-							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Driver:" ) ); ImGui::SameLine( );
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), Core::SDK::Game::VehicleList[ SeletedIndex ].Driver == 0 ? xorstr( "Unknown" ) : Core::SDK::Game::VehicleList[ SeletedIndex ].Driver->GetPedType( ) != 2 ? xorstr( "NPC" ) : Core::SDK::Game::GetPedName( Core::SDK::Game::VehicleList[ SeletedIndex ].Driver ).c_str( ) );
-							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Doors Locked:" ) ); ImGui::SameLine( );
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), Core::SDK::Game::VehicleList[ SeletedIndex ].IsLocked ? xorstr( "Yes" ) : xorstr( "No" ) );
+							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Motorista:" ) ); ImGui::SameLine( );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), Core::SDK::Game::VehicleList[ SeletedIndex ].Driver == 0 ? xorstr( "Desconhecido" ) : Core::SDK::Game::VehicleList[ SeletedIndex ].Driver->GetPedType( ) != 2 ? xorstr( "NPC" ) : Core::SDK::Game::GetPedName( Core::SDK::Game::VehicleList[ SeletedIndex ].Driver ).c_str( ) );
+							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Portas trancadas:" ) ); ImGui::SameLine( );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), Core::SDK::Game::VehicleList[ SeletedIndex ].IsLocked ? xorstr( "Sim" ) : xorstr( "Não" ) );
 
 							ImGui::PopStyleVar( );
 						}
 					}
 					ImGui::EndChild( );
-					ImGui::BeginChild( xorstr( "Actions" ), ImVec2( 230, 250 ), false, 0 );
+					ImGui::BeginChild( xorstr( "Ações" ), ImVec2( 230, 250 ), false, 0 );
 					{
 						if ( SeletedIndex == -1 ) {
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Select Vehicle" ) );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecionar veículo" ) );
 						}
 						else
 						{
@@ -234,17 +234,17 @@ namespace World {
 
 							if ( Core::SDK::Game::VehicleList[ SeletedIndex ].Pointer->IsLocked( ) )
 							{
-								if ( Custom::Button( xorstr( "Unlock" ), ImVec2( -1, 30 ), 0 ) ) {
+								if ( Custom::Button( xorstr( "Destrancar" ), ImVec2( -1, 30 ), 0 ) ) {
 									Veh->DoorState( true );
 								}
 							}
 							else {
-								if ( Custom::Button( xorstr( "Lock" ), ImVec2( -1, 30 ), 0 ) ) {
+								if ( Custom::Button( xorstr( "Trancar" ), ImVec2( -1, 30 ), 0 ) ) {
 									Veh->DoorState( false );
 								}
 							}
 
-							if ( Custom::Button( xorstr( "Teleport" ), ImVec2( -1, 30 ), 0 ) ) {
+							if ( Custom::Button( xorstr( "Teleportar" ), ImVec2( -1, 30 ), 0 ) ) {
 								Core::SDK::Pointers::pLocalPlayer->SetPos( Veh->GetPos( ) );
 							}
 
