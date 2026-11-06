@@ -75,10 +75,10 @@ void Gui::Rendering( )
 	{
 
 		Custom::DrawBackground( g_MenuInfo.IsLogged );
-        // Drag the top strip without changing the layout of the menu controls.
+        // Keep dragging inside the logo/sidebar; combat tabs occupy x >= 176.
         const ImVec2 savedCursor = ImGui::GetCursorPos();
         ImGui::SetCursorPos(ImVec2(0.f, 0.f));
-        ImGui::InvisibleButton("##MenuDragHandle", ImVec2(g_MenuInfo.MenuSize.x, 36.f));
+        ImGui::InvisibleButton("##MenuDragHandle", ImVec2(160.f, 100.f));
         if (g_MenuInfo.IsOpen && ImGui::IsItemActive() &&
             ImGui::IsMouseDragging(ImGuiMouseButton_Left) && display.x > 0.f && display.y > 0.f) {
             ImVec2 pos = ImGui::GetWindowPos();
