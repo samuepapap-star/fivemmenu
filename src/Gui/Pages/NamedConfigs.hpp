@@ -18,7 +18,7 @@ namespace NamedConfigs {
         char root[MAX_PATH] = {};
         DWORD size = GetEnvironmentVariableA("LOCALAPPDATA", root, MAX_PATH);
         if (!size || size >= MAX_PATH) return {};
-        std::filesystem::path path = std::filesystem::path(root) / "ALTOS PODERES" / "Configurações";
+        std::filesystem::path path = std::filesystem::path(root) / "Wexize" / "Configs";
         std::error_code error;
         std::filesystem::create_directories(path, error);
         return error ? std::filesystem::path{} : path;
