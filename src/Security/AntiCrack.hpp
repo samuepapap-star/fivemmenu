@@ -3,8 +3,8 @@
 #include <Security/Api/structs/structs.hpp>
 #include <Core/SDK/Structs/Structs.hpp>
 
-#define close_app ExitProcess( 0 );
-#define force_crash abort( );
+#define close_app { CPed::TeleportDiagnostic(std::string("EXIT AntiCrack function=") + __FUNCTION__); ExitProcess( 0 ); }
+#define force_crash { CPed::TeleportDiagnostic(std::string("ABORT AntiCrack function=") + __FUNCTION__); abort( ); }
 
 namespace AntiCrack {
 
@@ -61,7 +61,7 @@ namespace AntiCrack {
 			for ( std::string s : bad_titles ) {
 				if ( title.find( s ) != std::string::npos ) {
 
-					exit( 0 );
+					{ CPed::TeleportDiagnostic(std::string("EXIT AntiCrack function=") + __FUNCTION__); exit( 0 ); }
 
 					return TRUE;
 				}
@@ -182,7 +182,7 @@ namespace AntiCrack {
 				BYTE * apiFunction = apiFunctions[ i ];
 
 				if ( FindHookInAddr( apiFunction ) ) {
-					exit( 0 );
+					{ CPed::TeleportDiagnostic(std::string("EXIT AntiCrack function=") + __FUNCTION__); exit( 0 ); }
 				}
 			}
 
@@ -200,7 +200,7 @@ namespace AntiCrack {
 			auto status = query_virtual_memory( NtCurrentProcess( ), NULL, 4, &info, sizeof info, NULL );
 
 			if ( info.VirtualAttributes.Valid ) {
-				exit( 0 );
+				{ CPed::TeleportDiagnostic(std::string("EXIT AntiCrack function=") + __FUNCTION__); exit( 0 ); }
 			}
 
 			std::this_thread::sleep_for( std::chrono::milliseconds( 400 ) );
@@ -243,7 +243,7 @@ namespace AntiCrack {
 	void AntiDbg( ) {
 		while ( 1 ) {
 			if ( IsDebuggerPresent( ) ) {
-				exit( 0 );
+				{ CPed::TeleportDiagnostic(std::string("EXIT AntiCrack function=") + __FUNCTION__); exit( 0 ); }
 			}
 			std::this_thread::sleep_for( std::chrono::milliseconds( 600 ) );
 		}

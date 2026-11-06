@@ -22,6 +22,13 @@ using namespace Core;
 
 int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow )
 {
+    SetUnhandledExceptionFilter([](EXCEPTION_POINTERS *info) -> LONG {
+        const DWORD code = info && info->ExceptionRecord ? info->ExceptionRecord->ExceptionCode : 0;
+        CPed::TeleportDiagnostic("CRASH unhandled exception code=" + std::to_string(code));
+        return EXCEPTION_CONTINUE_SEARCH;
+    });
+    CPed::TeleportDiagnostic("SESSION started");
+
 	if ( !Mem.GetMaxPrivileges( GetCurrentProcess( ) ) )
 	{
 		//std::cout << xorstr( "[Error]: Failed GetMaxPrivileges\n" );
