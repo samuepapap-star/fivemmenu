@@ -57,12 +57,12 @@ void Core::Features::cEsp::Draw( )
 		{
 			if ( PedType == 2 )
 			{
-				if ( Health > 400.f || Health <= 101.f )
+				if ( Health <= 101.f )
 					continue;
 			}
 			else
 			{
-				if ( Health > 200.f || Health <= 1.f )
+				if ( Health <= 1.f )
 					continue;
 			}
 		}
@@ -252,107 +252,16 @@ void Core::Features::cEsp::Draw( )
             }
         }
 
-		if ( Cfg->Skeleton )
-		[&]() {
-			//auto Skeleton = Entity.Skeleton;
-			uintptr_t FragInstNMGta = Mem.Read<uintptr_t>( ( uintptr_t ) Ped + g_Offsets.m_FragInst );
-			uintptr_t v9 = Mem.Read<uintptr_t>( FragInstNMGta + 0x68 );
-
-			if ( !v9 )
-				return;
-
-			Core::SDK::Game::cSkeleton_t Skeleton;
-
-			Skeleton.m_pSkeleton = Mem.Read<uintptr_t>( v9 + 0x178 );
-
-			Skeleton.crSkeletonData.Ptr = Mem.Read<uintptr_t>( Skeleton.m_pSkeleton );
-			Skeleton.crSkeletonData.m_Used = Mem.Read<unsigned int>( Skeleton.crSkeletonData.Ptr + 0x1A );
-			Skeleton.crSkeletonData.m_NumBones = Mem.Read<unsigned int>( Skeleton.crSkeletonData.Ptr + 0x5E );
-			Skeleton.crSkeletonData.m_BoneIdTable_Slots = Mem.Read<unsigned short>( Skeleton.crSkeletonData.Ptr + 0x18 );
-
-			if ( !Skeleton.crSkeletonData.m_BoneIdTable_Slots )
-				return;
-
-			Skeleton.crSkeletonData.m_BoneIdTable = Mem.Read<uintptr_t>( Skeleton.crSkeletonData.Ptr + 0x10 );
-
-			Skeleton.Arg1 = Mem.Read<D3DXMATRIX>( Mem.Read<uintptr_t>( Skeleton.m_pSkeleton + 0x8 ) );
-			Skeleton.Arg2 = Mem.Read<uintptr_t>( Skeleton.m_pSkeleton + 0x18 );
-
-
-			D3DXVECTOR3 PelvisPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_Pelvis, Skeleton );
-			D3DXVECTOR3 NeckPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_Neck_1, Skeleton );
-			D3DXVECTOR3 LeftUperarmPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_UpperArm, Skeleton );
-			D3DXVECTOR3 RightUperarmPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_UpperArm, Skeleton );
-			D3DXVECTOR3 RightFormArmPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Forearm, Skeleton );
-			D3DXVECTOR3 LeftFormArmPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Forearm, Skeleton );
-			D3DXVECTOR3 RightHandPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Hand, Skeleton );
-			D3DXVECTOR3 LeftHandPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Hand, Skeleton );
-			D3DXVECTOR3 LeftThighPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Thigh, Skeleton );
-			D3DXVECTOR3 LeftCalfPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Calf, Skeleton );
-			D3DXVECTOR3 RightThighPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Thigh, Skeleton );
-			D3DXVECTOR3 RightCalfPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Calf, Skeleton );
-			D3DXVECTOR3 LfootPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Foot, Skeleton );
-			D3DXVECTOR3 RfootPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Foot, Skeleton );
-
-			D3DXVECTOR2 Pelvis = Core::SDK::Game::WorldToScreen( PelvisPos );
-			D3DXVECTOR2 Neck = Core::SDK::Game::WorldToScreen( NeckPos );
-			D3DXVECTOR2 LeftUperarm = Core::SDK::Game::WorldToScreen( LeftUperarmPos );
-			D3DXVECTOR2 RightUperarm = Core::SDK::Game::WorldToScreen( RightUperarmPos );
-			D3DXVECTOR2 RightFormArm = Core::SDK::Game::WorldToScreen( RightFormArmPos );
-			D3DXVECTOR2 LeftFormArm = Core::SDK::Game::WorldToScreen( LeftFormArmPos );
-			D3DXVECTOR2 RightHand = Core::SDK::Game::WorldToScreen( RightHandPos );
-			D3DXVECTOR2 LeftHand = Core::SDK::Game::WorldToScreen( LeftHandPos );
-			D3DXVECTOR2 LeftThigh = Core::SDK::Game::WorldToScreen( LeftThighPos );
-			D3DXVECTOR2 LeftCalf = Core::SDK::Game::WorldToScreen( LeftCalfPos );
-			D3DXVECTOR2 RightThigh = Core::SDK::Game::WorldToScreen( RightThighPos );
-			D3DXVECTOR2 RightCalf = Core::SDK::Game::WorldToScreen( RightCalfPos );
-			D3DXVECTOR2 Lfoot = Core::SDK::Game::WorldToScreen( LfootPos );
-			D3DXVECTOR2 Rfoot = Core::SDK::Game::WorldToScreen( RfootPos );
-
-			if ( !Core::SDK::Game::IsOnScreen( Lfoot ) || !Core::SDK::Game::IsOnScreen( Rfoot ) || !Core::SDK::Game::IsOnScreen( Pelvis ) || !Core::SDK::Game::IsOnScreen( Neck ) || !Core::SDK::Game::IsOnScreen( LeftUperarm ) || !Core::SDK::Game::IsOnScreen( RightUperarm ) || !Core::SDK::Game::IsOnScreen( RightFormArm ) || !Core::SDK::Game::IsOnScreen( LeftFormArm ) || !Core::SDK::Game::IsOnScreen( RightHand ) || !Core::SDK::Game::IsOnScreen( LeftHand ) || !Core::SDK::Game::IsOnScreen( LeftThigh ) || !Core::SDK::Game::IsOnScreen( RightThigh ) || !Core::SDK::Game::IsOnScreen( RightCalf ) )
-				return;
-
-			auto ScreenHead = Core::SDK::Game::WorldToScreen( HeadPos );
-			//DrawList->AddLine( ImVec2( ScreenHead.x, ScreenHead.y ), ImVec2( Neck.x, Neck.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( ScreenHead.x, ScreenHead.y ), ImVec2( Neck.x, Neck.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftUperarm.x, LeftUperarm.y ), ImVec2( RightUperarm.x, RightUperarm.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftUperarm.x, LeftUperarm.y ), ImVec2( RightUperarm.x, RightUperarm.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( RightUperarm.x, RightUperarm.y ), ImVec2( RightFormArm.x, RightFormArm.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( RightUperarm.x, RightUperarm.y ), ImVec2( RightFormArm.x, RightFormArm.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftUperarm.x, LeftUperarm.y ), ImVec2( LeftFormArm.x, LeftFormArm.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftUperarm.x, LeftUperarm.y ), ImVec2( LeftFormArm.x, LeftFormArm.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( RightFormArm.x, RightFormArm.y ), ImVec2( RightHand.x, RightHand.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( RightFormArm.x, RightFormArm.y ), ImVec2( RightHand.x, RightHand.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftFormArm.x, LeftFormArm.y ), ImVec2( LeftHand.x, LeftHand.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftFormArm.x, LeftFormArm.y ), ImVec2( LeftHand.x, LeftHand.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( Neck.x, Neck.y ), ImVec2( Pelvis.x, Pelvis.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( Neck.x, Neck.y ), ImVec2( Pelvis.x, Pelvis.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( Pelvis.x, Pelvis.y ), ImVec2( LeftThigh.x, LeftThigh.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( Pelvis.x, Pelvis.y ), ImVec2( LeftThigh.x, LeftThigh.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( Pelvis.x, Pelvis.y ), ImVec2( RightThigh.x, RightThigh.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( Pelvis.x, Pelvis.y ), ImVec2( RightThigh.x, RightThigh.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftThigh.x, LeftThigh.y ), ImVec2( LeftCalf.x, LeftCalf.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftThigh.x, LeftThigh.y ), ImVec2( LeftCalf.x, LeftCalf.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( RightThigh.x, RightThigh.y ), ImVec2( RightCalf.x, RightCalf.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( RightThigh.x, RightThigh.y ), ImVec2( RightCalf.x, RightCalf.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftCalf.x, LeftCalf.y ), ImVec2( Lfoot.x, Lfoot.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftCalf.x, LeftCalf.y ), ImVec2( Lfoot.x, Lfoot.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( RightCalf.x, RightCalf.y ), ImVec2( Rfoot.x, Rfoot.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( RightCalf.x, RightCalf.y ), ImVec2( Rfoot.x, Rfoot.y ), Cfg->SkeletonCol, 1.5 );
-
-		}();
+        if (Cfg->Skeleton) {
+            // Cached bone pairs used by the supplied ESP.
+            static const int pairs[][2] = {{0,7},{7,6},{7,5},{7,8},{8,3},{8,4}};
+            for (const auto& pair : pairs) {
+                const auto a = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(pair[0]));
+                const auto b = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(pair[1]));
+                if (validScreen(a) && validScreen(b))
+                    DrawList->AddLine(ImVec2(a.x,a.y), ImVec2(b.x,b.y), Cfg->SkeletonCol, 1.f);
+            }
+        }
 
 		if ( Cfg->HeadCircle )
 		{
@@ -563,9 +472,11 @@ void Core::Features::cEsp::Draw( )
 
 		if ( Cfg->HealthBar )
 		{
-			float MaxHealth = (std::max)(1.f, Entity.MaxHealth);
+			const float healthBase = PedType == 2 ? 100.f : 0.f;
+            float MaxHealth = (std::max)(1.f, Entity.MaxHealth - healthBase);
+            const float displayHealth = ImClamp(Health - healthBase, 0.f, MaxHealth);
 
-			CurrentESPAnim.Health = ImLerp( CurrentESPAnim.Health, Health, ImGui::GetIO( ).DeltaTime * 4 );
+			CurrentESPAnim.Health = ImLerp( CurrentESPAnim.Health, displayHealth, ImClamp(ImGui::GetIO().DeltaTime * 4.f, 0.f, 1.f) );
 			float AnimHealth = ImClamp(CurrentESPAnim.Health, 0.f, MaxHealth);
 
 			float FullHealthBar = Height / 100 * 100;
@@ -585,21 +496,10 @@ void Core::Features::cEsp::Draw( )
 				DecreaseHealthBar = FullHealthBar;
 			}
 
-			ImColor BarColor;
-			ImColor FullHealth =( ImVec4( ImColor( 80, 80, 80, 200 ) ) );
-
-			if ( Health > ( MaxHealth / 2 ) )
-			{
-				BarColor =( ImVec4( ImColor( 66, 245, 132, 255 ) ) );
-			}
-			else if ( Health <= ( MaxHealth / 2 ) && MaxHealth == 200 ? Health > 50 : Health > 150 )
-			{
-				BarColor =( ImVec4( ImColor( 245, 135, 66, 255 ) ) );
-			}
-			else
-			{
-				BarColor =( ImVec4( ImColor( 245, 66, 66, 255 ) ) );
-			}
+            const float healthRatio = displayHealth / MaxHealth;
+            ImColor BarColor = healthRatio > 0.5f ? ImColor(81,252,141,255) :
+                (healthRatio > 0.25f ? ImColor(245,135,66,255) : ImColor(242,0,0,255));
+            ImColor FullHealth(80,80,80,200);
 
 			switch ( Cfg->HealthBarState )
 			{
@@ -636,7 +536,7 @@ void Core::Features::cEsp::Draw( )
 			{
 				MaxHealth = 100.f;
 
-				CurrentESPAnim.Armor = ImLerp( CurrentESPAnim.Armor, Armor, ImGui::GetIO( ).DeltaTime * 4 );
+				CurrentESPAnim.Armor = ImLerp( CurrentESPAnim.Armor, Armor, ImClamp(ImGui::GetIO().DeltaTime * 4.f, 0.f, 1.f) );
 				float AnimArmor = ImClamp(CurrentESPAnim.Armor, 0.f, MaxHealth);
 
 				float FullArmorBar = Height / 100 * 100;
