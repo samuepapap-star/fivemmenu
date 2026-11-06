@@ -117,6 +117,13 @@ namespace Settings {
 				{
 					ImGui::BeginChild( xorstr( "Cores" ), ImVec2( g_MenuInfo.MenuSize.x - ( 184 + 24 ), 300 ), false, 0 );
 					{
+                        ImGui::TextUnformatted("Aparência do menu");
+                        if (ImGui::ColorEdit3("Cor de destaque", &g_Col.Base.x, ImGuiColorEditFlags_NoInputs))
+                            g_Config.SetMenuAccent(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z);
+                        if (ImGui::Button("Restaurar rosa"))
+                            g_Config.SetMenuAccent(245.f/255.f,112.f/255.f,163.f/255.f);
+                        ImGui::TextWrapped("Salve a configuração para manter a cor escolhida.");
+                        ImGui::Separator();
 						static float AimbotFovCol[ 4 ] = { g_Config.Aimbot->FovColor.Value.x, g_Config.Aimbot->FovColor.Value.y, g_Config.Aimbot->FovColor.Value.z,g_Config.Aimbot->FovColor.Value.w };
 						if ( ImGui::ColorEdit4( xorstr( "FOV da mira assistida" ), AimbotFovCol, ImGuiColorEditFlags_AlphaBar ) )
 						{

@@ -2,6 +2,7 @@
 #include <Includes/Includes.hpp>
 #include <Includes/Utils.hpp>
 #include <iostream>
+#include <cmath>
 
 namespace Core {
 
@@ -168,6 +169,17 @@ namespace Core {
 			}
 		}
 
+        static void SetMenuAccent(float r, float g, float b) {
+            if (!std::isfinite(r) || !std::isfinite(g) || !std::isfinite(b)) return;
+            g_Col.Base = ImVec4(ImClamp(r,0.f,1.f),ImClamp(g,0.f,1.f),ImClamp(b,0.f,1.f),1.f);
+            g_Col.ButtonHovered = ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);
+            ImGuiStyle &style=ImGui::GetStyle();
+            style.Colors[ImGuiCol_CheckMark]=g_Col.Base;
+            style.Colors[ImGuiCol_SliderGrab]=g_Col.Base;
+            style.Colors[ImGuiCol_SliderGrabActive]=g_Col.Base;
+            style.Colors[ImGuiCol_NavHighlight]=g_Col.Base;
+        }
+
 		std::string EncodeCurrentConfig( std::string CfgName )
 		{
 			try {
@@ -182,6 +194,7 @@ namespace Core {
 				GeneralCfg[ xorstr( "VSync" ) ] = General->VSync;
 				GeneralCfg[ xorstr( "ProcessPriority" ) ] = General->ProcessPriority;
 				GeneralCfg[ xorstr( "MenuKey" ) ] = General->MenuKey;
+                GeneralCfg["MenuAccent"] = nlohmann::json::array({g_Col.Base.x,g_Col.Base.y,g_Col.Base.z});
 
 				// Features - Aimbot
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Enabled" ) ] = Aimbot->Enabled;
@@ -304,6 +317,12 @@ namespace Core {
 					General->VSync = GeneralCfg[ xorstr( "VSync" ) ];
 					General->ProcessPriority = GeneralCfg[ xorstr( "ProcessPriority" ) ];
 					General->MenuKey = GeneralCfg[ xorstr( "MenuKey" ) ];
+                    if (GeneralCfg.contains("MenuAccent")) {
+                        const auto &accent=GeneralCfg["MenuAccent"];
+                        if(accent.is_array() && accent.size()==3 && accent[0].is_number() &&
+                           accent[1].is_number() && accent[2].is_number())
+                            SetMenuAccent(accent[0].get<float>(),accent[1].get<float>(),accent[2].get<float>());
+                    }
 				}
 
 				// Features - Aimbot
