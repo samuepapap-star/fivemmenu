@@ -1,4 +1,5 @@
 #include "Gui.hpp"
+#include <Bridge/Pages.hpp>
 #include <cstdlib>
 #include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/ExtraCamera.hpp>
@@ -51,7 +52,7 @@ inline void CheatLogin( )
 void Gui::Rendering( )
 {
     static bool cleanupRegistered=false;
-    if(!cleanupRegistered){std::atexit([](){Core::Features::WorldClock::Tick(true);Core::Features::ExtraCamera::Stop();Core::Features::Extras::Tick(true);});cleanupRegistered=true;}
+    if(!cleanupRegistered){std::atexit([](){BridgeFeatures::Stop();Core::Features::WorldClock::Tick(true);Core::Features::ExtraCamera::Stop();Core::Features::Extras::Tick(true);});cleanupRegistered=true;}
 
     static bool diagnosticSession=false;
     if(!diagnosticSession) {
@@ -62,6 +63,7 @@ void Gui::Rendering( )
     ClientState::Tick();
     Core::Features::Extras::Tick();
     Core::Features::WorldClock::Tick();
+    BridgeFeatures::Tick();
     Core::Features::ExtraCamera::Tick();
     Core::Features::Extras::DrawRadar();
     Core::Features::VehicleManipulation::Tick();
@@ -325,6 +327,7 @@ void Gui::Rendering( )
                 Core::Features::ExternalCameraOptions::Tick(true);
                 Core::Features::VehicleManipulation::Tick(true);
                 Core::Features::ExtraCamera::Tick(true);
+                BridgeFeatures::Stop();
                 Core::Features::WorldClock::Tick(true);
                 Core::Features::Extras::Tick(true);
                 ExitProcess( 0 );

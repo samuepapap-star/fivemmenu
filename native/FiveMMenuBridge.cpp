@@ -1,0 +1,112 @@
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#include <array>
+#include <atomic>
+#include <climits>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+#include "cfx/component.h"
+#include "cfx/event.h"
+#include "NativeActions.hpp"
+
+extern "C" __declspec(dllexport) DWORD WINAPI FiveMMenuBridgeStart(void*);
+
+namespace {
+using namespace MenuBridge;
+struct ManagerView:fx::fwRefCountable,fx::ComponentHolderImpl<ManagerView>{fx::fwEvent<> tick;fx::fwEvent<> reset;};
+static_assert(sizeof(fx::fwEvent<>)==16&&sizeof(ManagerView)==64,"Unsupported CFX event ABI");
+static_assert(sizeof(LONG)==sizeof(std::int32_t),"IPC state size");
+struct Context {void* result;std::uint32_t count,pad0;void* arguments;std::uint32_t vectors,pad1;std::uint8_t vectorSpace[512];};
+using Handler=void(*)(Context*);using GetHandler=Handler(*)(std::uint64_t);using GetManager=ManagerView*(*)(bool);
+Shared* shared=nullptr;HANDLE mapping=nullptr;std::atomic<bool> initialized{false};ManagerView* manager=nullptr;
+GetHandler resolve=nullptr;bool nativeFault=false;
+std::int32_t ReadState(std::int32_t& s){return InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&s),0,0);}
+void Store(std::int32_t& s,std::int32_t value){InterlockedExchange(reinterpret_cast<volatile LONG*>(&s),value);}
+bool SafeHandler(Handler function,Context* context){__try{function(context);return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}}
+Handler SafeResolve(GetHandler function,std::uint64_t hash){__try{return function(hash);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
+ManagerView* SafeManager(GetManager function){__try{return function(true);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
+bool Profile(HMODULE module,std::uint32_t timestamp,std::uint32_t size){
+ if(!module)return false;
+ __try{auto base=reinterpret_cast<const std::uint8_t*>(module);auto dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+  if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<=0||dos->e_lfanew>0x100000)return false;
+  auto nt=reinterpret_cast<const IMAGE_NT_HEADERS64*>(base+dos->e_lfanew);
+  return nt->Signature==IMAGE_NT_SIGNATURE&&nt->FileHeader.Machine==IMAGE_FILE_MACHINE_AMD64&&nt->FileHeader.TimeDateStamp==timestamp&&nt->OptionalHeader.SizeOfImage==size;
+ }__except(EXCEPTION_EXECUTE_HANDLER){return false;}
+}
+bool Readable(const void* p,std::size_t bytes){MEMORY_BASIC_INFORMATION m{};if(!p||VirtualQuery(p,&m,sizeof(m))!=sizeof(m)||m.State!=MEM_COMMIT||(m.Protect&(PAGE_NOACCESS|PAGE_GUARD)))return false;
+ auto start=reinterpret_cast<std::uintptr_t>(p),base=reinterpret_cast<std::uintptr_t>(m.BaseAddress);return start>=base&&bytes<=m.RegionSize&&start-base<=m.RegionSize-bytes;}
+bool FrameSnapshot(Frame& out){for(int tries=0;tries<3;tries++){auto before=ReadState(shared->frameSequence);if(before&1)continue;MemoryBarrier();std::memcpy(&out,&shared->frame,sizeof(out));MemoryBarrier();if(before==ReadState(shared->frameSequence))return true;}return false;}
+class Api final:public NativeApi{
+ std::unordered_map<std::uint64_t,Handler> handlers;
+public:
+ void Clear(){handlers.clear();}
+ std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{
+  if(nativeFault||input.size()>32)throw std::runtime_error("Execucao de natives indisponivel");
+  auto it=handlers.find(hash);Handler handler=it==handlers.end()?SafeResolve(resolve,hash):it->second;
+  if(!handler)throw std::runtime_error("Native solicitada nao disponivel nesta sessao");
+  handlers[hash]=handler;std::array<std::uint64_t,32> arguments{};std::array<std::uint64_t,4> result{};
+  std::copy(input.begin(),input.end(),arguments.begin());Context context{};context.result=result.data();context.count=static_cast<std::uint32_t>(input.size());context.arguments=arguments.data();
+  if(!SafeHandler(handler,&context)){nativeFault=true;throw std::runtime_error("Falha na chamada interna; ponte interrompida");}return result[0];
+ }
+};
+Api api;Actions actions(api);
+void Publish(const Reply& reply){shared->reply=reply;MemoryBarrier();Store(shared->commandState,Done);}
+void Failure(const char* text){Copy(shared->error,sizeof(shared->error),text);MemoryBarrier();Store(shared->service,-1);}
+void OnReset(){
+ if(!shared)return;
+ const auto state=ReadState(shared->commandState);
+ if(state==Busy||state==Ready){Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),"Sessao reiniciada; acao cancelada");Publish(r);}
+ actions.Reset();api.Clear();Store(shared->rpgState,0);
+}
+void Tick(){
+ if(!shared||ReadState(shared->service)!=1)return;
+ try{
+  Frame frame{};if(!FrameSnapshot(frame))frame={};const auto now=GetTickCount64();
+  if(!actions.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
+   Command command=shared->command;MemoryBarrier();
+   if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
+   else actions.Submit(command,now);
+  }
+  actions.Tick(frame,now,static_cast<std::uint64_t>(InterlockedCompareExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),0,0)));
+  Store(shared->rpgState,actions.rpgState);
+  if(actions.hasReply){Publish(actions.reply);actions.hasReply=false;}
+ }catch(const std::exception& error){
+  Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),error.what());Publish(r);
+  if(nativeFault){Failure(error.what());Store(shared->rpgState,0);}else{
+   // Drop the operation before accepting another request; never report an exception as success.
+   try{actions.Abort(error.what());actions.hasReply=false;}catch(...){Failure("Falha ao encerrar a acao");}
+  }
+ }catch(...){Failure("Excecao na ponte; nenhuma nova acao sera executada");}
+}
+bool SafeTick(){__try{Tick();return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}}
+void GuardedTick(){if(!SafeTick()&&shared)Failure("ABI do runtime indisponivel; ponte interrompida");}
+}
+
+static DWORD StartImplementation(){
+ if(initialized.exchange(true))return 1;
+ const auto name=L"Local\\FiveMMenuActions_"+std::to_wstring(GetCurrentProcessId());
+ mapping=CreateFileMappingW(INVALID_HANDLE_VALUE,nullptr,PAGE_READWRITE,0,sizeof(MenuBridge::Shared),name.c_str());
+ if(!mapping){initialized=false;return 0;}
+ if(GetLastError()==ERROR_ALREADY_EXISTS){CloseHandle(mapping);mapping=nullptr;initialized=false;return 0;}
+ auto view=MapViewOfFile(mapping,FILE_MAP_ALL_ACCESS,0,0,sizeof(MenuBridge::Shared));
+ if(!view){CloseHandle(mapping);mapping=nullptr;initialized=false;return 0;}
+ shared=new(view) MenuBridge::Shared{};shared->pid=GetCurrentProcessId();
+ auto core=GetModuleHandleW(L"citizen-resources-core.dll"),rage=GetModuleHandleW(L"rage-scripting-five.dll");
+ if(!Profile(core,1793965266u,782336u)||!Profile(rage,1793798977u,1720320u)){Failure("Revisao dos componentes CFX nao validada");return 0;}
+ auto current=reinterpret_cast<GetManager>(GetProcAddress(core,"?GetCurrent@ResourceManager@fx@@SAPEAV12@_N@Z"));
+ resolve=reinterpret_cast<GetHandler>(GetProcAddress(rage,"?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z"));
+ if(!current||!resolve){Failure("Exports publicos do runtime nao encontrados");return 0;}
+ manager=SafeManager(current);if(!Readable(manager,sizeof(ManagerView))){Failure("Gerenciador de resources indisponivel");return 0;}
+ // Keep the module and the manager alive for callbacks already owned by the game.
+ HMODULE pinned=nullptr;if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&FiveMMenuBridgeStart),&pinned)){Failure("Nao foi possivel manter a ponte carregada");return 0;}
+ manager->AddRef();manager->tick.Connect([](){GuardedTick();},INT_MAX);manager->reset.Connect([](){OnReset();},INT_MAX);
+ Copy(shared->error,sizeof(shared->error),"Ponte pronta; aguardando acao");MemoryBarrier();Store(shared->service,1);return 1;
+}
+extern "C" __declspec(dllexport) DWORD WINAPI FiveMMenuBridgeStart(void*){
+ __try{return StartImplementation();}
+ __except(EXCEPTION_EXECUTE_HANDLER){if(shared)Failure("Nao foi possivel validar a interface do runtime");return 0;}
+}
+BOOL WINAPI DllMain(HINSTANCE module,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH)DisableThreadLibraryCalls(module);return TRUE;}
+

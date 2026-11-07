@@ -1,5 +1,6 @@
 #include <Core/Features/SourceOptionLogic.hpp>
 #pragma once
+#include <Bridge/Features.hpp>
 #include <Core/ExtensionSettings.hpp>
 #include <Core/Features/SilentAim.hpp>
 #include <Includes/Includes.hpp>
@@ -151,7 +152,14 @@ namespace Combat {
 				{
 					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.SilentAim->Enabled );
+                        ImGui::BeginDisabled(BridgeFeatures::silentRpg);
+                        Custom::CheckBox(xorstr("Ativar"),&g_Config.SilentAim->Enabled);
+                        ImGui::EndDisabled();
+                        if(Custom::CheckBox("Silent RPG (sem equipar)",&BridgeFeatures::silentRpg)){
+                            if(BridgeFeatures::silentRpg)BridgeFeatures::EnableRpg();
+                        }
+                        ImGui::TextWrapped("Silent RPG usa o alvo dentro do FOV e substitui a mira silenciosa padrao enquanto estiver ativo.");
+                        BridgeFeatures::Status();
 						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.SilentAim->ShowFov );
                         ImGui::ColorEdit4("Cor do FOV##SilentAim", &g_Config.SilentAim->FovColor.Value.x, ImGuiColorEditFlags_AlphaBar);
                         ImGui::TextWrapped("%s",Core::Features::g_SilentAim.StatusText());

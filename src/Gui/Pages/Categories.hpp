@@ -1,5 +1,6 @@
 #pragma once
 #include <Gui/Pages/Extras.hpp>
+#include <Bridge/Pages.hpp>
 namespace Categories {
 inline int carTab = 0, playerTab = 0, weaponTab = 0, teleportTab = 0, selfTab=0, configTab=0;
 inline void Tab(const char* name, int value, int& current, bool sameLine) {
@@ -9,12 +10,12 @@ inline void Tab(const char* name, int value, int& current, bool sameLine) {
 inline void Cars() {
     Tab("Geral",0,carTab,false); Tab("Lista",1,carTab,true);
     Tab("ESP",2,carTab,true); Tab("Enviar ao jogador",3,carTab,true);
-    Tab("Extras",4,carTab,true);
+    Tab("Extras",4,carTab,true);Tab("Gerar",5,carTab,true);
     if (carTab == 0) Local::Render(Local::iSubTabCount == 4 ? 4 : 1);
     else if (carTab == 1) World::Render(1);
     else if (carTab == 2) Visuals::Render(1);
     else if(carTab==3) World::Render(0,1);
-    else ExtraPages::Render(1);
+    else if(carTab==4)ExtraPages::Render(1);else BridgePages::Render(2);
 }
 inline void Players() {
     Tab("ESP",0,playerTab,false); Tab("Lista e ações",1,playerTab,true); Tab("Radar e extras",2,playerTab,true);
@@ -29,7 +30,7 @@ inline void Teleports() {
     if (teleportTab == 0) Local::Render(2);
     else if(teleportTab==1) World::Render(0,2); else ExtraPages::Render(4);
 }
-inline void Personagem(){Tab("Geral",0,selfTab,false);Tab("Extras",1,selfTab,true);if(!selfTab)Local::Render(0);else ExtraPages::Render(0);}
+inline void Personagem(){Tab("Geral",0,selfTab,false);Tab("Extras",1,selfTab,true);Tab("Modelos",2,selfTab,true);Tab("Animacoes",3,selfTab,true);if(!selfTab)Local::Render(0);else if(selfTab==1)ExtraPages::Render(0);else BridgePages::Render(selfTab-2);}
 inline void Settings(){Tab("Geral",0,configTab,false);Tab("Aparencia",1,configTab,true);Tab("Ambiente",2,configTab,true);if(!configTab)::Settings::Render();else ExtraPages::Render(configTab==1?5:7);}
 }
 
