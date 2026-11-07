@@ -161,7 +161,7 @@ namespace World {
                             }
                             if(actionMode==0&&Core::Features::ExtraCamera::target&&Custom::Button("Parar observacao",ImVec2(-1,30),0))Core::Features::ExtraCamera::Stop();
                             if(actionMode==0&&Custom::Button("Clonar aparencia",ImVec2(-1,30),0))
-                                BridgeFeatures::Clone(reinterpret_cast<uintptr_t>(SelectedPed.Ped));
+                                BridgeFeatures::Clone(SelectedPed.Id);
                             if(actionMode==0)BridgeFeatures::Status();
                             if(actionMode == 0 && Custom::Button("Copiar roupa",ImVec2(-1,30),0)) {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::CopyClothes(

@@ -6,13 +6,13 @@
 #include <string>
 
 namespace MenuBridge {
-inline constexpr std::uint32_t magic=0x464d4231, version=1;
+inline constexpr std::uint32_t magic=0x464d4231, version=2;
 enum class Action:std::uint32_t { Model=1, Restore, CloneAppearance, SpawnVehicle, Animation, StopAnimation, StopAll, Connect };
 enum State:std::int32_t { Idle=0, Ready=1, Busy=2, Done=3 };
 struct Vec {float x=0,y=0,z=0;};
 struct Command {
  std::uint64_t id=0;Action action=Action::StopAll;std::uint32_t flags=0;
- std::uint64_t targetAddress=0;char text[96]{},text2[96]{};
+ std::uint64_t targetServerId=0;char text[96]{},text2[96]{};
 };
 struct Frame {
  std::uint64_t heartbeat=0,localAddress=0;Vec position{},forward{},target{};
@@ -41,7 +41,7 @@ inline bool Valid(const Command& c){
  switch(c.action){
  case Action::Model:case Action::SpawnVehicle:return Text(c.text,sizeof(c.text),true);
  case Action::Animation:return Text(c.text,sizeof(c.text))&&Text(c.text2,sizeof(c.text2));
- case Action::CloneAppearance:return c.targetAddress>=0x10000&&c.targetAddress<=0x7fffffffffffULL;
+ case Action::CloneAppearance:return c.targetServerId>0&&c.targetServerId<=0x7fffffffULL;
  case Action::Restore:case Action::StopAnimation:case Action::StopAll:case Action::Connect:return true;
  default:return false;
  }

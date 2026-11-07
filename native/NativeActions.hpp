@@ -30,11 +30,11 @@ class Actions {
  std::uint64_t Call(std::uint64_t hash,std::initializer_list<std::uint64_t> args={}){return api.Call(hash,std::vector<std::uint64_t>(args));}
  bool Exists(int entity){return entity>0&&Call(N::EntityExists,{static_cast<std::uint64_t>(entity)})!=0;}
  void Delete(int& entity){if(Exists(entity))Call(N::DeleteEntity,{reinterpret_cast<std::uint64_t>(&entity)});entity=0;}
- int Target(std::uint64_t address){
-  for(std::uint64_t i=0;i<256;i++)if(Call(N::PlayerActive,{i})){
-   int ped=static_cast<int>(Call(N::PlayerPedByIndex,{i}));
-   if(Exists(ped)&&Call(Hash("GET_ENTITY_ADDRESS"),{static_cast<std::uint64_t>(ped)})==address)return ped;
-  }return 0;
+ int Target(std::uint64_t serverId){
+  const int index=static_cast<int>(Call(Hash("GET_PLAYER_FROM_SERVER_ID"),{serverId}));
+  if(index<0||index>255||!Call(N::PlayerActive,{static_cast<std::uint64_t>(index)}))return 0;
+  const int ped=static_cast<int>(Call(N::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
+  return Exists(ped)?ped:0;
  }
  void EnsureBackup(int ped){
   if(Exists(backup))return;
@@ -72,7 +72,7 @@ public:
   if(expectedPed&&ped!=expectedPed){Delete(backup);}expectedPed=ped;
   switch(command.action){
    case Action::Model:model=Hash(command.text);break;
-   case Action::CloneAppearance:cloneSource=Target(command.targetAddress);if(!cloneSource){Finish(false,"Jogador selecionado nao encontrado");return;}model=static_cast<std::uint32_t>(Call(N::EntityModel,{static_cast<std::uint64_t>(cloneSource)}));break;
+   case Action::CloneAppearance:cloneSource=Target(command.targetServerId);if(!cloneSource){Finish(false,"Jogador selecionado nao encontrado");return;}model=static_cast<std::uint32_t>(Call(N::EntityModel,{static_cast<std::uint64_t>(cloneSource)}));break;
    case Action::Restore:if(!Exists(backup)){Finish(false,"Nao ha aparencia original para restaurar");return;}model=static_cast<std::uint32_t>(Call(N::EntityModel,{static_cast<std::uint64_t>(backup)}));break;
    case Action::SpawnVehicle:model=Hash(command.text);break;
    case Action::Animation:Call(N::RequestAnim,{reinterpret_cast<std::uint64_t>(command.text)});animRequested=true;return;
@@ -107,7 +107,7 @@ public:
      Finish(false,"Troca de modelo cancelada: personagem entrou em veiculo ou foi vinculado");
     }else{
      const int source=command.action==Action::Restore?backup:cloneSource;
-     if(command.action==Action::CloneAppearance&&(!Exists(source)||Target(command.targetAddress)!=source)){Finish(false,"Jogador selecionado saiu durante o carregamento");}
+     if(command.action==Action::CloneAppearance&&(!Exists(source)||Target(command.targetServerId)!=source)){Finish(false,"Jogador selecionado saiu durante o carregamento");}
      else{
       Call(N::SetPlayerModel,{Call(N::PlayerId),model});ped=static_cast<int>(Call(N::PlayerPed));expectedPed=ped;
       if(!Exists(ped)||Call(N::EntityModel,{static_cast<std::uint64_t>(ped)})!=model)Finish(false,"O jogo nao confirmou a troca de modelo; backup mantido");

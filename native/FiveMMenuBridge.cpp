@@ -10,6 +10,7 @@
 #include "cfx/component.h"
 #include "cfx/event.h"
 #include "NativeActions.hpp"
+#include "NativeDispatch.hpp"
 
 extern "C" __declspec(dllexport) DWORD WINAPI FiveMMenuBridgeStart(void*);
 
@@ -18,14 +19,16 @@ using namespace MenuBridge;
 struct ManagerView:fx::fwRefCountable,fx::ComponentHolderImpl<ManagerView>{fx::fwEvent<> tick;fx::fwEvent<> reset;};
 static_assert(sizeof(fx::fwEvent<>)==16&&sizeof(ManagerView)==64,"Unsupported CFX event ABI");
 static_assert(sizeof(LONG)==sizeof(std::int32_t),"IPC state size");
-struct Context {void* result;std::uint32_t count,pad0;void* arguments;std::uint32_t vectors,pad1;std::uint8_t vectorSpace[512];};
+using Context=RageContext;
 using Handler=void(*)(Context*);using GetHandler=Handler(*)(std::uint64_t);using GetManager=ManagerView*(*)(bool);
 Shared* shared=nullptr;HANDLE mapping=nullptr;std::atomic<bool> initialized{false};ManagerView* manager=nullptr;
-GetHandler resolve=nullptr;bool nativeFault=false;
+using GetCustom=CfxHandler*(*)(std::uint64_t);
+GetHandler resolve=nullptr;GetCustom resolveCustom=nullptr;bool nativeFault=false;
 std::int32_t ReadState(std::int32_t& s){return InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&s),0,0);}
 void Store(std::int32_t& s,std::int32_t value){InterlockedExchange(reinterpret_cast<volatile LONG*>(&s),value);}
-bool SafeHandler(Handler function,Context* context){__try{function(context);return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}}
+bool SafeHandler(const NativeSelection* function,Context* context){__try{function->Invoke(*context);return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}}
 Handler SafeResolve(GetHandler function,std::uint64_t hash){__try{return function(hash);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
+CfxHandler* SafeCustom(GetCustom function,std::uint64_t hash){__try{return function(hash);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
 ManagerView* SafeManager(GetManager function){__try{return function(true);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
 bool Profile(HMODULE module,std::uint32_t timestamp,std::uint32_t size){
  if(!module)return false;
@@ -39,16 +42,16 @@ bool Readable(const void* p,std::size_t bytes){MEMORY_BASIC_INFORMATION m{};if(!
  auto start=reinterpret_cast<std::uintptr_t>(p),base=reinterpret_cast<std::uintptr_t>(m.BaseAddress);return start>=base&&bytes<=m.RegionSize&&start-base<=m.RegionSize-bytes;}
 bool FrameSnapshot(Frame& out){for(int tries=0;tries<3;tries++){auto before=ReadState(shared->frameSequence);if(before&1)continue;MemoryBarrier();std::memcpy(&out,&shared->frame,sizeof(out));MemoryBarrier();if(before==ReadState(shared->frameSequence))return true;}return false;}
 class Api final:public NativeApi{
- std::unordered_map<std::uint64_t,Handler> handlers;
+ std::unordered_map<std::uint64_t,NativeSelection> handlers;
 public:
  void Clear(){handlers.clear();}
  std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{
   if(nativeFault||input.size()>32)throw std::runtime_error("Execucao de natives indisponivel");
-  auto it=handlers.find(hash);Handler handler=it==handlers.end()?SafeResolve(resolve,hash):it->second;
-  if(!handler)throw std::runtime_error("Native solicitada nao disponivel nesta sessao");
+  auto it=handlers.find(hash);auto handler=it==handlers.end()?SelectNative(hash,[](std::uint64_t h){return SafeResolve(resolve,h);},[](std::uint64_t h){return SafeCustom(resolveCustom,h);}):it->second;
+  if(!handler)throw std::runtime_error(MissingNative(hash));
   handlers[hash]=handler;std::array<std::uint64_t,32> arguments{};std::array<std::uint64_t,4> result{};
   std::copy(input.begin(),input.end(),arguments.begin());Context context{};context.result=result.data();context.count=static_cast<std::uint32_t>(input.size());context.arguments=arguments.data();
-  if(!SafeHandler(handler,&context)){nativeFault=true;throw std::runtime_error("Falha na chamada interna; ponte interrompida");}return result[0];
+  if(!SafeHandler(&handler,&context)){nativeFault=true;throw std::runtime_error("Falha na chamada interna; ponte interrompida: "+MissingNative(hash));}return result[0];
  }
 };
 Api api;Actions actions(api);
@@ -94,10 +97,13 @@ static DWORD StartImplementation(){
  if(!view){CloseHandle(mapping);mapping=nullptr;initialized=false;return 0;}
  shared=new(view) MenuBridge::Shared{};shared->pid=GetCurrentProcessId();
  auto core=GetModuleHandleW(L"citizen-resources-core.dll"),rage=GetModuleHandleW(L"rage-scripting-five.dll");
+ auto scripting=GetModuleHandleW(L"scripting-gta.dll");
  if(!Profile(core,1793965266u,782336u)||!Profile(rage,1793798977u,1720320u)){Failure("Revisao dos componentes CFX nao validada");return 0;}
+ if(!Profile(scripting,1793799053u,286720u)){Failure("Revisao do scripting-gta nao validada");return 0;}
  auto current=reinterpret_cast<GetManager>(GetProcAddress(core,"?GetCurrent@ResourceManager@fx@@SAPEAV12@_N@Z"));
  resolve=reinterpret_cast<GetHandler>(GetProcAddress(rage,"?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z"));
- if(!current||!resolve){Failure("Exports publicos do runtime nao encontrados");return 0;}
+ resolveCustom=reinterpret_cast<GetCustom>(GetProcAddress(scripting,"?GetNativeHandlerPtr@ScriptEngine@fx@@SAPEAV?$function@$$A6AXAEAVScriptContext@fx@@@Z@std@@_K@Z"));
+ if(!current||!resolve||!resolveCustom){Failure("Exports publicos do runtime nao encontrados");return 0;}
  manager=SafeManager(current);if(!Readable(manager,sizeof(ManagerView))){Failure("Gerenciador de resources indisponivel");return 0;}
  // Keep the module and the manager alive for callbacks already owned by the game.
  HMODULE pinned=nullptr;if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&FiveMMenuBridgeStart),&pinned)){Failure("Nao foi possivel manter a ponte carregada");return 0;}

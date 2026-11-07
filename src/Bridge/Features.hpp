@@ -32,7 +32,7 @@ inline bool Submit(MenuBridge::Command command,bool modelChange=false){
 }
 inline void Model(const char* model){MenuBridge::Command c{};c.action=MenuBridge::Action::Model;MenuBridge::Copy(c.text,sizeof(c.text),model);Submit(c,true);}
 inline void Restore(){MenuBridge::Command c{};c.action=MenuBridge::Action::Restore;Submit(c,true);}
-inline void Clone(std::uintptr_t address){MenuBridge::Command c{};c.action=MenuBridge::Action::CloneAppearance;c.targetAddress=address;Submit(c,true);}
+inline void Clone(int serverId){MenuBridge::Command c{};c.action=MenuBridge::Action::CloneAppearance;c.targetServerId=static_cast<std::uint64_t>(serverId);Submit(c,true);}
 inline void Spawn(const char* model,bool network,bool enter){MenuBridge::Command c{};c.action=MenuBridge::Action::SpawnVehicle;c.flags=(network?1u:0u)|(enter?2u:0u);MenuBridge::Copy(c.text,sizeof(c.text),model);Submit(c);}
 inline void Animate(const char* dictionary,const char* animation,bool loop){MenuBridge::Command c{};c.action=MenuBridge::Action::Animation;c.flags=loop?1u:0u;MenuBridge::Copy(c.text,sizeof(c.text),dictionary);MenuBridge::Copy(c.text2,sizeof(c.text2),animation);Submit(c);}
 inline void StopAnimation(){MenuBridge::Command c{};c.action=MenuBridge::Action::StopAnimation;Submit(c);}

@@ -1,4 +1,5 @@
 #include "../native/NativeActions.hpp"
+#include "../native/NativeDispatch.hpp"
 #include <cassert>
 #include <unordered_map>
 #include <limits>
@@ -26,7 +27,7 @@ struct Fake:NativeApi{
   if(hash==N::GetArmor)return 80;
   if(hash==N::PlayerActive)return a.at(0)==1;
   if(hash==N::PlayerPedByIndex)return 2;
-  if(hash==Hash("GET_ENTITY_ADDRESS"))return entity()==2?0x22220000:0;
+  if(hash==Hash("GET_PLAYER_FROM_SERVER_ID"))return a.at(0)==5137?1:static_cast<std::uint64_t>(-1);
   if(hash==N::Heading)return Float(90);
   if(hash==N::CreateVehicle){assert(a.size()==8);assert(AsFloat(a.at(1))==10.f);entities[50]=static_cast<std::uint32_t>(a.at(0));return 50;}
   if(hash==N::EnterVehicle){enters++;return 0;}
@@ -42,6 +43,15 @@ struct Fake:NativeApi{
 Frame FrameAt(std::uint64_t now){Frame f{};f.heartbeat=now;f.valid=1;f.position={10,20,30};f.forward={0,1,0};return f;}
 Command Cmd(Action action,const char* text="a_c_chimp"){Command c{};c.id=1;c.action=action;Copy(c.text,sizeof(c.text),text);return c;}
 int main(){
+ {std::uint64_t args[2]{5137,7},result=0;bool customCalled=false,gameResolved=false;
+  CfxHandler custom=[&](fx::ScriptContext& c){customCalled=true;assert(c.argumentCount==2&&c.resultCount==0);assert(static_cast<std::uint64_t*>(c.argumentBuffer)[0]==5137);*static_cast<std::uint64_t*>(c.resultBuffer)=42;};
+  auto selected=SelectNative(1,[&](std::uint64_t)->RageHandler{gameResolved=true;return nullptr;},[&](std::uint64_t){return &custom;});
+  RageContext c{};c.arguments=args;c.result=&result;c.count=2;assert(selected);selected.Invoke(c);assert(customCalled&&!gameResolved&&result==42);
+  selected=SelectNative(1,[](std::uint64_t)->RageHandler{return [](RageContext* context){*static_cast<std::uint64_t*>(context->result)=99;};},[](std::uint64_t)->CfxHandler*{return nullptr;});
+  selected.Invoke(c);assert(result==99);
+  selected=SelectNative(1,[](std::uint64_t)->RageHandler{return nullptr;},[](std::uint64_t)->CfxHandler*{return nullptr;});assert(!selected);assert(MissingNative(0x1234).find("0000000000001234")!=std::string::npos);
+ }
+ {auto c=Cmd(Action::CloneAppearance);c.targetServerId=0;assert(!Valid(c));c.targetServerId=5137;assert(Valid(c));c.targetServerId=0x80000000ULL;assert(!Valid(c));}
  assert(Hash("GET_PLAYER_FROM_SERVER_ID")==0x344ea166u);
  assert(Float(1.f)==0x3f800000&&AsFloat(Float(-2.f))==-2.f);
  {auto c=Cmd(Action::Model);std::memset(c.text,'a',sizeof(c.text));assert(!Valid(c));c=Cmd(Action::Model,"a_c_chimp;os.execute");assert(!Valid(c));}
@@ -55,8 +65,9 @@ int main(){
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);actions.Tick(FrameAt(1100),1100,1);assert(!actions.Pending()&&!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);actions.Tick(FrameAt(17000),17000,0);assert(!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Restore),1000);assert(!actions.reply.success);}
- {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetAddress=0x22220000;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.sets==1&&api.clones==1&&api.entities.at(api.player)==Hash("s_m_y_cop_01"));}
- {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetAddress=0x22220000;actions.Submit(c,1000);api.entities.erase(2);api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.sets==0);}
+ {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.sets==1&&api.clones==1&&api.entities.at(api.player)==Hash("s_m_y_cop_01"));}
+ {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);api.entities.erase(2);api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.sets==0);}
+ {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=9999;actions.Submit(c,1000);assert(actions.hasReply&&!actions.reply.success&&api.sets==0);}
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");c.flags=2;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&actions.reply.value==50&&api.enters==1);}
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::Animation,"missminuteman_1ig_2");Copy(c.text2,sizeof(c.text2),"handsup_base");actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.Pending()&&api.animations==1);actions.Tick(FrameAt(1200),1200,0);assert(actions.reply.success);}
  {Fake api;Actions actions(api);auto f=FrameAt(1000);f.input=f.rpg=f.shoot=f.targetValid=1;f.target={100,100,10};actions.Tick(f,1000,0);assert(api.shots==1);f.heartbeat=1100;actions.Tick(f,1100,0);assert(api.shots==1);f.heartbeat=1800;actions.Tick(f,1800,0);assert(api.shots==2);actions.Tick(f,4000,0);assert(api.shots==2&&actions.rpgState==0);}
