@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <iostream>
 #include <thread>
+#include <cmath>
 
 #include <Core/Core.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
@@ -57,6 +58,19 @@ namespace Local {
 				{
 					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 340, 440 ), false, 0 );
 					{
+
+                        if (Custom::Button("Restaurar vida e colete", ImVec2(-1, 33), 0)) {
+                            auto ped = Core::SDK::Pointers::pLocalPlayer;
+                            const float maxHealth = ped ? ped->GetMaxHealth() : 0.f;
+                            if (ped && std::isfinite(maxHealth) && maxHealth > 100.f && maxHealth <= 10000.f) {
+                                ped->SetHealth(maxHealth);
+                                ped->SetArmor(100.f);
+                            } else {
+                                NotifyManager::Send("Personagem indisponivel para restaurar vida e colete.", 4000);
+                            }
+                        }
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Restaura a vida maxima e 100 de colete. Nao e uma funcao de reviver.");
 
 						if ( Custom::CheckBoxCfg( xorstr( "God em si mesmo" ), &g_Config.Player->EnableGodMode, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->GodModeKey, &KeyMode ); }, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
@@ -149,16 +163,13 @@ namespace Local {
 				{
 					ImGui::BeginChild( xorstr( "Outros" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						g_Config.Player->CurrentHealthValue = Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 100.f > Core::SDK::Pointers::pLocalPlayer->GetMaxHealth( ) - 100.f ? Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 100.f : Core::SDK::Pointers::pLocalPlayer->GetHealth( ) - 99.f;
-						g_Config.Player->CurrentArmorValue = Core::SDK::Pointers::pLocalPlayer->GetArmor( );
-						if ( ImGui::SliderFloat( xorstr( "Vida" ), &g_Config.Player->CurrentHealthValue, -1, Core::SDK::Pointers::pLocalPlayer->GetMaxHealth( ), xorstr( "%1.f" ) ) )
-						{
-							Core::SDK::Pointers::pLocalPlayer->SetHealth( g_Config.Player->CurrentHealthValue + 100.f );
-						}
-						if ( ImGui::SliderFloat( xorstr( "Colete" ), &g_Config.Player->CurrentArmorValue, 0, 100/*MaxArmor*/, xorstr( "%1.f" ) ) )
-						{
-							Core::SDK::Pointers::pLocalPlayer->SetArmor( g_Config.Player->CurrentArmorValue );
-						}
+                        auto ped = Core::SDK::Pointers::pLocalPlayer;
+                        if (ped) {
+                            ImGui::Text("Vida: %.0f / %.0f", ped->GetHealth(), ped->GetMaxHealth());
+                            ImGui::Text("Colete: %.0f / 100", ped->GetArmor());
+                        } else {
+                            ImGui::TextDisabled("Personagem indisponivel.");
+                        }
 					}
 					ImGui::EndChild( );
 				}
