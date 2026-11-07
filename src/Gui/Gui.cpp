@@ -20,6 +20,7 @@
 #include <Gui/AdminList.hpp>
 #include <Core/Features/NoclipVisibility.hpp>
 #include <Core/Features/SelfGodMode.hpp>
+#include <Core/Features/VehicleManipulation.hpp>
 #include <Core/Features/ExternalCameraOptions.hpp>
 
 #include <Security/Api/api.hpp>
@@ -52,6 +53,7 @@ void Gui::Rendering( )
     }
     Core::Features::CarreraAdditions::TickCollision();
     ClientState::Tick();
+    Core::Features::VehicleManipulation::Tick();
     Core::Features::NoclipVisibility::Tick();
     Core::Features::SelfGodMode::Tick();
     AdminList::Draw();
@@ -307,6 +309,7 @@ void Gui::Rendering( )
 				Core::Features::NoclipVisibility::Tick(true);
                 Core::Features::SelfGodMode::Tick(true);
                 Core::Features::ExternalCameraOptions::Tick(true);
+                Core::Features::VehicleManipulation::Tick(true);
                 ExitProcess( 0 );
 			}
 

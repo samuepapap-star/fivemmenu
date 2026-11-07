@@ -1,5 +1,6 @@
 #pragma once
 #include <Core/Features/CarreraAdditions.hpp>
+#include <Core/Features/VehicleManipulation.hpp>
 #include <Includes/includes.hpp>
 #include <windows.h>
 #include <iostream>
@@ -198,13 +199,18 @@ namespace World {
 			case 1: //Vehicles
 			{
 
-				static int SeletedIndex = -1;
+				std::vector<Core::SDK::Game::VehicleStructure> vehicleSnapshot;
+                {
+                    std::lock_guard<std::mutex> lock(Core::Threads::g_VehicleList.vehicleListMutex);
+                    vehicleSnapshot = Core::SDK::Game::VehicleList;
+                }
+                static int SeletedIndex = -1;
                 static CVehicle* selectedVehicle=nullptr;
                 SeletedIndex=-1;
                 {
                     std::lock_guard<std::mutex> guard(Core::Threads::g_VehicleList.vehicleListMutex);
-                    for(size_t index=0;index<Core::SDK::Game::VehicleList.size();++index)
-                        if(Core::SDK::Game::VehicleList[index].Pointer==selectedVehicle) {
+                    for(size_t index=0;index<vehicleSnapshot.size();++index)
+                        if(vehicleSnapshot[index].Pointer==selectedVehicle) {
                             SeletedIndex=static_cast<int>(index);break;
                         }
                 }
@@ -221,14 +227,14 @@ namespace World {
 						{
 							std::lock_guard<std::mutex> lock( Core::Threads::g_VehicleList.vehicleListMutex ); // Protege a lista durante a renderização
 
-							for ( int i = 0; i < Core::SDK::Game::VehicleList.size( ); i++ )
+							for ( int i = 0; i < vehicleSnapshot.size( ); i++ )
 							{
 								IsSelected = SeletedIndex == i;
-								std::string Name = Core::SDK::Game::VehicleList[ i ].Name + xorstr( " (" ) + std::to_string( ( int ) Core::SDK::Game::VehicleList[ i ].Dist ) + xorstr( "m)" );
+								std::string Name = vehicleSnapshot[ i ].Name + xorstr( " (" ) + std::to_string( ( int ) vehicleSnapshot[ i ].Dist ) + xorstr( "m)" );
 								ImGui::PushID(i);
                                 if(ImGui::ListSelectable(Name.c_str(),&IsSelected)) {
                                     SeletedIndex=i;
-                                    selectedVehicle=Core::SDK::Game::VehicleList[i].Pointer;
+                                    selectedVehicle=vehicleSnapshot[i].Pointer;
                                 }
                                 ImGui::PopID();
 							}
@@ -244,7 +250,7 @@ namespace World {
 				{
 					ImGui::BeginChild( xorstr( "Informações" ), ImVec2( 230, 140 ), false, 0 );
 					{
-						if (SeletedIndex < 0 || SeletedIndex >= static_cast<int>(Core::SDK::Game::VehicleList.size())) {
+						if (SeletedIndex < 0 || SeletedIndex >= static_cast<int>(vehicleSnapshot.size())) {
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecione um veículo" ) );
 						}
 						else
@@ -252,13 +258,13 @@ namespace World {
 							ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 4 ) );
 
 							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Nome:" ) ); ImGui::SameLine( );
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), Core::SDK::Game::VehicleList[ SeletedIndex ].Name.c_str( ) );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), vehicleSnapshot[ SeletedIndex ].Name.c_str( ) );
 							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Distância:" ) ); ImGui::SameLine( );
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), ( std::to_string( ( int ) Core::SDK::Game::VehicleList[ SeletedIndex ].Dist ) + xorstr( "m" ) ).c_str( ) );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), ( std::to_string( ( int ) vehicleSnapshot[ SeletedIndex ].Dist ) + xorstr( "m" ) ).c_str( ) );
 							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Motorista:" ) ); ImGui::SameLine( );
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), Core::SDK::Game::VehicleList[ SeletedIndex ].Driver == 0 ? xorstr( "Desconhecido" ) : Core::SDK::Game::VehicleList[ SeletedIndex ].Driver->GetPedType( ) != 2 ? xorstr( "NPC" ) : Core::SDK::Game::GetPedName( Core::SDK::Game::VehicleList[ SeletedIndex ].Driver ).c_str( ) );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), vehicleSnapshot[ SeletedIndex ].Driver == 0 ? xorstr( "Desconhecido" ) : vehicleSnapshot[ SeletedIndex ].Driver->GetPedType( ) != 2 ? xorstr( "NPC" ) : Core::SDK::Game::GetPedName( vehicleSnapshot[ SeletedIndex ].Driver ).c_str( ) );
 							ImGui::TextColored( ImColor( g_Col.FeaturesText ), xorstr( "Portas trancadas:" ) ); ImGui::SameLine( );
-							ImGui::TextColored( ImColor( g_Col.SecundaryText ), Core::SDK::Game::VehicleList[ SeletedIndex ].IsLocked ? xorstr( "Sim" ) : xorstr( "Não" ) );
+							ImGui::TextColored( ImColor( g_Col.SecundaryText ), vehicleSnapshot[ SeletedIndex ].IsLocked ? xorstr( "Sim" ) : xorstr( "Não" ) );
 
 							ImGui::PopStyleVar( );
 						}
@@ -266,15 +272,15 @@ namespace World {
 					ImGui::EndChild( );
 					ImGui::BeginChild( xorstr( "Ações" ), ImVec2( 230, 250 ), false, 0 );
 					{
-						if (SeletedIndex < 0 || SeletedIndex >= static_cast<int>(Core::SDK::Game::VehicleList.size())) {
+						if (SeletedIndex < 0 || SeletedIndex >= static_cast<int>(vehicleSnapshot.size())) {
 							ImGui::TextColored( ImColor( g_Col.SecundaryText ), xorstr( "Selecione um veículo" ) );
 						}
 						else
 						{
-							auto Veh = Core::SDK::Game::VehicleList[ SeletedIndex ].Pointer;
+							auto Veh = vehicleSnapshot[ SeletedIndex ].Pointer;
 							ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 
-							if ( Core::SDK::Game::VehicleList[ SeletedIndex ].Pointer->IsLocked( ) )
+							if ( vehicleSnapshot[ SeletedIndex ].Pointer->IsLocked( ) )
 							{
 								if (actionMode == 0 && Custom::Button( xorstr( "Destrancar" ), ImVec2( -1, 30 ), 0 ) ) {
 									Veh->DoorState( true );
@@ -292,6 +298,17 @@ namespace World {
                                     NotifyManager::Send("Nao foi possivel teleportar para o carro selecionado.",4000);
                                 }
 							}
+
+                            if (actionMode == 0 && Custom::Button("Puxar carro", ImVec2(-1,30), 0))
+                                NotifyManager::Send(Core::Features::VehicleManipulation::Pull(reinterpret_cast<uintptr_t>(Veh)),4000);
+                            if (actionMode == 0 && Custom::Button("Agarrar carro", ImVec2(-1,30), 0))
+                                Core::Features::VehicleManipulation::Grab(reinterpret_cast<uintptr_t>(Veh));
+                            if (actionMode == 0 && Core::Features::VehicleManipulation::held) {
+                                if (Custom::Button("Arremessar", ImVec2(-1,30), 0))
+                                    Core::Features::VehicleManipulation::Throw();
+                                if (Custom::Button("Soltar", ImVec2(-1,30), 0))
+                                    Core::Features::VehicleManipulation::Release();
+                            }
 
 
 							ImGui::PopStyleVar( );

@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include <Core/Core.hpp>
+#include <Core/Features/VehicleManipulation.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Core/Features/Exploits/HandlingEditor.hpp>
@@ -264,6 +265,18 @@ namespace Local {
 					ImGui::BeginChild( xorstr( "Ajustes" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
+
+                        Custom::CheckBox("Agarrar e arremessar carros", &Core::Features::VehicleManipulation::enabled);
+                        if (Core::Features::VehicleManipulation::enabled) {
+                            ImGui::TextWrapped("Y: agarra o carro na mira / arremessa. X: solta. Setas: altura.");
+                            ImGui::SliderFloat("Altura do carro", &Core::Features::VehicleManipulation::height, 3.f, 30.f, "%.1f m");
+                            ImGui::SliderFloat("Forca do arremesso", &Core::Features::VehicleManipulation::throwSpeed, 10.f, 100.f, "%.0f");
+                            ImGui::TextWrapped("%s", Core::Features::VehicleManipulation::status);
+                        }
+                        if (Custom::Button("Puxar 5 carros proximos", ImVec2(-1,33), 0)) {
+                            Core::Features::VehicleManipulation::PullFive();
+                            NotifyManager::Send(Core::Features::VehicleManipulation::status,4000);
+                        }
 
 						if ( Custom::Button( xorstr( "Reparar veículo" ), ImVec2( -1, 33 ), 0 ) )
 						{
