@@ -277,7 +277,7 @@ public:
 
 		uintptr_t Addr = reinterpret_cast< uintptr_t >( this ) + 0x188;
 		DWORD flag = Mem.Read<DWORD>( Addr );
-		Mem.Write<DWORD>( Addr, Toggle == true ? flag |= ( 1 << 9 ) : flag &= ~( 1 << 9 ) );
+		Mem.Write<DWORD>( Addr, Toggle == true ? flag |= ( 1 << 8 ) : flag &= ~( 1 << 8 ) );
 	}
 
 	void SetInfStamina( bool Toggle ) {

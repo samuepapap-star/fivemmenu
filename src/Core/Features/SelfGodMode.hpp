@@ -3,7 +3,7 @@
 #include <chrono>
 
 namespace Core { namespace Features { namespace SelfGodMode {
-constexpr DWORD protectionBit=DWORD(1)<<9; // Same player flag as CPed::SetGodMode.
+constexpr DWORD protectionBit=DWORD(1)<<8; // Cfx Entity.IsInvincible at entity + 392 (0x188).
 inline uintptr_t owner=0;
 inline DWORD ownerProcess=0;
 inline bool originalProtection=false;
@@ -20,8 +20,10 @@ inline bool Protection(uintptr_t ped,bool enabled) {
     const DWORD updated=enabled?(flags|protectionBit):(flags&~protectionBit);
     if(updated==flags)return true;
     SIZE_T transferred=0;
-    return WriteProcessMemory(Mem.ProcHandle,reinterpret_cast<LPVOID>(ped+0x188),&updated,sizeof(updated),&transferred) &&
-        transferred==sizeof(updated);
+    if(!WriteProcessMemory(Mem.ProcHandle,reinterpret_cast<LPVOID>(ped+0x188),&updated,sizeof(updated),&transferred) ||
+        transferred!=sizeof(updated))return false;
+    DWORD verified=0;
+    return Read(ped+0x188,verified) && ((verified&protectionBit)!=0)==enabled;
 }
 inline void Tick(bool forceRestore=false) {
     uintptr_t world=0,ped=0;
@@ -41,6 +43,9 @@ inline void Tick(bool forceRestore=false) {
         owner=0;ownerProcess=0;status="Desativado";return;
     }
     if(!ped || !process){status="Aguardando personagem";return;}
+    float health=0.f;
+    if(!Read(ped+0x280,health)){status="Nao foi possivel ler a vida do personagem";return;}
+    if(health<=100.f){status="Personagem morto: God nao e uma funcao de reviver";return;}
     using Clock=std::chrono::steady_clock;
     static Clock::time_point next{};
     if(owner && Clock::now()<next)return;
@@ -50,6 +55,6 @@ inline void Tick(bool forceRestore=false) {
         if(!Read(ped+0x188,flags)){status="Nao foi possivel ler a protecao";return;}
         owner=ped;ownerProcess=process;originalProtection=(flags&protectionBit)!=0;
     }
-    status=Protection(ped,true)?"Protecao local aplicada":"Falha ao aplicar a protecao";
+    status=Protection(ped,true)?"Indicador local de invencibilidade confirmado":"Indicador de invencibilidade nao confirmado";
 }
 }}}
