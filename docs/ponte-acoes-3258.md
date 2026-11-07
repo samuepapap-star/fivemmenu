@@ -39,3 +39,5 @@ A camera livre em Personagem/Extras agora usa uma camera propria, por natives, n
 O protocolo IPC passou para a versao 3. Substitua o EXE e a DLL juntos e reinicie completamente o FiveM. As novas alteracoes ainda precisam de confirmacao em jogo.
 
 Os controles de regeneracao de vida/colete, zerar vida e aplicar vida maxima foram movidos de Extras para Geral, logo abaixo de Restaurar vida e colete, em uma coluna.
+
+Observar jogador tambem usa a camera nativa da ponte: o alvo e localizado pelo ID do servidor, a camera acompanha o ped carregado e a observacao termina ao sair do alcance de carregamento, perder o heartbeat ou selecionar Parar observacao. Copiar roupa foi removido da interface; Clonar aparencia permanece. Ir ate o jogador e Puxar jogador ficam em Teleportar/Jogadores. O usuario confirmou a clonagem e o ajuste de distancia da camera em jogo antes desta atualizacao.

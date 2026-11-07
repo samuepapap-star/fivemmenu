@@ -78,14 +78,14 @@ void Tick(){
   if(!actions.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
    Command command=shared->command;MemoryBarrier();
    if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
-   else if(command.action==Action::StartCamera||command.action==Action::StopCamera)Publish(cameraActions.Submit(command,frame,now));
+   else if(command.action==Action::StartCamera||command.action==Action::StopCamera||command.action==Action::ObservePlayer)Publish(cameraActions.Submit(command,frame,now));
    else{
     if(command.action==Action::Model||command.action==Action::Restore||command.action==Action::CloneAppearance||command.action==Action::StopAll)cameraActions.Stop();
     actions.Submit(command,now);
    }
   }
   actions.Tick(frame,now,static_cast<std::uint64_t>(InterlockedCompareExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),0,0)));
-  cameraActions.Tick(frame,now);Store(shared->cameraState,cameraActions.Active()?1:0);
+  cameraActions.Tick(frame,now);Store(shared->cameraState,cameraActions.State());
   Store(shared->rpgState,actions.rpgState);
   if(actions.hasReply){Publish(actions.reply);actions.hasReply=false;}
  }catch(const std::exception& error){

@@ -43,6 +43,11 @@ inline void ToggleCamera(){
  if(cameraRequested||MenuBridge::Connection().CameraState()){cameraRequested=false;c.action=MenuBridge::Action::StopCamera;Submit(c);}
  else{if(g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){localStatus="Desative NoClip e sem colisao antes de iniciar a camera livre";return;}Core::Features::ExtraCamera::Stop();silentRpg=false;c.action=MenuBridge::Action::StartCamera;if(Submit(c)){cameraRequested=true;cameraRequestedAt=GetTickCount64();}}
 }
+inline void Observe(int serverId){
+ if(g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){localStatus="Desative NoClip e sem colisao antes de observar";return;}
+ MenuBridge::Command c{};c.action=MenuBridge::Action::ObservePlayer;c.targetServerId=static_cast<std::uint64_t>(serverId);
+ Core::Features::ExtraCamera::Stop();silentRpg=false;if(Submit(c)){cameraRequested=true;cameraRequestedAt=GetTickCount64();}
+}
 inline void Tick(){
  MenuBridge::Frame f{};f.heartbeat=GetTickCount64();
  if(cameraRequested&&((GetForegroundWindow()==g_Variables.g_hGameWindow&&(GetAsyncKeyState(VK_ESCAPE)&0x8000))||(!MenuBridge::Connection().Busy()&&MenuBridge::Connection().CameraState()==0&&f.heartbeat-cameraRequestedAt>1000)))cameraRequested=false;

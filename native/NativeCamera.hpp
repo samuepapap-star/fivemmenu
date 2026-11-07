@@ -17,6 +17,8 @@ constexpr std::uint64_t SetFocusPosAndVel=0xBB7454BAFF08FE25ULL;
 constexpr std::uint64_t ClearFocus=0x31B73D1EA9F01DA2ULL;
 constexpr std::uint64_t SetCamRot=0x85973643155D0B07ULL;
 constexpr std::uint64_t PlayerPed=0xD80958FC74E988A6;
+constexpr std::uint64_t AttachCamToEntity=0xFEDB7D269E8C60E3,PointCamAtEntity=0x5640BFF86B16E8DC,SetFocusEntity=0x198F77705FA0931D;
+constexpr std::uint64_t PlayerActive=0xB8DFD30D6973E135,PlayerPedByIndex=0x43A66C31C68491C0,EntityExists=0x7239B21A38F536BA;
 }
 struct CameraPose {Vec position{};float yaw=0,pitch=0;};
 inline void MoveCamera(CameraPose& pose,const Frame& f,float mouseX,float mouseY,float dt){
@@ -37,13 +39,21 @@ inline void MoveCamera(CameraPose& pose,const Frame& f,float mouseX,float mouseY
 }
 class NativeCamera {
  NativeApi& api;int handle=0,ped=0;CameraPose pose{};std::uint64_t started=0,last=0;
+ int observedPed=0;std::uint64_t observedId=0;
  std::uint64_t Call(std::uint64_t hash,std::initializer_list<std::uint64_t> values={}){return api.Call(hash,std::vector<std::uint64_t>(values));}
  void Focus(){Call(CameraN::SetFocusPosAndVel,{Float(pose.position.x),Float(pose.position.y),Float(pose.position.z),Float(0),Float(0),Float(0)});}
+ int FindPlayer(std::uint64_t serverId){
+  int index=static_cast<int>(Call(Hash("GET_PLAYER_FROM_SERVER_ID"),{serverId}));
+  if(index<0||index>255||!Call(CameraN::PlayerActive,{static_cast<std::uint64_t>(index)}))return 0;
+  int target=static_cast<int>(Call(CameraN::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
+  return target>0&&Call(CameraN::EntityExists,{static_cast<std::uint64_t>(target)})?target:0;
+ }
 public:
  explicit NativeCamera(NativeApi& native):api(native){}
  bool Active()const{return handle>0;}
+ int State()const{return Active()?(observedPed?2:1):0;}
  const CameraPose& Pose()const{return pose;}
- void Reset(){handle=0;ped=0;started=last=0;}
+ void Reset(){handle=0;ped=0;started=last=0;observedPed=0;observedId=0;}
  void Stop(){
   int previous=handle;Reset();if(!previous)return;
   // Always restore the gameplay camera before destroying the camera we own.
@@ -55,8 +65,10 @@ public:
   Reply reply{};reply.id=c.id;
   if(!Valid(c)){Copy(reply.message,sizeof(reply.message),"Comando de camera invalido");return reply;}
   if(c.action==Action::StopCamera){Stop();reply.success=1;Copy(reply.message,sizeof(reply.message),"Camera livre desativada");return reply;}
-  if(c.action!=Action::StartCamera||!Fresh(f,now)){Copy(reply.message,sizeof(reply.message),"Personagem indisponivel para iniciar camera");return reply;}
-  if(Active()){reply.success=1;Copy(reply.message,sizeof(reply.message),"Camera livre ja esta ativa");return reply;}
+  if((c.action!=Action::StartCamera&&c.action!=Action::ObservePlayer)||!Fresh(f,now)){Copy(reply.message,sizeof(reply.message),"Personagem indisponivel para iniciar camera");return reply;}
+  int target=0;
+  if(c.action==Action::ObservePlayer){target=FindPlayer(c.targetServerId);if(!target){Copy(reply.message,sizeof(reply.message),"Jogador selecionado nao esta carregado nesta sessao");return reply;}}
+  if(Active())Stop();
   ped=static_cast<int>(Call(CameraN::PlayerPed));
   if(ped<=0){Copy(reply.message,sizeof(reply.message),"Personagem indisponivel para iniciar camera");return reply;}
   pose.position={f.position.x+f.forward.x*0.3f,f.position.y+f.forward.y*0.3f,f.position.z+1.6f};
@@ -64,14 +76,17 @@ public:
   const char* name="DEFAULT_SCRIPTED_CAMERA";
   handle=static_cast<int>(Call(CameraN::CreateCamWithParams,{reinterpret_cast<std::uint64_t>(name),Float(pose.position.x),Float(pose.position.y),Float(pose.position.z),Float(0),Float(0),Float(pose.yaw),Float(60),1,2}));
   if(!Active()||!Call(CameraN::DoesCamExist,{static_cast<std::uint64_t>(handle)})){Reset();Copy(reply.message,sizeof(reply.message),"O jogo nao criou a camera livre");return reply;}
-  Call(CameraN::RenderScriptCams,{1,0,0,1,0,0});Focus();started=last=now;reply.success=1;
-  Copy(reply.message,sizeof(reply.message),"Camera livre: feche o menu; WASD, mouse, Espaco/Ctrl, Shift. Esc encerra.");return reply;
+  observedPed=target;observedId=target?c.targetServerId:0;
+  if(target){Call(CameraN::AttachCamToEntity,{static_cast<std::uint64_t>(handle),static_cast<std::uint64_t>(target),Float(0),Float(-6),Float(2),1});Call(CameraN::PointCamAtEntity,{static_cast<std::uint64_t>(handle),static_cast<std::uint64_t>(target),Float(0),Float(0),Float(1),1});Call(CameraN::SetFocusEntity,{static_cast<std::uint64_t>(target)});}
+  Call(CameraN::RenderScriptCams,{1,0,0,1,0,0});if(!target)Focus();started=last=now;reply.success=1;
+  Copy(reply.message,sizeof(reply.message),target?"Observando jogador #"+std::to_string(c.targetServerId)+"; Parar observacao ou Esc encerra.":"Camera livre: feche o menu; WASD, mouse, Espaco/Ctrl, Shift. Esc encerra.");return reply;
  }
  void Tick(const Frame& f,std::uint64_t now){
   if(!Active())return;
   if(!Fresh(f,now)||(!f.camera&&now-started>250)||static_cast<int>(Call(CameraN::PlayerPed))!=ped||!Call(CameraN::DoesCamExist,{static_cast<std::uint64_t>(handle)})){Stop();return;}
   float dt=now>=last?static_cast<float>(now-last)/1000.f:0.f;last=now;
   Call(CameraN::DisableAllControlActions,{0});
+  if(observedPed){if(FindPlayer(observedId)!=observedPed){Stop();return;}Call(CameraN::SetFocusEntity,{static_cast<std::uint64_t>(observedPed)});return;}
   if(!f.input)return;
   const float mouseX=AsFloat(Call(CameraN::GetDisabledControlNormal,{0,1}));
   const float mouseY=AsFloat(Call(CameraN::GetDisabledControlNormal,{0,2}));
