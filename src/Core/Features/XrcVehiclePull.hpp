@@ -46,7 +46,7 @@ bool Apply(uintptr_t vehicle, uintptr_t ped, Vec target, Reader read, Writer wri
     }
     Vec visual{}, navigation{};
     if (!read(vehicle+0x90,visual) || !read(nav+0x50,navigation)) return false;
-    const auto near = [&](Vec v) {const auto d=v-target;return sane(v) && d.x*d.x+d.y*d.y+d.z*d.z<=4.f;};
-    return near(visual) && near(navigation);
+    const auto isNearDestination = [&](Vec v) {const auto d=v-target;return sane(v) && d.x*d.x+d.y*d.y+d.z*d.z<=4.f;};
+    return isNearDestination(visual) && isNearDestination(navigation);
 }
 }
