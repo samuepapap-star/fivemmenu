@@ -66,6 +66,11 @@ namespace Combat {
                         ImGui::EndDisabled();
                         if (!Core::Features::ExternalCameraOptions::RangeBuildSupported())
                             ImGui::TextWrapped("Alcance indisponível nesta build: campo não identificado pela source.");
+                        Custom::CheckBox("Antecipar movimento do alvo", &g_Config.Aimbot->Prediction);
+                        if (g_Config.Aimbot->Prediction)
+                            ImGui::SliderFloat("Antecipação do aimbot", &ExtraSettings::AimLeadSeconds, 0.f, 0.3f, "%.2f s");
+                        if (g_Config.Aimbot->AimMode == 1)
+                            Custom::CheckBox("Humanizar movimento da câmera", &ExtraSettings::AimHumanization);
                         Custom::CheckBox("Modo Legit", &g_Config.Aimbot->LegitMode, true, "Aumenta a suavização da mira.");
                         Custom::CheckBox("Suavização X/Y separada", &g_Config.Aimbot->SeparateSmooth);
 					}

@@ -4,7 +4,7 @@
 namespace ExtraSettings {
 #define EXTRA_BOOLS(X) \
  X(FreezeAmmo) X(WeaponIcon) X(SecondMonitor) X(MaxTractionOn) X(SuspensionOn) X(LiftOn) X(GravityOn) X(Drift) X(RegenHealth) X(RegenArmor) X(SuperJump) X(BeastJump) X(ExplosiveFist) X(FireAmmo) X(ExplosiveAmmo) X(BlockAim) \
- X(SilentPrediction) X(SilentDynamicFov) X(SilentForceDriver) X(Spin) X(WeaponScaleOn) X(FastReload) X(RapidFire) X(HornBoost) X(RocketBoost) X(JumpCar) X(PlaningCar) \
+ X(AimHumanization) X(SilentPrediction) X(SilentDynamicFov) X(SilentForceDriver) X(Spin) X(WeaponScaleOn) X(FastReload) X(RapidFire) X(HornBoost) X(RocketBoost) X(JumpCar) X(PlaningCar) \
  X(Radar) X(RadarVehicles) X(RadarNames) X(RadarRotate) X(RadarNPCs) X(VehicleMarker) X(IgnoreOccupied) \
  X(ChinaHat) X(InvisibleWarning) X(Particles) X(Rainbow) X(HideTaskbar) X(ESPHotkeyOn)
 #define DECL_BOOL(n) inline bool n=false;
@@ -12,6 +12,7 @@ EXTRA_BOOLS(DECL_BOOL)
 #undef DECL_BOOL
 inline int Background=0;
 inline int SilentHitbox=0,TriggerHitbox=0,SilentMinFov=10;
+inline float AimLeadSeconds=0.08f;
 inline float PredictionSeconds=0.08f;
 inline int SavePeekKey=0, ReturnPeekKey=0, EspKey=0, HornKey=0x45, Theme=0, Font=0, CrossType=0, ParticleCount=40;
 inline float MaxTraction=2.5f,Suspension=2.f,Lift=0.f,Gravity=9.8f;
@@ -20,7 +21,7 @@ inline float RadarSize=200, RadarRange=150, TextSize=13, SkeletonWidth=1.5f, Box
 inline float CrossSize=5, CrossWidth=1, RainbowSpeed=0.15f, BorderSize=1, ParticleSpeed=0.25f, ParticleSize=2;
 inline ImVec4 CrossColor{1,1,1,1};
 #define EXTRA_INTS(X) X(Background,0,8) X(SilentHitbox,0,2) X(TriggerHitbox,0,2) X(SilentMinFov,1,180) X(SavePeekKey,0,255) X(ReturnPeekKey,0,255) X(EspKey,0,255) X(HornKey,0,255) X(Theme,0,2) X(Font,0,2) X(CrossType,0,3) X(ParticleCount,0,150)
-#define EXTRA_FLOATS(X) X(MaxTraction,0.1f,10.f) X(Suspension,0.1f,10.f) X(Lift,-0.5f,1.f) X(Gravity,0.1f,20.f) X(PredictionSeconds,0.f,0.3f) X(SpinSpeed,10.f,360.f) X(WeaponScale,0.1f,5.f) X(ReloadSpeed,1.f,10.f) X(FireRate,1.f,10.f) X(BoostPower,1.f,100.f) X(RadarSize,120.f,400.f) X(RadarRange,20.f,1000.f) X(TextSize,8.f,24.f) X(SkeletonWidth,0.5f,5.f) X(BoxWidth,0.5f,4.f) X(HatSize,0.1f,1.f) X(CrossSize,1.f,30.f) X(CrossWidth,0.5f,5.f) X(RainbowSpeed,0.01f,1.f) X(BorderSize,0.f,4.f) X(ParticleSpeed,0.05f,2.f) X(ParticleSize,1.f,5.f)
+#define EXTRA_FLOATS(X) X(AimLeadSeconds,0.f,0.3f) X(MaxTraction,0.1f,10.f) X(Suspension,0.1f,10.f) X(Lift,-0.5f,1.f) X(Gravity,0.1f,20.f) X(PredictionSeconds,0.f,0.3f) X(SpinSpeed,10.f,360.f) X(WeaponScale,0.1f,5.f) X(ReloadSpeed,1.f,10.f) X(FireRate,1.f,10.f) X(BoostPower,1.f,100.f) X(RadarSize,120.f,400.f) X(RadarRange,20.f,1000.f) X(TextSize,8.f,24.f) X(SkeletonWidth,0.5f,5.f) X(BoxWidth,0.5f,4.f) X(HatSize,0.1f,1.f) X(CrossSize,1.f,30.f) X(CrossWidth,0.5f,5.f) X(RainbowSpeed,0.01f,1.f) X(BorderSize,0.f,4.f) X(ParticleSpeed,0.05f,2.f) X(ParticleSize,1.f,5.f)
 inline nlohmann::json Save() {
  nlohmann::json j=nlohmann::json::object();
 #define SAVE_BOOL(n) j[#n]=n;
