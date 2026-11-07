@@ -1,0 +1,54 @@
+#pragma once
+#include <Core/ExtensionSettings.hpp>
+#include <Core/SDK/SDK.hpp>
+#include <cmath>
+#include "VisibilityEvidence.hpp"
+namespace AdminList {
+inline std::vector<std::string> entries;
+template<class T> inline bool Read(uintptr_t address,T& value) {
+    SIZE_T bytes=0;
+    return address && Mem.ProcHandle && ReadProcessMemory(Mem.ProcHandle,
+        reinterpret_cast<LPCVOID>(address),&value,sizeof(value),&bytes) && bytes==sizeof(value);
+}
+inline void Draw() {
+    const auto cfg=g_Config.ESP;
+    entries.clear();
+    static VisibilityEvidence::Filter filter;
+    static DWORD processId=0;
+    if(processId!=Mem.ProcId){filter.Clear();processId=Mem.ProcId;}
+    if (!g_MenuInfo.IsLogged || (!cfg->Enabled && !ExtraSettings::InvisibleWarning) ||
+        (!cfg->AdminList && !cfg->AdminHighlight && !ExtraSettings::InvisibleWarning)) {
+        filter.Clear();
+        return;
+    }
+    const auto now=GetTickCount64();
+    filter.Prune(now);
+    auto& rows=entries;
+    auto draw=ImGui::GetBackgroundDrawList();
+    for (const auto& entity:Core::SDK::Game::EntityList) {
+        if (!entity.Ped || entity.Ped==Core::SDK::Pointers::pLocalPlayer || entity.PedType!=2 ||
+            entity.Health<=101.f || entity.Distance>cfg->MaxDistance || !std::isfinite(entity.Distance)) continue;
+        const auto pos=entity.Pos;
+        if (!std::isfinite(pos.x) || !std::isfinite(pos.y) || !std::isfinite(pos.z) ||
+            (pos.x==0 && pos.y==0 && pos.z==0)) continue;
+        BYTE visibility=0,alpha=255;
+        const uintptr_t ped=reinterpret_cast<uintptr_t>(entity.Ped);
+        if (!Read(ped+0x2C,visibility) || !Read(ped+0xAC,alpha)) continue;
+        if (!filter.Observe(ped,entity.Id,visibility,alpha,entity.Ped->InVehicle(),now)) continue;
+        // HyperX heuristic: visibility flags only. No administrator role information.
+        const std::string name=entity.NetworkInfo.UserName.empty()?"Desconhecido":entity.NetworkInfo.UserName;
+        rows.push_back(name+" | ID "+std::to_string(entity.Id)+" | "+std::to_string(int(entity.Distance))+" m");
+        if (cfg->AdminHighlight && cfg->Enabled) {
+            const auto screen=Core::SDK::Game::WorldToScreen(pos);
+            if (Core::SDK::Game::IsOnScreen(screen))
+                draw->AddText(ImGui::GetFont(),11.f,ImVec2(screen.x,screen.y),IM_COL32(255,255,255,255),"ADM");
+        }
+    }
+    // The list is rendered inside the menu; no background panel covers gameplay.
+}
+inline void RenderEntries() {
+    if(entries.empty())ImGui::TextWrapped("Nenhum indicador nos jogadores carregados.");
+    for(const auto& row:entries)ImGui::TextWrapped("%s",row.c_str());
+}
+}
+

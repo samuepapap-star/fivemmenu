@@ -1747,107 +1747,65 @@ struct combo_state {
 	float Down = 0.f;
 };
 
-bool ImGui::BeginCombo( const char * label, const char * preview_value, int val, ImGuiComboFlags flags, bool multi )
+bool ImGui::BeginCombo(const char* label, const char* preview_value, int val, ImGuiComboFlags flags, bool multi)
 {
-	ImGuiContext & g = *GImGui;
-	ImGuiWindow * window = GetCurrentWindow( );
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = GetCurrentWindow();
+    const ImGuiNextWindowDataFlags nextFlags = g.NextWindowData.Flags;
+    g.NextWindowData.ClearFlags();
+    if (window->SkipItems) return false;
 
-	ImGuiNextWindowDataFlags backup_next_window_data_flags = g.NextWindowData.Flags;
-	g.NextWindowData.ClearFlags( ); // We behave like Begin() and need to consume those values
-	if ( window->SkipItems )
-		return false;
+    const ImGuiID id = window->GetID(label);
+    const ImGuiID popupId = ImHashStr("##ComboPopup", 0, id);
+    const float width = GetWindowContentRegionMax().x - GetWindowContentRegionMin().x -
+        (window->ScrollbarY ? 5.f : 0.f);
+    const ImVec2 pos = window->DC.CursorPos;
+    const ImRect bounds(pos, pos + ImVec2(width, 51.f));
+    const ImRect frame(pos + ImVec2(0.f, 23.f), bounds.Max);
+    ItemSize(bounds, g.Style.FramePadding.y);
+    if (!ItemAdd(bounds, id, &frame)) return false;
 
-	const ImGuiStyle & style = g.Style;
-	const ImGuiID id = window->GetID( label );
-	IM_ASSERT( ( flags & ( ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_NoPreview ) ) != ( ImGuiComboFlags_NoArrowButton | ImGuiComboFlags_NoPreview ) ); // Can't use both flags together
+    bool hovered = false, held = false;
+    const bool pressed = ButtonBehavior(frame, id, &hovered, &held);
+    bool opened = IsPopupOpen(popupId, ImGuiPopupFlags_None);
+    if ((pressed || g.NavActivateId == id) && !opened) {
+        OpenPopupEx(popupId, ImGuiPopupFlags_None);
+        opened = true;
+    }
 
-	if ( val > 5 ) val = 5;
+    window->DrawList->AddText(g_Variables.m_FontNormal, g_Variables.m_FontNormal->FontSize,
+        bounds.Min - ImVec2(1.f, 4.f), GetColorU32(g_Col.SecundaryFeaturesText), label);
+    window->DrawList->AddRectFilled(frame.Min, frame.Max, GetColorU32(ImVec4(ImColor(18,18,20))), 4.f);
+    window->DrawList->AddRect(frame.Min, frame.Max, GetColorU32(ImVec4(ImColor(23,23,25))), 4.f);
+    ImRotateStart();
+    window->DrawList->AddText(g_Variables.m_Expand, g_Variables.m_Expand->FontSize,
+        bounds.Max - ImVec2(21.f,19.f), GetColorU32(g_Col.Base), "A");
+    ImRotateEnd(opened ? 1.57f : -1.57f);
+    PushFont(g_Variables.m_FontNormal);
+    PushStyleColor(ImGuiCol_Text, GetColorU32(g_Col.FeaturesText));
+    RenderTextClipped(frame.Min + ImVec2(8.f,-2.f), frame.Max - ImVec2(32.f,2.f),
+        preview_value, nullptr, nullptr, ImVec2(0.f,0.5f));
+    PopStyleColor();
+    PopFont();
+    if (!opened) return false;
 
-	const float width = GetWindowContentRegionMax( ).x - GetWindowContentRegionMin( ).x - ( window->ScrollbarY ? 5.f : 0.f );
-	const ImVec2 pos = window->DC.CursorPos;
-
-	const ImRect rect( pos, pos + ImVec2( width, 51 ) );
-	const ImRect clickable( pos + ImVec2( 0, 23 ), pos + ImVec2( width, 51 ) );
-
-	ItemSize( rect, style.FramePadding.y );
-	if ( !ItemAdd( rect, id, &clickable ) )
-		return false;
-
-	// Open on click
-	bool hovered, held;
-	bool pressed = ButtonBehavior( clickable, id, &hovered, &held );
-
-	static std::map<ImGuiID, combo_state> anim;
-	auto it_anim = anim.find( id );
-
-	if ( it_anim == anim.end( ) )
-	{
-		anim.insert( { id, combo_state( ) } );
-		it_anim = anim.find( id );
-	}
-
-	if ( hovered && g.IO.MouseClicked[ 0 ] || it_anim->second.combo_opened && g.IO.MouseClicked[ 0 ] && !it_anim->second.hovered )
-		it_anim->second.combo_opened = !it_anim->second.combo_opened;
-
-	it_anim->second.alpha = ImClamp( it_anim->second.alpha + ( 8.f * g.IO.DeltaTime * ( it_anim->second.combo_opened ? 1.f : -1.f ) ), 0.f, 1.f );
-	it_anim->second.expand_color = ImLerp( it_anim->second.expand_color, it_anim->second.combo_opened ? g_Col.Base : g_Col.Base, g.IO.DeltaTime * 10.f );
-	it_anim->second.expand_rotate = ImLerp( it_anim->second.expand_rotate, it_anim->second.combo_opened ? 1.f : -1.f, g.IO.DeltaTime * 10.f );
-
-	if ( !IsRectVisible( clickable.Min, clickable.Max + ImVec2( 0, 2 ) ) )
-	{
-		it_anim->second.combo_opened = false;
-		it_anim->second.alpha = 0.f;
-	}
-
-	//if ( strchr( label, '#' ) == NULL ) {
-	window->DrawList->AddText( g_Variables.m_FontNormal, g_Variables.m_FontNormal->FontSize, rect.Min - ImVec2( 1, 4 ), GetColorU32( g_Col.SecundaryFeaturesText ), label );
-	//}
-	window->DrawList->AddRectFilled( clickable.Min, clickable.Max, GetColorU32( ImVec4( ImColor( 18, 18, 20 ) ) ), 4.f );
-	window->DrawList->AddRect( clickable.Min, clickable.Max, GetColorU32( ImVec4( ImColor( 23, 23, 25 ) ) ), 4.f );
-
-	ImRotateStart( );
-	window->DrawList->AddText( g_Variables.m_Expand, g_Variables.m_Expand->FontSize, rect.Max - ImVec2( 21, 19 ), GetColorU32( it_anim->second.expand_color ), "A" );
-	ImRotateEnd( 1.57f * it_anim->second.expand_rotate );
-
-	PushFont( g_Variables.m_FontNormal );
-	PushStyleColor( ImGuiCol_Text, GetColorU32( g_Col.FeaturesText ) );
-	RenderTextClipped( clickable.Min - ImVec2( -8, 2 ), clickable.Max - ImVec2( 32, 2 ), preview_value, NULL, NULL, ImVec2( 0.f, 0.5f ) );
-	PopStyleColor( );
-	PopFont( );
-
-	window->DrawList->AddRectFilledMultiColor( ImVec2( clickable.Max.x - 45, clickable.Min.y + 6 ), clickable.Max - ImVec2( 32, 6 ), GetColorU32( ImVec4( ImColor( 18, 18, 20 ) ), 0.f ), GetColorU32( ImVec4( ImColor( 18, 18, 20 ) ) ), GetColorU32( ImVec4( ImColor( 18, 18, 20 ) ) ), GetColorU32( ImVec4( ImColor( 18, 18, 20 ) ), 0.f ) );
-
-	if ( !it_anim->second.combo_opened && it_anim->second.alpha < 0.1f )
-		return false;
-
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_WithoutScrollClamp;
-
-	PushStyleColor( ImGuiCol_WindowBg, GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ) ) );
-	PushStyleColor( ImGuiCol_Border, GetColorU32( ImVec4( ImColor( 18, 18, 20 ) ) ) );
-	PushStyleVar( ImGuiStyleVar_WindowRounding, 4.f );
-	PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.f );
-	//PushStyleVar( ImGuiStyleVar_Alpha, it_anim->second.alpha );
-
-	it_anim->second.Down = ImLerp( it_anim->second.Down, it_anim->second.combo_opened ? ( g.Style.WindowPadding.y * 2 ) + ( 22 * val ) + ( g.Style.ItemSpacing.y * ( val - 1 ) ) : 0.f, ImGui::GetIO( ).DeltaTime * 6 );
-
-	SetNextWindowPos( clickable.GetBL( ) + ImVec2( 0, 5 ) );
-	SetNextWindowSize( ImVec2( clickable.GetWidth( ), it_anim->second.Down ) );
-
-	Begin( label, NULL, window_flags );
-	{
-		it_anim->second.hovered = IsWindowHovered( );
-
-		if ( !multi )
-			if ( IsWindowHovered( ) && g.IO.MouseClicked[ 0 ] )
-				it_anim->second.combo_opened = false;
-	}
-
-	PopStyleColor( 2 );
-	PopStyleVar( 1 );
-
-
-
-	return true;
+    g.NextWindowData.Flags = nextFlags;
+    if (!(nextFlags & ImGuiNextWindowDataFlags_HasSizeConstraint)) {
+        const int visible = ImMax(1, ImMin(val, 8));
+        SetNextWindowSizeConstraints(ImVec2(frame.GetWidth(),0.f),
+            ImVec2(FLT_MAX, CalcMaxPopupHeightFromItemCount(visible)));
+    }
+    SetNextWindowPos(frame.GetBL() + ImVec2(0.f,5.f));
+    PushStyleColor(ImGuiCol_PopupBg, ImVec4(ImColor(16,16,18)));
+    PushStyleColor(ImGuiCol_Border, ImVec4(ImColor(18,18,20)));
+    PushStyleVar(ImGuiStyleVar_PopupRounding, 4.f);
+    PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.f);
+    const bool visible = BeginComboPopup(popupId, frame, flags);
+    PopStyleVar(2);
+    PopStyleColor(2);
+    if (visible)
+        PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, multi);
+    return visible;
 }
 
 bool ImGui::BeginComboPopup( ImGuiID popup_id, const ImRect & bb, ImGuiComboFlags flags )
@@ -1920,7 +1878,8 @@ void ImGui::EndCombo( )
 	window->DrawList->AddRectFilledMultiColor( window->Pos + ImVec2( 5, 0 ), window->Pos + ImVec2( window->Size.x - ( window->ScrollbarY ? 16 : 5 ), 5 ), GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ) ), GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ) ), GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ), 0.f ), GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ), 0.f ) );
 	window->DrawList->AddRectFilledMultiColor( window->Pos + ImVec2( 5, window->Size.y - 5 ), window->Pos + window->Size - ImVec2( ( window->ScrollbarY ? 16 : 5 ), 0 ), GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ), 0.f ), GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ), 0.f ), GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ) ), GetColorU32( ImVec4( ImColor( 16, 16, 18 ) ) ) );
 
-	End( );
+	PopItemFlag();
+    EndPopup();
 }
 
 // Call directly after the BeginCombo/EndCombo block. The preview is designed to only host non-interactive elements
@@ -8984,6 +8943,9 @@ bool ImGui::CustomSelectableEx( const char * label, bool active )
 	PopFont( );
 
 	IMGUI_TEST_ENGINE_ITEM_INFO( id, label, g.LastItemData.StatusFlags );
+    if (pressed && (window->Flags & ImGuiWindowFlags_Popup) &&
+        !(g.LastItemData.InFlags & ImGuiItemFlags_SelectableDontClosePopup))
+        CloseCurrentPopup();
 	return pressed;
 }
 

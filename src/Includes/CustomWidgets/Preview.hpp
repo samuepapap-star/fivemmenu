@@ -42,7 +42,9 @@ namespace Custom
 					}
 					else if ( Widget.Pos == 4 )
 					{
-						Widget.Pos = Widget.PossiblePos;
+						if (Widget.PossiblePos >= 0 && Widget.PossiblePos < 4)
+                            *ConfiguredPosition(i) = Widget.PossiblePos;
+                        Widget.Pos = ImClamp(*ConfiguredPosition(i), 0, 3);
 						Widget.PossiblePos = -1;
 					}
 
@@ -56,7 +58,7 @@ namespace Custom
 		void Draw( )
 		{
 			iBox_Height = 200;
-			iBox_Width = iBox_Height / 2.f;
+			iBox_Width = int(iBox_Height / (1.80f + ImClamp(g_Config.ESP->BoxSize, 0, 30) / 100.f));
 
 			iBox_X = ImGui::GetWindowPos( ).x + ImGui::GetWindowSize( ).x / 2 - iBox_Width / 2;
 			iBox_Y = ImGui::GetWindowPos( ).y + ImGui::GetWindowSize( ).y / 2 - iBox_Height / 2;
@@ -77,14 +79,27 @@ namespace Custom
 
 			if ( BoxFillAnimation != 0 )
 			{
-				ImGui::GetWindowDrawList( )->AddRectFilled( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( ( int ) g_Config.ESP->FilledBoxCol.Value.x * 255, ( int ) g_Config.ESP->FilledBoxCol.Value.y * 255, ( int ) g_Config.ESP->FilledBoxCol.Value.z * 255, ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxFillAnimation ) ), 0, ImDrawFlags_None );
+				ImGui::GetWindowDrawList( )->AddRectFilled( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( ( int )(g_Config.ESP->FilledBoxCol.Value.x * 255), ( int )(g_Config.ESP->FilledBoxCol.Value.y * 255), ( int )(g_Config.ESP->FilledBoxCol.Value.z * 255), ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxFillAnimation ) ), 0, ImDrawFlags_None );
 			}
 
 			if ( BoxAnimation != 0 )
 			{
 				ImGui::GetWindowDrawList( )->AddRect( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( 0, 0, 0, ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxAnimation ) ), 0, ImDrawFlags_None, 2 );
-				ImGui::GetWindowDrawList( )->AddRect( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( ( int ) g_Config.ESP->BoxCol.Value.x * 255, ( int ) g_Config.ESP->BoxCol.Value.y * 255, ( int ) g_Config.ESP->BoxCol.Value.z * 255, ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxAnimation ) ), 0, ImDrawFlags_None );
+				ImGui::GetWindowDrawList( )->AddRect( ImVec2( iBox_X, iBox_Y ), ImVec2( iBox_X + iBox_Width, iBox_Y + iBox_Height ), ImColor( ( int )(g_Config.ESP->BoxCol.Value.x * 255), ( int )(g_Config.ESP->BoxCol.Value.y * 255), ( int )(g_Config.ESP->BoxCol.Value.z * 255), ( int ) ( ( int ) ( ImGui::GetStyle( ).Alpha * 255 ) * BoxAnimation ) ), 0, ImDrawFlags_None );
 			}
+
+            if (g_Config.ESP->CornerBox) {
+                const float length = iBox_Width * 0.25f;
+                auto draw = ImGui::GetWindowDrawList();
+                ImVec4 color = g_Config.ESP->CornerColor.Value;
+                color.w *= ImGui::GetStyle().Alpha;
+                for (int i = 0; i < 4; ++i) {
+                    const float x = float(iBox_X + (i & 1 ? iBox_Width : 0));
+                    const float y = float(iBox_Y + (i & 2 ? iBox_Height : 0));
+                    draw->AddLine(ImVec2(x,y), ImVec2(x + (i & 1 ? -length : length),y), ImColor(color), 1.f);
+                    draw->AddLine(ImVec2(x,y), ImVec2(x,y + (i & 2 ? -length : length)), ImColor(color), 1.f);
+                }
+            }
 
 			for ( size_t i = 0; i < mWidgets.size( ); i++ )
 			{
@@ -131,80 +146,25 @@ namespace Custom
 					break;
 				case 2:
 					Widget.Enabled = g_Config.ESP->UserNames;
+                    Widget.Color = g_Config.ESP->UserNamesCol;
 					g_Config.ESP->UserNamesPos = Widget.RawPos;
 					break;
 				case 3:
 					Widget.Enabled = g_Config.ESP->WeaponName;
+                    Widget.Color = g_Config.ESP->WeaponNameCol;
 					g_Config.ESP->WeaponNamePos = Widget.RawPos;
 					break;
 				case 4:
 					Widget.Enabled = g_Config.ESP->DistanceFromMe;
+                    Widget.Color = g_Config.ESP->DistanceCol;
 					g_Config.ESP->DistanceFromMePos = Widget.RawPos;
 					break;
 				}
 
-				static int seloco = 0;
-
-				switch ( i )
-				{
-				case 0:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->HealthBarState;
-							seloco++;
-						}
-						else
-							g_Config.ESP->HealthBarState = Widget.Pos;
-					}
-					break;
-				case 1:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->ArmorBarState;		seloco++;
-						}
-						else
-							g_Config.ESP->ArmorBarState = Widget.Pos;
-					}
-					break;
-				case 2:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->UserNamesState;		seloco++;
-						}
-						else
-							g_Config.ESP->UserNamesState = Widget.Pos;
-					}
-					break;
-				case 3:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->WeaponNameState;		seloco++;
-						}
-						else
-							g_Config.ESP->WeaponNameState = Widget.Pos;
-					}
-					break;
-				case 4:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->DistanceFromMeState;		seloco++;
-						}
-						else {
-							g_Config.ESP->DistanceFromMeState = Widget.Pos;
-						}
-					}
-					break;
-				}
+				// Selectors and loaded profiles are authoritative. Only an actual
+                // drag-drop completion is allowed to change the configured side.
+                if (Widget.Pos != 4)
+                    Widget.Pos = ImClamp(*ConfiguredPosition(i), 0, 3);
 
 
 				Widget.AlphaAnimation = ImClamp( Widget.AlphaAnimation + ( 6 * ImGui::GetIO( ).DeltaTime * ( Widget.Enabled ? 1.f : -1.f ) ), 0.f, 1.f );
@@ -315,12 +275,10 @@ namespace Custom
 				ImGui::PopFont( );
 
 
-				if ( seloco == 4 )
-				{
-					g_Config.ESP->UpdateCfgESP = false;
-					seloco = 0;
-				}
+
 			}
+
+            g_Config.ESP->UpdateCfgESP = false;
 
 			for ( size_t i = 0; i < 4; i++ )
 			{
@@ -330,6 +288,16 @@ namespace Custom
 		}
 
 	private:
+        int* ConfiguredPosition(size_t widget) {
+            switch(widget) {
+            case 0: return &g_Config.ESP->HealthBarState;
+            case 1: return &g_Config.ESP->ArmorBarState;
+            case 2: return &g_Config.ESP->UserNamesState;
+            case 3: return &g_Config.ESP->WeaponNameState;
+            default: return &g_Config.ESP->DistanceFromMeState;
+            }
+        }
+
 		class cDragWidget {
 		public:
 			int Type; // 0 = Text | 1 = Bar
@@ -361,8 +329,8 @@ namespace Custom
 		{
 			cDragWidget{ 1, 3, xorstr( "HealthBar" ), ImColor( 66, 245, 132 ) },
 			cDragWidget{ 1, 3, xorstr( "ArmorBar" ), ImColor( 85, 128, 200 ) },
-			cDragWidget{ 0, 0, xorstr( "Name" ), ImColor( g_Config.ESP->UserNamesCol ) },
-			cDragWidget{ 0, 2, xorstr( "Unarmed" ), ImColor( g_Config.ESP->WeaponNameCol ), false, true },
+			cDragWidget{ 0, 0, xorstr( "Nome" ), ImColor( g_Config.ESP->UserNamesCol ) },
+			cDragWidget{ 0, 2, xorstr( "Desarmado" ), ImColor( g_Config.ESP->WeaponNameCol ), false, true },
 			cDragWidget{ 0, 2, xorstr( "0m" ), ImColor( g_Config.ESP->DistanceCol ), false, true }
 		};
 
@@ -374,7 +342,7 @@ namespace Custom
 			for ( int i = 0; i < 4; i++ )
 			{
 				if ( WidgetType == 0 && ( i == 1 || i == 3 ) )
-					continue; // Ignore as posições 1 (Direita) e 3 (Esquerda) para widgets do tipo 0 (texto)
+					continue; // Ignore as posiÃ§Ãµes 1 (Direita) e 3 (Esquerda) para widgets do tipo 0 (texto)
 
 				ImVec2 Pos = Positions[ i ].Pos;
 				float dist = std::sqrt( ( CurrentPos.x - Pos.x ) * ( CurrentPos.x - Pos.x ) + ( CurrentPos.y - Pos.y ) * ( CurrentPos.y - Pos.y ) );
@@ -400,3 +368,4 @@ namespace Custom
 	inline EspPreview g_EspPreview;
 
 }
+

@@ -6,6 +6,7 @@
 #include <Includes/ImGui/Fonts.hpp>
 #include <Core/Core.hpp>
 #include <Gui/Gui.hpp>
+#include <Gui/MenuScale.hpp>
 #include <dwmapi.h>
 #include <tchar.h>
 #include <thread>
@@ -124,7 +125,9 @@ namespace Gui
 			ImGui_ImplDX11_NewFrame( );
 			ImGui_ImplWin32_NewFrame( );
 			
-			ImGui::NewFrame( );
+			MenuScale::PrepareFrame();
+            ImGui::NewFrame( );
+            MenuScale::BeginFrame();
 			{
 				
 
@@ -135,13 +138,15 @@ namespace Gui
 
 				ImGui::PopStyleVar( );
 			}
-			ImGui::EndFrame( );
+			MenuScale::EndFrame();
+            ImGui::EndFrame( );
 
 			const float ClearColor[ 4 ] = { 0 };
 			g_pd3dDeviceContext->OMSetRenderTargets( 1U, &g_mainRenderTargetView, NULL );
 			g_pd3dDeviceContext->ClearRenderTargetView( g_mainRenderTargetView, ClearColor );
 
 			ImGui::Render( );
+            MenuScale::PrepareDrawData(ImGui::GetDrawData());
 			ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData( ) );
 
 			g_pSwapChain->Present( g_Config.General->VSync, 0U ); //VSync

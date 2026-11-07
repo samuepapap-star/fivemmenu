@@ -2,7 +2,7 @@ name: Build Wexize EXE
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/shark-integration ]
   workflow_dispatch:
 
 jobs:
@@ -46,6 +46,7 @@ jobs:
 
       - name: Compila Release x64
         run: |
+          $env:CL = "/utf-8"
           msbuild "Wexize Revamp.sln" /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /m /nologo
         shell: pwsh
 

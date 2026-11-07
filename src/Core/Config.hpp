@@ -2,6 +2,8 @@
 #include <Includes/Includes.hpp>
 #include <Includes/Utils.hpp>
 #include <iostream>
+#include <Core/ExtensionSettings.hpp>
+#include <cmath>
 
 namespace Core {
 
@@ -16,8 +18,11 @@ namespace Core {
 			inline static bool ArrayList;
 			inline static bool ArrayListCol;
 			inline static bool VSync = true;
+            inline static bool BindManager = false;
+            inline static ImVec4 MenuAccent = ImVec4(138.f/255.f,43.f/255.f,226.f/255.f,1.f);
 			inline static int ProcessPriority = 0;
 			inline static int MenuKey = VK_INSERT;
+            inline static int MenuScale = 50;
 		} *General;
 
 		struct Aimbot {
@@ -32,6 +37,20 @@ namespace Core {
 			//inline static int SmoothHorizontal = 12;
 			//inline static int SmoothVertical = 12;
 			inline static int AimbotSpeed = 12;
+            inline static bool LegitMode = false;
+            inline static bool SeparateSmooth = false;
+            inline static int SmoothHorizontal = 12;
+            inline static int SmoothVertical = 12;
+            inline static int Hitbox = 0;
+            inline static int AimMode = 0;
+            inline static int TargetType = 0;
+            inline static int SelectionMode = 1;
+            inline static bool CameraFovEnabled = false;
+            inline static float CameraFov = 70.f;
+            inline static bool WeaponRangeEnabled = false;
+            inline static float WeaponRange = 1000.f;
+            inline static bool Crosshair = false;
+
 			inline static int KeyBind;
 			inline static ImColor FovColor { 255, 255, 255 };
 		} *Aimbot;
@@ -71,6 +90,12 @@ namespace Core {
 			inline static bool Box;
 			inline static bool FilledBox;
 			inline static int BoxState = 0;
+            inline static bool CornerBox = false;
+            inline static ImColor CornerColor{33, 140, 176, 255};
+            inline static bool StaticESP = false;
+            inline static int BoxSize = 0;
+            inline static bool PreviewEnabled = true;
+
 			inline static bool Skeleton;
 			inline static bool HealthBar;
 			inline static ImVec2 HealthBarPos;
@@ -91,6 +116,8 @@ namespace Core {
 			inline static bool HighlightVisible;
 			inline static bool IgnoreDead;
             inline static bool PossibleNoclip = false;
+            inline static bool AdminList = false;
+            inline static bool AdminHighlight = false;
 			inline static bool DistanceFromMe;
 			inline static bool FriendsMarker;
 			inline static int FriendsMarkerBind;
@@ -133,6 +160,7 @@ namespace Core {
 			inline static bool InfiniteAmmoEnabled;
 			inline static bool NoReloadEnabled;
 			inline static bool NoClipEnabled;
+            inline static bool InvisibleEnabled = false;
 			inline static bool HandlingEditor;
 			inline static int NoClipKey;
 			inline static float NoClipSpeed = 2.0f;
@@ -143,6 +171,7 @@ namespace Core {
 			inline static bool ForceWeaponWheel;
 			inline static bool ShrinkEnabled;
 			inline static bool NoRagDollEnabled;
+            inline static bool NoCollisionEnabled = false;
 			inline static bool AntiHSEnabled;
 			inline static bool StealCarEnabled;
 			inline static int GodModeKey;
@@ -166,7 +195,17 @@ namespace Core {
 			}
 		}
 
-		std::string SaveCurrentConfig( std::string CfgName )
+        void SetMenuAccent(float r, float g, float b) {
+            if (!std::isfinite(r) || !std::isfinite(g) || !std::isfinite(b)) return;
+            General->MenuAccent = ImVec4(ImClamp(r,0.f,1.f),ImClamp(g,0.f,1.f),ImClamp(b,0.f,1.f),1.f);
+            ImGuiStyle &style=ImGui::GetStyle();
+            style.Colors[ImGuiCol_CheckMark]=General->MenuAccent;
+            style.Colors[ImGuiCol_SliderGrab]=General->MenuAccent;
+            style.Colors[ImGuiCol_SliderGrabActive]=General->MenuAccent;
+            style.Colors[ImGuiCol_NavHighlight]=General->MenuAccent;
+        }
+
+		std::string EncodeCurrentConfig( std::string CfgName )
 		{
 			try {
 				nlohmann::json CfgJson;
@@ -180,6 +219,8 @@ namespace Core {
 				GeneralCfg[ xorstr( "VSync" ) ] = General->VSync;
 				GeneralCfg[ xorstr( "ProcessPriority" ) ] = General->ProcessPriority;
 				GeneralCfg[ xorstr( "MenuKey" ) ] = General->MenuKey;
+                GeneralCfg["MenuScale"] = General->MenuScale;
+                GeneralCfg["MenuAccent"] = nlohmann::json::array({General->MenuAccent.x,General->MenuAccent.y,General->MenuAccent.z});
 
 				// Features - Aimbot
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Enabled" ) ] = Aimbot->Enabled;
@@ -188,12 +229,28 @@ namespace Core {
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "IgnoreNPCs" ) ] = Aimbot->IgnoreNPCs;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Prediction" ) ] = Aimbot->Prediction;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FOV" ) ] = Aimbot->FOV;
+                FeaturesCfg["Aimbot"]["Hitbox"] = Aimbot->Hitbox;
+                FeaturesCfg["Aimbot"]["AimMode"] = Aimbot->AimMode;
+                FeaturesCfg["Aimbot"]["TargetType"] = Aimbot->TargetType;
+                FeaturesCfg["Aimbot"]["SelectionMode"] = Aimbot->SelectionMode;
+                FeaturesCfg["Aimbot"]["CameraFovEnabled"] = Aimbot->CameraFovEnabled;
+                FeaturesCfg["Aimbot"]["CameraFov"] = Aimbot->CameraFov;
+                FeaturesCfg["Aimbot"]["WeaponRangeEnabled"] = Aimbot->WeaponRangeEnabled;
+                FeaturesCfg["Aimbot"]["WeaponRange"] = Aimbot->WeaponRange;
+                FeaturesCfg["Aimbot"]["Crosshair"] = Aimbot->Crosshair;
+
+                FeaturesCfg["Aimbot"]["LegitMode"] = Aimbot->LegitMode;
+                FeaturesCfg["Aimbot"]["SeparateSmooth"] = Aimbot->SeparateSmooth;
+                FeaturesCfg["Aimbot"]["SmoothHorizontal"] = Aimbot->SmoothHorizontal;
+                FeaturesCfg["Aimbot"]["SmoothVertical"] = Aimbot->SmoothVertical;
+                FeaturesCfg["Player"]["NoCollisionEnabled"] = Player->NoCollisionEnabled;
+                CfgJson["General"]["BindManager"] = General->BindManager;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "MaxDistance" ) ] = Aimbot->MaxDistance;
 				//FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothHorizontal" ) ] = Aimbot->SmoothHorizontal;
 				//FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothVertical" ) ] = Aimbot->SmoothHorizontal;
 				FeaturesCfg[xorstr("Aimbot")][xorstr("AimSpeed")] = Aimbot->AimbotSpeed;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "KeyBind" ) ] = Aimbot->KeyBind;
-				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( Aimbot->KeyBind );
+				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( Aimbot->FovColor );
 
 				// Features - TriggerBot
 				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "Enabled" ) ] = TriggerBot->Enabled;
@@ -204,7 +261,7 @@ namespace Core {
 				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "MaxDistance" ) ] = TriggerBot->MaxDistance;
 				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "Delay" ) ] = TriggerBot->Delay;
 				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "KeyBind" ) ] = TriggerBot->KeyBind;
-				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( TriggerBot->KeyBind );
+				FeaturesCfg[ xorstr( "TriggerBot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( TriggerBot->FovColor );
 
 				// Features - SilentAim
 				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "Enabled" ) ] = SilentAim->Enabled;
@@ -216,7 +273,7 @@ namespace Core {
 				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "KeyBind" ) ] = SilentAim->KeyBind;
 				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "MissChance" ) ] = SilentAim->MissChance;
 				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "MagicBullets" ) ] = SilentAim->MagicBullets;
-				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "FovColor" ) ] = ImColToJson( SilentAim->KeyBind );
+				FeaturesCfg[ xorstr( "SilentAim" ) ][ xorstr( "FovColor" ) ] = ImColToJson( SilentAim->FovColor );
 
 				// Features - ESP
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "Enabled" ) ] = ESP->Enabled;
@@ -237,6 +294,14 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ] = ESP->HighlightVisible;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ] = ESP->IgnoreDead;
                 FeaturesCfg["ESP"]["PossibleNoclip"] = ESP->PossibleNoclip;
+                FeaturesCfg["ESP"]["AdminList"] = ESP->AdminList;
+                FeaturesCfg["ESP"]["AdminHighlight"] = ESP->AdminHighlight;
+                FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
+                FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
+                FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
+                FeaturesCfg["ESP"]["BoxSize"] = ESP->BoxSize;
+                FeaturesCfg["ESP"]["PreviewEnabled"] = ESP->PreviewEnabled;
+
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMe" ) ] = ESP->DistanceFromMe;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMeState" ) ] = ESP->DistanceFromMeState;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "MaxDistance" ) ] = ESP->MaxDistance;
@@ -263,20 +328,27 @@ namespace Core {
 				// Features - Player
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipKey" ) ] = Player->NoClipKey;
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipSpeed" ) ] = Player->NoClipSpeed;
+                FeaturesCfg["Player"]["InvisibleEnabled"] = Player->InvisibleEnabled;
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "GodModeKey" ) ] = Player->GodModeKey;
 
-				std::string CfgJsonStr = CfgJson.dump( );
+				CfgJson["Extensions"] = ExtraSettings::Save();
+                std::string CfgJsonStr = CfgJson.dump( );
 
-				Utils::PasteClipboard( Utils::EncodeB64( Utils::Str2Hex( Utils::EncodeB64( CfgJsonStr ) ) ).c_str( ) );
-
-				return xorstr( "Config Exported to Clipboard." );
+				return Utils::EncodeB64(Utils::Str2Hex(Utils::EncodeB64(CfgJsonStr)));
 			}
 			catch ( const std::exception & e ) {
-				return xorstr( "Failed to save config." );
+				return "";
 			}
 		}
 
-		std::string LoadCfg( std::string CfgName, std::string CfgCode )
+        std::string SaveCurrentConfig(std::string CfgName) {
+            const std::string code = EncodeCurrentConfig(CfgName);
+            if (code.empty()) return "Failed to save config.";
+            Utils::PasteClipboard(code.c_str());
+            return "Config Exported to Clipboard.";
+        }
+
+        std::string LoadCfg( std::string CfgName, std::string CfgCode )
 		{
 			try {
 				std::string DecCfgCodeStr = Utils::DecodeB64( Utils::Hex2Str( Utils::DecodeB64( CfgCode ) ) );
@@ -295,6 +367,13 @@ namespace Core {
 					General->VSync = GeneralCfg[ xorstr( "VSync" ) ];
 					General->ProcessPriority = GeneralCfg[ xorstr( "ProcessPriority" ) ];
 					General->MenuKey = GeneralCfg[ xorstr( "MenuKey" ) ];
+                General->MenuScale = ImClamp(GeneralCfg.value("MenuScale", 50), 0, 100);
+                    if (GeneralCfg.contains("MenuAccent")) {
+                        const auto &accent=GeneralCfg["MenuAccent"];
+                        if(accent.is_array() && accent.size()==3 && accent[0].is_number() &&
+                           accent[1].is_number() && accent[2].is_number())
+                            SetMenuAccent(accent[0].get<float>(),accent[1].get<float>(),accent[2].get<float>());
+                    }
 				}
 
 				// Features - Aimbot
@@ -304,6 +383,22 @@ namespace Core {
 				Aimbot->IgnoreNPCs = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "IgnoreNPCs" ) ];
 				Aimbot->Prediction = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "Prediction" ) ];
 				Aimbot->FOV = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FOV" ) ];
+                Aimbot->Hitbox = FeaturesCfg["Aimbot"].value("Hitbox", 0);
+                Aimbot->AimMode = FeaturesCfg["Aimbot"].value("AimMode", 0);
+                Aimbot->TargetType = FeaturesCfg["Aimbot"].value("TargetType", 0);
+                Aimbot->SelectionMode = FeaturesCfg["Aimbot"].value("SelectionMode", 1);
+                Aimbot->CameraFovEnabled = FeaturesCfg["Aimbot"].value("CameraFovEnabled", false);
+                Aimbot->CameraFov = FeaturesCfg["Aimbot"].value("CameraFov", 70.f);
+                Aimbot->WeaponRangeEnabled = FeaturesCfg["Aimbot"].value("WeaponRangeEnabled", false);
+                Aimbot->WeaponRange = FeaturesCfg["Aimbot"].value("WeaponRange", 1000.f);
+                Aimbot->Crosshair = FeaturesCfg["Aimbot"].value("Crosshair", false);
+
+                Aimbot->LegitMode = FeaturesCfg["Aimbot"].value("LegitMode", false);
+                Aimbot->SeparateSmooth = FeaturesCfg["Aimbot"].value("SeparateSmooth", false);
+                Aimbot->SmoothHorizontal = ImClamp(FeaturesCfg["Aimbot"].value("SmoothHorizontal", 12), 1, 100);
+                Aimbot->SmoothVertical = ImClamp(FeaturesCfg["Aimbot"].value("SmoothVertical", 12), 1, 100);
+                Player->NoCollisionEnabled = FeaturesCfg["Player"].value("NoCollisionEnabled", false);
+                General->BindManager = GeneralCfg.value("BindManager", false);
 				Aimbot->MaxDistance = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "MaxDistance" ) ];
 				//Aimbot->SmoothHorizontal = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothHorizontal" ) ];
 				//Aimbot->SmoothVertical = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothVertical" ) ];
@@ -352,6 +447,14 @@ namespace Core {
 				ESP->HighlightVisible = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ];
 				ESP->IgnoreDead = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ];
                 ESP->PossibleNoclip = FeaturesCfg["ESP"].value("PossibleNoclip", false);
+                ESP->AdminList = FeaturesCfg["ESP"].value("AdminList", false);
+                ESP->AdminHighlight = FeaturesCfg["ESP"].value("AdminHighlight", false);
+                ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
+                if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
+                ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);
+                ESP->BoxSize = FeaturesCfg["ESP"].value("BoxSize", 0);
+                ESP->PreviewEnabled = FeaturesCfg["ESP"].value("PreviewEnabled", true);
+
 				ESP->DistanceFromMe = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMe" ) ];
 				ESP->DistanceFromMeState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "DistanceFromMeState" ) ];
 				ESP->ShowLocalPlayer = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "ShowLocalPlayer" ) ];
@@ -376,11 +479,13 @@ namespace Core {
 				// Features - Player
 				Player->NoClipKey = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipKey" ) ];
 				Player->NoClipSpeed = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "NoClipSpeed" ) ];
+                Player->InvisibleEnabled = FeaturesCfg["Player"].value("InvisibleEnabled", FeaturesCfg["Player"].value("NoClipInvisible", false));
 				Player->GodModeKey = FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "GodModeKey" ) ];
 
 				ESP->UpdateCfgESP = true;
 
-				return xorstr( "Config loaded with success." );
+				if(CfgJson.contains("Extensions")) ExtraSettings::Load(CfgJson["Extensions"]);
+                return xorstr( "Config loaded with success." );
 			}
 			catch ( const std::exception & e ) {
 				//std::cout << e.what() << "\n";
@@ -393,3 +498,5 @@ namespace Core {
 	inline Config g_Config;
 
 }
+
+

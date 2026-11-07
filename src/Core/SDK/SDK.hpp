@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 #include <Includes/Includes.hpp>
 #include <Core/SDK/Memory.hpp>
 #include <Core/Offsets.hpp>
@@ -90,6 +91,10 @@ namespace Core {
 
 			inline std::vector<EntityStruct> EntityList;
 			inline std::vector<VehicleStructure> VehicleList;
+            inline std::mutex EntityMutex,VehicleMutex;
+            inline std::vector<EntityStruct> SnapshotEntities(){std::lock_guard<std::mutex> lock(EntityMutex);return EntityList;}
+            inline std::vector<VehicleStructure> SnapshotVehicles(){std::lock_guard<std::mutex> lock(VehicleMutex);return VehicleList;}
+
 			inline std::unordered_map<CPed *, bool> FriendMap;
 
 			inline D3DXVECTOR2 WorldToScreen( D3DXVECTOR3 World )

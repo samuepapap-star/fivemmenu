@@ -1,11 +1,16 @@
 #include "Esp.hpp"
+#include <Core/Features/ExtraWeaponIcons.hpp>
+#include <Core/ExtensionSettings.hpp>
 #include <chrono>
+#include "ExternalAimMath.hpp"
 
 
 
 void Core::Features::cEsp::Draw( )
 {
 	auto Cfg = g_Config.ESP;
+    ImFont* extraFont=ExtraSettings::Font==1?ImGui::GetFont():ExtraSettings::Font==2?g_Variables.m_FontSmaller:g_Variables.m_DrawFont;
+    const float extraTextSize=ExtraSettings::TextSize;
 
 	if ( !Cfg->Enabled )
 		return;
@@ -31,6 +36,7 @@ void Core::Features::cEsp::Draw( )
 	for ( auto & Entity : Core::SDK::Game::EntityList )
 	{
 		CPed * Ped = Entity.Ped;
+        if (!Ped) continue;
 		auto DrawList = ImGui::GetBackgroundDrawList( );
 
 		auto & CurrentESPAnim = vEspAnimations[ Ped ];
@@ -55,12 +61,12 @@ void Core::Features::cEsp::Draw( )
 		{
 			if ( PedType == 2 )
 			{
-				if ( Health > 400.f || Health <= 101.f )
+				if ( Health <= 101.f )
 					continue;
 			}
 			else
 			{
-				if ( Health > 200.f || Health <= 1.f )
+				if ( Health <= 1.f )
 					continue;
 			}
 		}
@@ -84,29 +90,60 @@ void Core::Features::cEsp::Draw( )
         } else {
             noclipObservations.erase(Ped);
         }
-		D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault( 0 );
-		D3DXVECTOR2 EntityTop = Core::SDK::Game::WorldToScreen( HeadPos + D3DXVECTOR3( 0, 0, 0.2 ) ); //Head
+        // Supplied source: head/feet geometry and projected model bounds.
+        D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault(0);
+        const auto head = Core::SDK::Game::WorldToScreen(HeadPos);
+        const auto leftFoot = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(3));
+        const auto rightFoot = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(4));
+        const auto position = Core::SDK::Game::WorldToScreen(Entity.Pos);
+        const auto window = g_Variables.g_vGameWindowSize;
+        const auto validScreen = [&](D3DXVECTOR2 point) {
+            return ExternalAimMath::Inside(point.x, point.y, window.x, window.y);
+        };
+        if (!validScreen(head) || !validScreen(leftFoot) || !validScreen(rightFoot) || !validScreen(position)) continue;
+        float Height = std::fabs(head.y - (leftFoot.y + rightFoot.y) * 0.5f) * 1.35f;
+        float fullWidth = Height / (1.80f + ImClamp(Cfg->BoxSize, 0, 30) / 100.f);
+        D3DXVECTOR2 EntityTop(position.x, position.y - Height * 0.5f);
+        D3DXVECTOR2 EntityBottom(position.x, position.y + Height * 0.5f);
+        float BoxLeft = position.x - fullWidth * 0.5f;
+        float BoxRight = position.x + fullWidth * 0.5f;
+        if (Cfg->StaticESP) {
+            const uintptr_t model = Mem.Read<uintptr_t>(reinterpret_cast<uintptr_t>(Ped) + 0x20);
+            if (!model) continue;
+            const auto mins = Mem.Read<D3DXVECTOR3>(model + 0x30);
+            const auto maxs = Mem.Read<D3DXVECTOR3>(model + 0x40);
+            if (!std::isfinite(mins.x) || !std::isfinite(mins.y) || !std::isfinite(mins.z) ||
+                !std::isfinite(maxs.x) || !std::isfinite(maxs.y) || !std::isfinite(maxs.z) ||
+                mins.x >= maxs.x || mins.y >= maxs.y || mins.z >= maxs.z) continue;
+            float x0 = FLT_MAX, y0 = FLT_MAX, x1 = -FLT_MAX, y1 = -FLT_MAX;
+            bool valid = true;
+            for (int corner = 0; corner < 8; ++corner) {
+                const D3DXVECTOR3 point = Entity.Pos + D3DXVECTOR3(
+                    corner & 1 ? maxs.x : mins.x, corner & 2 ? maxs.y : mins.y, corner & 4 ? maxs.z : mins.z);
+                const auto projected = Core::SDK::Game::WorldToScreen(point);
+                if (!validScreen(projected)) { valid = false; break; }
+                x0 = (std::min)(x0, projected.x); x1 = (std::max)(x1, projected.x);
+                y0 = (std::min)(y0, projected.y); y1 = (std::max)(y1, projected.y);
+            }
+            if (!valid) continue;
+            const float half = (x1 - x0) * 0.5f * (1.80f / (1.80f + ImClamp(Cfg->BoxSize, 0, 30) / 100.f));
+            BoxLeft = (x0 + x1) * 0.5f - half; BoxRight = (x0 + x1) * 0.5f + half;
+            EntityTop = D3DXVECTOR2((x0 + x1) * 0.5f, y0);
+            EntityBottom = D3DXVECTOR2((x0 + x1) * 0.5f, y1);
+            Height = y1 - y0;
+        }
+        if (!std::isfinite(Height) || Height <= 1.f || BoxRight <= BoxLeft) continue;
+        float Width = (BoxRight - BoxLeft) * 0.5f;
+        ImVec2 BoxMin(BoxLeft, EntityTop.y), BoxMax(BoxRight, EntityBottom.y);
+        ImVec2 BoxCenter((BoxLeft + BoxRight) * 0.5f, (EntityTop.y + EntityBottom.y) * 0.5f);
 
-		D3DXVECTOR2 EntityBottom = Core::SDK::Game::WorldToScreen(
-			Ped->GetBonePosDefault( 8 ) - ( g_Offsets.CurrentBuild >= 2802 ? D3DXVECTOR3( 0, 0, 2 ) : D3DXVECTOR3( 0, 0, 1.2 ) ) //Abdomen
-		);
 
 
-		if ( !Core::SDK::Game::IsOnScreen( EntityTop ) || !Core::SDK::Game::IsOnScreen( EntityBottom ) )
-			continue;
-
-		float Height = EntityBottom.y - EntityTop.y;
-		float Width = Height * 0.2f;
-
-		const float BoxLeft = EntityTop.x - Width;
-		const float BoxRight = EntityBottom.x + Width;
-
-		ImVec2 BoxMin( BoxLeft, EntityTop.y );
-		ImVec2 BoxMax( BoxRight, EntityBottom.y );
-		ImVec2 BoxCenter = ImVec2( ( BoxMin.x + BoxMax.x ) * 0.5f, ( BoxMin.y + BoxMax.y ) * 0.5f );
-
-
-
+        if (ExtraSettings::PlayerGlow) {
+            const ImU32 color = IsFriend ? static_cast<ImU32>(ImColor(g_Col.Base))
+                                         : ImGui::GetColorU32(Cfg->BoxCol.Value);
+            DrawList->AddShadowRect(BoxMin, BoxMax, color, 50.f, ImVec2(0, 0));
+        }
         if (possibleNoclip) {
             const char * label = "Possivel noclip";
             const ImVec2 textSize = ImGui::CalcTextSize(label);
@@ -114,7 +151,7 @@ void Core::Features::cEsp::Draw( )
             DrawList->AddText(ImVec2(labelPos.x + 1.f, labelPos.y + 1.f), IM_COL32(0, 0, 0, 255), label);
             DrawList->AddText(labelPos, IM_COL32(255, 190, 60, 255), label);
         }
-		float FirstTextBoxTop = BoxMin.y - 18;
+		float FirstTextBoxTop = BoxMin.y - (extraTextSize+4.f);
 
 		float FirstTextBoxBottom = BoxMax.y + 4;
 		float SecondTextBoxBottom = BoxMax.y + ( 4 * 2 ) + 8; //8 is padding
@@ -204,117 +241,54 @@ void Core::Features::cEsp::Draw( )
 			DrawList->AddLine( ImVec2( g_Variables.g_vGameWindowCenter.x, g_Variables.g_vGameWindowPos.y + g_Variables.g_vGameWindowSize.y ), ImVec2( BoxCenter.x, BoxMax.y ), Cfg->SnapLinesCol, 1.5 );
 		}
 
-		if ( Cfg->Box )
-		{
-			if ( Cfg->FilledBox )
-				DrawList->AddRectFilled( { BoxLeft, EntityTop.y }, { BoxRight, EntityBottom.y }, Cfg->FilledBoxCol, 0, 0 );
+        if ((Cfg->Box || Cfg->CornerBox) && Cfg->FilledBox)
+            DrawList->AddRectFilled(BoxMin, BoxMax, Cfg->FilledBoxCol);
+        if (Cfg->Box) {
+            DrawList->AddRect(BoxMin, BoxMax, IM_COL32(0,0,0,220), 0, 0, 3.f);
+            DrawList->AddRect(BoxMin, BoxMax, Cfg->BoxCol, 0, 0, ExtraSettings::BoxWidth);
+        }
+        if (Cfg->CornerBox) {
+            const float length = (BoxRight - BoxLeft) * 0.25f;
+            for (int i = 0; i < 4; ++i) {
+                const float x = i & 1 ? BoxRight : BoxLeft;
+                const float y = i & 2 ? EntityBottom.y : EntityTop.y;
+                const float dx = i & 1 ? -length : length;
+                const float dy = i & 2 ? -length : length;
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), IM_COL32(0,0,0,220), 3.f);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), IM_COL32(0,0,0,220), 3.f);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), Cfg->CornerColor, ExtraSettings::BoxWidth);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), Cfg->CornerColor, ExtraSettings::BoxWidth);
+            }
+        }
 
-			DrawList->AddRect( { BoxLeft - 1, EntityTop.y - 1 }, { BoxRight + 1, EntityBottom.y + 1 }, ImColor( 0, 0, 0, 200 ), 0, 0, 1.5 );
-			DrawList->AddRect( { BoxLeft + 1, EntityTop.y + 1 }, { BoxRight - 1, EntityBottom.y - 1 }, ImColor( 0, 0, 0, 200 ), 0, 0, 1.5 );
-			DrawList->AddRect( { BoxLeft, EntityTop.y }, { BoxRight, EntityBottom.y }, Cfg->BoxCol, 0, 0, 1.5 );
-		}
+        if (Cfg->Skeleton) {
+            // Cached bone pairs used by the supplied ESP.
+            static const int pairs[][2] = {{0,7},{7,6},{7,5},{7,8},{8,3},{8,4}};
+            for (const auto& pair : pairs) {
+                const auto a = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(pair[0]));
+                const auto b = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(pair[1]));
+                if (validScreen(a) && validScreen(b))
+                    DrawList->AddLine(ImVec2(a.x,a.y), ImVec2(b.x,b.y), Cfg->SkeletonCol, ExtraSettings::SkeletonWidth);
+            }
+        }
 
-		if ( Cfg->Skeleton )
-		{
-			//auto Skeleton = Entity.Skeleton;
-			uintptr_t FragInstNMGta = Mem.Read<uintptr_t>( ( uintptr_t ) Ped + g_Offsets.m_FragInst );
-			uintptr_t v9 = Mem.Read<uintptr_t>( FragInstNMGta + 0x68 );
+        if(ExtraSettings::ChinaHat && HeadPos!=D3DXVECTOR3(0,0,0)) {
+            auto apex=SDK::Game::WorldToScreen(HeadPos+D3DXVECTOR3(0,0,0.35f));
+            D3DXVECTOR2 last{};
+            for(int side=0;side<=24;side++){
+                float angle=side*6.2831853f/24.f;
+                auto ring=SDK::Game::WorldToScreen(HeadPos+D3DXVECTOR3(std::cos(angle)*ExtraSettings::HatSize,std::sin(angle)*ExtraSettings::HatSize,0.1f));
+                if(validScreen(ring)&&validScreen(apex)){
+                    if(side&&validScreen(last))DrawList->AddLine(ImVec2(last.x,last.y),ImVec2(ring.x,ring.y),Cfg->SkeletonCol,1.f);
+                    if(side%3==0)DrawList->AddLine(ImVec2(apex.x,apex.y),ImVec2(ring.x,ring.y),Cfg->SkeletonCol,1.f);
+                }last=ring;
+            }
+        }
 
-			if ( !v9 )
-				continue;
-
-			Core::SDK::Game::cSkeleton_t Skeleton;
-
-			Skeleton.m_pSkeleton = Mem.Read<uintptr_t>( v9 + 0x178 );
-
-			Skeleton.crSkeletonData.Ptr = Mem.Read<uintptr_t>( Skeleton.m_pSkeleton );
-			Skeleton.crSkeletonData.m_Used = Mem.Read<unsigned int>( Skeleton.crSkeletonData.Ptr + 0x1A );
-			Skeleton.crSkeletonData.m_NumBones = Mem.Read<unsigned int>( Skeleton.crSkeletonData.Ptr + 0x5E );
-			Skeleton.crSkeletonData.m_BoneIdTable_Slots = Mem.Read<unsigned short>( Skeleton.crSkeletonData.Ptr + 0x18 );
-
-			if ( !Skeleton.crSkeletonData.m_BoneIdTable_Slots )
-				continue;
-
-			Skeleton.crSkeletonData.m_BoneIdTable = Mem.Read<uintptr_t>( Skeleton.crSkeletonData.Ptr + 0x10 );
-
-			Skeleton.Arg1 = Mem.Read<D3DXMATRIX>( Mem.Read<uintptr_t>( Skeleton.m_pSkeleton + 0x8 ) );
-			Skeleton.Arg2 = Mem.Read<uintptr_t>( Skeleton.m_pSkeleton + 0x18 );
-
-
-			D3DXVECTOR3 PelvisPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_Pelvis, Skeleton );
-			D3DXVECTOR3 NeckPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_Neck_1, Skeleton );
-			D3DXVECTOR3 LeftUperarmPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_UpperArm, Skeleton );
-			D3DXVECTOR3 RightUperarmPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_UpperArm, Skeleton );
-			D3DXVECTOR3 RightFormArmPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Forearm, Skeleton );
-			D3DXVECTOR3 LeftFormArmPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Forearm, Skeleton );
-			D3DXVECTOR3 RightHandPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Hand, Skeleton );
-			D3DXVECTOR3 LeftHandPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Hand, Skeleton );
-			D3DXVECTOR3 LeftThighPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Thigh, Skeleton );
-			D3DXVECTOR3 LeftCalfPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Calf, Skeleton );
-			D3DXVECTOR3 RightThighPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Thigh, Skeleton );
-			D3DXVECTOR3 RightCalfPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Calf, Skeleton );
-			D3DXVECTOR3 LfootPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_L_Foot, Skeleton );
-			D3DXVECTOR3 RfootPos = Core::SDK::Game::GetBonePosComplex( Ped, SKEL_R_Foot, Skeleton );
-
-			D3DXVECTOR2 Pelvis = Core::SDK::Game::WorldToScreen( PelvisPos );
-			D3DXVECTOR2 Neck = Core::SDK::Game::WorldToScreen( NeckPos );
-			D3DXVECTOR2 LeftUperarm = Core::SDK::Game::WorldToScreen( LeftUperarmPos );
-			D3DXVECTOR2 RightUperarm = Core::SDK::Game::WorldToScreen( RightUperarmPos );
-			D3DXVECTOR2 RightFormArm = Core::SDK::Game::WorldToScreen( RightFormArmPos );
-			D3DXVECTOR2 LeftFormArm = Core::SDK::Game::WorldToScreen( LeftFormArmPos );
-			D3DXVECTOR2 RightHand = Core::SDK::Game::WorldToScreen( RightHandPos );
-			D3DXVECTOR2 LeftHand = Core::SDK::Game::WorldToScreen( LeftHandPos );
-			D3DXVECTOR2 LeftThigh = Core::SDK::Game::WorldToScreen( LeftThighPos );
-			D3DXVECTOR2 LeftCalf = Core::SDK::Game::WorldToScreen( LeftCalfPos );
-			D3DXVECTOR2 RightThigh = Core::SDK::Game::WorldToScreen( RightThighPos );
-			D3DXVECTOR2 RightCalf = Core::SDK::Game::WorldToScreen( RightCalfPos );
-			D3DXVECTOR2 Lfoot = Core::SDK::Game::WorldToScreen( LfootPos );
-			D3DXVECTOR2 Rfoot = Core::SDK::Game::WorldToScreen( RfootPos );
-
-			if ( !Core::SDK::Game::IsOnScreen( Lfoot ) || !Core::SDK::Game::IsOnScreen( Rfoot ) || !Core::SDK::Game::IsOnScreen( Pelvis ) || !Core::SDK::Game::IsOnScreen( Neck ) || !Core::SDK::Game::IsOnScreen( LeftUperarm ) || !Core::SDK::Game::IsOnScreen( RightUperarm ) || !Core::SDK::Game::IsOnScreen( RightFormArm ) || !Core::SDK::Game::IsOnScreen( LeftFormArm ) || !Core::SDK::Game::IsOnScreen( RightHand ) || !Core::SDK::Game::IsOnScreen( LeftHand ) || !Core::SDK::Game::IsOnScreen( LeftThigh ) || !Core::SDK::Game::IsOnScreen( RightThigh ) || !Core::SDK::Game::IsOnScreen( RightCalf ) )
-				continue;
-
-			auto ScreenHead = Core::SDK::Game::WorldToScreen( HeadPos );
-			//DrawList->AddLine( ImVec2( ScreenHead.x, ScreenHead.y ), ImVec2( Neck.x, Neck.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( ScreenHead.x, ScreenHead.y ), ImVec2( Neck.x, Neck.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftUperarm.x, LeftUperarm.y ), ImVec2( RightUperarm.x, RightUperarm.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftUperarm.x, LeftUperarm.y ), ImVec2( RightUperarm.x, RightUperarm.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( RightUperarm.x, RightUperarm.y ), ImVec2( RightFormArm.x, RightFormArm.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( RightUperarm.x, RightUperarm.y ), ImVec2( RightFormArm.x, RightFormArm.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftUperarm.x, LeftUperarm.y ), ImVec2( LeftFormArm.x, LeftFormArm.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftUperarm.x, LeftUperarm.y ), ImVec2( LeftFormArm.x, LeftFormArm.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( RightFormArm.x, RightFormArm.y ), ImVec2( RightHand.x, RightHand.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( RightFormArm.x, RightFormArm.y ), ImVec2( RightHand.x, RightHand.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftFormArm.x, LeftFormArm.y ), ImVec2( LeftHand.x, LeftHand.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftFormArm.x, LeftFormArm.y ), ImVec2( LeftHand.x, LeftHand.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( Neck.x, Neck.y ), ImVec2( Pelvis.x, Pelvis.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( Neck.x, Neck.y ), ImVec2( Pelvis.x, Pelvis.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( Pelvis.x, Pelvis.y ), ImVec2( LeftThigh.x, LeftThigh.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( Pelvis.x, Pelvis.y ), ImVec2( LeftThigh.x, LeftThigh.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( Pelvis.x, Pelvis.y ), ImVec2( RightThigh.x, RightThigh.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( Pelvis.x, Pelvis.y ), ImVec2( RightThigh.x, RightThigh.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftThigh.x, LeftThigh.y ), ImVec2( LeftCalf.x, LeftCalf.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftThigh.x, LeftThigh.y ), ImVec2( LeftCalf.x, LeftCalf.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( RightThigh.x, RightThigh.y ), ImVec2( RightCalf.x, RightCalf.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( RightThigh.x, RightThigh.y ), ImVec2( RightCalf.x, RightCalf.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( LeftCalf.x, LeftCalf.y ), ImVec2( Lfoot.x, Lfoot.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( LeftCalf.x, LeftCalf.y ), ImVec2( Lfoot.x, Lfoot.y ), Cfg->SkeletonCol, 1.5 );
-
-			//DrawList->AddLine( ImVec2( RightCalf.x, RightCalf.y ), ImVec2( Rfoot.x, Rfoot.y ), ImColor( 0, 0, 0 ), 2.5 );
-			DrawList->AddLine( ImVec2( RightCalf.x, RightCalf.y ), ImVec2( Rfoot.x, Rfoot.y ), Cfg->SkeletonCol, 1.5 );
-
-		}
+        if(ExtraSettings::WeaponIcon){
+            auto manager=Ped->GetWeaponManager();auto info=manager?manager->GetWeaponInfo():nullptr;
+            if(info){auto texture=ExtraWeaponIcons::Find(info->GetName());if(texture)DrawList->AddImage(texture,ImVec2(BoxCenter.x-24,BoxMax.y+3.f*(extraTextSize+4.f)+16.f),ImVec2(BoxCenter.x+24,BoxMax.y+3.f*(extraTextSize+4.f)+40.f));}
+        }
 
 		if ( Cfg->HeadCircle )
 		{
@@ -336,7 +310,7 @@ void Core::Features::cEsp::Draw( )
 
 			std::string DistStr = std::to_string( ( int ) Distance ) + xorstr( "m" );
 
-			ImVec2 TextSize = g_Variables.m_DrawFont->CalcTextSizeA( g_Variables.m_DrawFont->FontSize, FLT_MAX, 0.0f, DistStr.c_str( ) );
+			ImVec2 TextSize = extraFont->CalcTextSizeA( extraTextSize, FLT_MAX, 0.0f, DistStr.c_str( ) );
 			ImVec2 TextPos = ImVec2( BoxCenter.x - ( TextSize.x / 2 ), FirstTextBoxBottom );
 
 			switch ( Cfg->DistanceFromMeState )
@@ -398,13 +372,13 @@ void Core::Features::cEsp::Draw( )
 				break;
 			}
 
-			/*DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );*/
+			/*DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );*/
 
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->DistanceCol.Value.w ), DistStr.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, TextPos, Cfg->DistanceCol, DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->DistanceCol.Value.w ), DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, TextPos, Cfg->DistanceCol, DistStr.c_str( ) );
 
 		}
 
@@ -424,7 +398,7 @@ void Core::Features::cEsp::Draw( )
 			if ( weaponName.empty( ) )
 				weaponName = xorstr( "Unarmed" );
 
-			ImVec2 TextSize = g_Variables.m_DrawFont->CalcTextSizeA( g_Variables.m_DrawFont->FontSize, FLT_MAX, 0.0f, to_lower( weaponName.c_str( ) ).c_str( ) );
+			ImVec2 TextSize = extraFont->CalcTextSizeA( extraTextSize, FLT_MAX, 0.0f, to_lower( weaponName.c_str( ) ).c_str( ) );
 			ImVec2 TextPos = ImVec2( BoxCenter.x - ( TextSize.x / 2 ), FirstTextBoxBottom );
 
 			if ( Cfg->DistanceFromMe )
@@ -464,13 +438,13 @@ void Core::Features::cEsp::Draw( )
 
 			std::string WeaponNameUnder = to_lower( weaponName.c_str( ) );
 
-			/*DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );*/
+			/*DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );*/
 
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->WeaponNameCol.Value.w ), to_lower( weaponName.c_str( ) ).c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, TextPos, Cfg->WeaponNameCol, WeaponNameUnder.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->WeaponNameCol.Value.w ), to_lower( weaponName.c_str( ) ).c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, TextPos, Cfg->WeaponNameCol, WeaponNameUnder.c_str( ) );
 		}
 
 		if ( Cfg->UserNames )
@@ -478,7 +452,7 @@ void Core::Features::cEsp::Draw( )
 
 			std::string PlayerName = Entity.NetworkInfo.UserName;
 
-			ImVec2 TextSize = g_Variables.m_DrawFont->CalcTextSizeA( g_Variables.m_DrawFont->FontSize, FLT_MAX, 0.0f, PlayerName.c_str( ) );
+			ImVec2 TextSize = extraFont->CalcTextSizeA( extraTextSize, FLT_MAX, 0.0f, PlayerName.c_str( ) );
 			ImVec2 TextPos = ImVec2( BoxCenter.x - ( TextSize.x / 2 ), FirstTextBoxTop );
 
 			switch ( Cfg->UserNamesState )
@@ -495,13 +469,13 @@ void Core::Features::cEsp::Draw( )
 				break;
 			}
 
-			/*DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );*/
+			/*DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );*/
 
-			DrawList->AddText( ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->UserNamesCol.Value.w ), PlayerName.c_str( ) );
-			DrawList->AddText( TextPos, Cfg->UserNamesCol, PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->UserNamesCol.Value.w ), PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, TextPos, Cfg->UserNamesCol, PlayerName.c_str( ) );
 		}
 
 		const auto DrawHealthBarV = [ &DrawList ] ( ImVec2 pos, ImVec2 dim, ImColor col, int background ) {
@@ -525,10 +499,12 @@ void Core::Features::cEsp::Draw( )
 
 		if ( Cfg->HealthBar )
 		{
-			float MaxHealth = Entity.MaxHealth;
+			const float healthBase = PedType == 2 ? 100.f : 0.f;
+            float MaxHealth = (std::max)(1.f, Entity.MaxHealth - healthBase);
+            const float displayHealth = ImClamp(Health - healthBase, 0.f, MaxHealth);
 
-			CurrentESPAnim.Health = ImLerp( CurrentESPAnim.Health, Health, ImGui::GetIO( ).DeltaTime * 4 );
-			float AnimHealth = CurrentESPAnim.Health;
+			CurrentESPAnim.Health = ImLerp( CurrentESPAnim.Health, displayHealth, ImClamp(ImGui::GetIO().DeltaTime * 4.f, 0.f, 1.f) );
+			float AnimHealth = ImClamp(CurrentESPAnim.Health, 0.f, MaxHealth);
 
 			float FullHealthBar = Height / 100 * 100;
 			float DecreaseHealthBar = FullHealthBar * ( AnimHealth / MaxHealth );
@@ -547,21 +523,10 @@ void Core::Features::cEsp::Draw( )
 				DecreaseHealthBar = FullHealthBar;
 			}
 
-			ImColor BarColor;
-			ImColor FullHealth =( ImVec4( ImColor( 80, 80, 80, 200 ) ) );
-
-			if ( Health > ( MaxHealth / 2 ) )
-			{
-				BarColor =( ImVec4( ImColor( 66, 245, 132, 255 ) ) );
-			}
-			else if ( Health <= ( MaxHealth / 2 ) && MaxHealth == 200 ? Health > 50 : Health > 150 )
-			{
-				BarColor =( ImVec4( ImColor( 245, 135, 66, 255 ) ) );
-			}
-			else
-			{
-				BarColor =( ImVec4( ImColor( 245, 66, 66, 255 ) ) );
-			}
+            const float healthRatio = displayHealth / MaxHealth;
+            ImColor BarColor = healthRatio > 0.5f ? ImColor(81,252,141,255) :
+                (healthRatio > 0.25f ? ImColor(245,135,66,255) : ImColor(242,0,0,255));
+            ImColor FullHealth(80,80,80,200);
 
 			switch ( Cfg->HealthBarState )
 			{
@@ -591,15 +556,15 @@ void Core::Features::cEsp::Draw( )
 
 		if ( Cfg->ArmorBar )
 		{
-			float MaxHealth = Entity.MaxHealth;
+			float MaxHealth = 100.f;
 			float Armor = Entity.Armor;
 
 			if ( Armor > 0 )
 			{
-				MaxHealth = MaxHealth / 2;
+				MaxHealth = 100.f;
 
-				CurrentESPAnim.Armor = ImLerp( CurrentESPAnim.Armor, Armor, ImGui::GetIO( ).DeltaTime * 4 );
-				float AnimArmor = CurrentESPAnim.Armor;
+				CurrentESPAnim.Armor = ImLerp( CurrentESPAnim.Armor, Armor, ImClamp(ImGui::GetIO().DeltaTime * 4.f, 0.f, 1.f) );
+				float AnimArmor = ImClamp(CurrentESPAnim.Armor, 0.f, MaxHealth);
 
 				float FullArmorBar = Height / 100 * 100;
 				float DecreaseHealthBar = FullArmorBar * ( AnimArmor / MaxHealth );
@@ -703,9 +668,11 @@ void Core::Features::cEsp::DrawVehicle( )
 	if ( !Cfg->Enabled )
 		return;
 
-	for ( auto Entity : Core::SDK::Game::VehicleList )
+	auto extraVehicles=SDK::Game::SnapshotVehicles();
+    for ( auto Entity : extraVehicles )
 	{
 		CVehicle * Vehicle = Entity.Pointer;
+        if(!Vehicle || (ExtraSettings::IgnoreOccupied && Entity.Driver))continue;
 		auto DrawList = ImGui::GetBackgroundDrawList( );
 
 		float Distance = Entity.Dist;
@@ -729,7 +696,9 @@ void Core::Features::cEsp::DrawVehicle( )
 			DrawList->AddLine( ImVec2( g_Variables.g_vGameWindowCenter.x, g_Variables.g_vGameWindowPos.y + g_Variables.g_vGameWindowSize.y ), ImVec2( VehicleLocation.x, VehicleLocation.y + 30 ), Cfg->SnapLinesCol, 1.5 );
 		}
 
-		if ( Cfg->VehName )
+		if(ExtraSettings::VehicleMarker)DrawList->AddCircleFilled(ImVec2(VehicleLocation.x,VehicleLocation.y),4,IM_COL32(180,80,255,255));
+
+        if ( Cfg->VehName )
 		{
 			ImVec2 text_size = g_Variables.m_DrawFont->CalcTextSizeA( g_Variables.m_DrawFont->FontSize, FLT_MAX, 0.0f, Entity.Name.c_str( ) );
 
