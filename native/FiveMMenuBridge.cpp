@@ -11,6 +11,7 @@
 #include "cfx/event.h"
 #include "NativeActions.hpp"
 #include "NativeDispatch.hpp"
+#include "cfx/ScriptThread.hpp"
 
 extern "C" __declspec(dllexport) DWORD WINAPI FiveMMenuBridgeStart(void*);
 
@@ -24,9 +25,12 @@ using Handler=void(*)(Context*);using GetHandler=Handler(*)(std::uint64_t);using
 Shared* shared=nullptr;HANDLE mapping=nullptr;std::atomic<bool> initialized{false};ManagerView* manager=nullptr;
 using GetCustom=CfxHandler*(*)(std::uint64_t);
 GetHandler resolve=nullptr;GetCustom resolveCustom=nullptr;bool nativeFault=false;
+using CreateScript=void(*)(GtaThread*);using ResetScript=int(*)(GtaThread*,std::uint32_t,void*,std::uint32_t);using ActiveScript=void*(*)();
+CreateScript createScript=nullptr;ResetScript resetScript=nullptr;ActiveScript activeScript=nullptr;
+GtaThread* ownedThread=nullptr;std::uint64_t registeredAt=0,lastScriptTick=0;
 std::int32_t ReadState(std::int32_t& s){return InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&s),0,0);}
 void Store(std::int32_t& s,std::int32_t value){InterlockedExchange(reinterpret_cast<volatile LONG*>(&s),value);}
-bool SafeHandler(const NativeSelection* function,Context* context){__try{function->Invoke(*context);return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}}
+bool SafeHandler(const NativeSelection* function,Context* context,DWORD* fault){__try{function->InvokeInScript(*context,reinterpret_cast<std::uintptr_t>(activeScript()),reinterpret_cast<std::uintptr_t>(ownedThread));return true;}__except((*fault=GetExceptionCode()),EXCEPTION_EXECUTE_HANDLER){return false;}}
 Handler SafeResolve(GetHandler function,std::uint64_t hash){__try{return function(hash);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
 CfxHandler* SafeCustom(GetCustom function,std::uint64_t hash){__try{return function(hash);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
 ManagerView* SafeManager(GetManager function){__try{return function(true);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
@@ -51,7 +55,8 @@ public:
   if(!handler)throw std::runtime_error(MissingNative(hash));
   handlers[hash]=handler;std::array<std::uint64_t,32> arguments{};std::array<std::uint64_t,4> result{};
   std::copy(input.begin(),input.end(),arguments.begin());Context context{};context.result=result.data();context.count=static_cast<std::uint32_t>(input.size());context.arguments=arguments.data();
-  if(!SafeHandler(&handler,&context)){nativeFault=true;throw std::runtime_error("Falha na chamada interna; ponte interrompida: "+MissingNative(hash));}return result[0];
+  DWORD fault=0;
+  if(!SafeHandler(&handler,&context,&fault)){nativeFault=true;throw std::runtime_error(FailedNative(hash,fault));}return result[0];
  }
 };
 Api api;Actions actions(api);
@@ -67,6 +72,7 @@ void Tick(){
  if(!shared||ReadState(shared->service)!=1)return;
  try{
   Frame frame{};if(!FrameSnapshot(frame))frame={};const auto now=GetTickCount64();
+  if(!Fresh(frame,now)&&!actions.Pending()&&actions.rpgState==0)return;
   if(!actions.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
    Command command=shared->command;MemoryBarrier();
    if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
@@ -85,6 +91,31 @@ void Tick(){
 }
 bool SafeTick(){__try{Tick();return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}}
 void GuardedTick(){if(!SafeTick()&&shared)Failure("ABI do runtime indisponivel; ponte interrompida");}
+class BridgeScript final:public CfxThread {
+public:
+ bool registered=false;
+ void Reset()override{if(registered)OnReset();}
+ void Kill()override{if(registered)OnReset();}
+ void DoRun()override{lastScriptTick=GetTickCount64();GuardedTick();}
+};
+static_assert(sizeof(CfxThread)==16,"Unsupported CFX script thread ABI");
+BridgeScript* script=nullptr;
+void ResourcePump(){
+ if(!shared||ReadState(shared->service)!=1)return;
+ if(!script){
+  Frame frame{};
+  if(ReadState(shared->commandState)!=Ready||!FrameSnapshot(frame)||!Fresh(frame,GetTickCount64()))return;
+  // Allocate and initialize on the game thread; CfxThread supplies its own RAGE context.
+  script=new BridgeScript();ownedThread=script->GetThread();
+  if(!ownedThread)throw std::runtime_error("Thread de script nao foi criada pelo Cfx");
+  resetScript(ownedThread,Hash("fivem_menu_actions"),nullptr,0);
+  createScript(ownedThread);script->registered=true;registeredAt=GetTickCount64();
+ }
+ if(registeredAt&&GetTickCount64()-registeredAt>3000&&!lastScriptTick)Failure("A thread de script nao entrou no agendador do jogo");
+}
+void PumpCpp(){try{ResourcePump();}catch(const std::exception& error){Failure(error.what());}catch(...){Failure("Falha ao registrar a thread de script");}}
+bool SafePump(){__try{PumpCpp();return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}}
+void GuardedPump(){if(!SafePump()&&shared)Failure("Falha na inicializacao da thread de script Cfx");}
 }
 
 static DWORD StartImplementation(){
@@ -103,11 +134,14 @@ static DWORD StartImplementation(){
  auto current=reinterpret_cast<GetManager>(GetProcAddress(core,"?GetCurrent@ResourceManager@fx@@SAPEAV12@_N@Z"));
  resolve=reinterpret_cast<GetHandler>(GetProcAddress(rage,"?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z"));
  resolveCustom=reinterpret_cast<GetCustom>(GetProcAddress(scripting,"?GetNativeHandlerPtr@ScriptEngine@fx@@SAPEAV?$function@$$A6AXAEAVScriptContext@fx@@@Z@std@@_K@Z"));
- if(!current||!resolve||!resolveCustom){Failure("Exports publicos do runtime nao encontrados");return 0;}
+ createScript=reinterpret_cast<CreateScript>(GetProcAddress(rage,"?CreateThread@scrEngine@rage@@SAXPEAVGtaThread@@@Z"));
+ resetScript=reinterpret_cast<ResetScript>(GetProcAddress(rage,"?Reset@GtaThread@@QEAA?AW4eThreadState@rage@@IPEAXI@Z"));
+ activeScript=reinterpret_cast<ActiveScript>(GetProcAddress(rage,"?GetActiveThread@scrEngine@rage@@SAPEAVscrThread@2@XZ"));
+ if(!current||!resolve||!resolveCustom||!createScript||!resetScript||!activeScript){Failure("Exports publicos do runtime nao encontrados");return 0;}
  manager=SafeManager(current);if(!Readable(manager,sizeof(ManagerView))){Failure("Gerenciador de resources indisponivel");return 0;}
  // Keep the module and the manager alive for callbacks already owned by the game.
  HMODULE pinned=nullptr;if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,reinterpret_cast<LPCWSTR>(&FiveMMenuBridgeStart),&pinned)){Failure("Nao foi possivel manter a ponte carregada");return 0;}
- manager->AddRef();manager->tick.Connect([](){GuardedTick();},INT_MAX);manager->reset.Connect([](){OnReset();},INT_MAX);
+ manager->AddRef();manager->tick.Connect([](){GuardedPump();},INT_MAX);manager->reset.Connect([](){OnReset();},INT_MAX);
  Copy(shared->error,sizeof(shared->error),"Ponte pronta; aguardando acao");MemoryBarrier();Store(shared->service,1);return 1;
 }
 extern "C" __declspec(dllexport) DWORD WINAPI FiveMMenuBridgeStart(void*){

@@ -44,6 +44,12 @@ struct Fake:NativeApi{
 Frame FrameAt(std::uint64_t now){Frame f{};f.heartbeat=now;f.valid=1;f.position={10,20,30};f.forward={0,1,0};return f;}
 Command Cmd(Action action,const char* text="a_c_chimp"){Command c{};c.id=1;c.action=action;Copy(c.text,sizeof(c.text),text);return c;}
 int main(){
+ {int calls=0;std::uint64_t result=0;CfxHandler custom=[&](fx::ScriptContext& c){calls++;*static_cast<std::uint64_t*>(c.resultBuffer)=7;};NativeSelection selected{nullptr,&custom};RageContext context{};context.result=&result;
+  bool rejected=false;try{selected.InvokeInScript(context,0,0);}catch(const std::runtime_error&){rejected=true;}assert(rejected&&calls==0);
+  rejected=false;try{selected.InvokeInScript(context,2,1);}catch(const std::runtime_error&){rejected=true;}assert(rejected&&calls==0);
+  selected.InvokeInScript(context,1,1);assert(calls==1&&result==7);
+  const auto error=FailedNative(0x963D27A58DF860ACULL,0xc0000005u);assert(error.find("963D27A58DF860AC")!=std::string::npos&&error.find("C0000005")!=std::string::npos&&error.find("indisponivel")==std::string::npos);
+ }
  {std::uint64_t args[2]{5137,7},result=0;bool customCalled=false,gameResolved=false;
   CfxHandler custom=[&](fx::ScriptContext& c){customCalled=true;assert(c.argumentCount==2&&c.resultCount==0);assert(static_cast<std::uint64_t*>(c.argumentBuffer)[0]==5137);*static_cast<std::uint64_t*>(c.resultBuffer)=42;};
   auto selected=SelectNative(1,[&](std::uint64_t)->RageHandler{gameResolved=true;return nullptr;},[&](std::uint64_t){return &custom;});
