@@ -7,7 +7,7 @@
 
 namespace MenuBridge {
 inline constexpr std::uint32_t magic=0x464d4231, version=3;
-enum class Action:std::uint32_t { Model=1, Restore, CloneAppearance, SpawnVehicle, Animation, StopAnimation, StopAll, Connect, StartCamera, StopCamera, ObservePlayer };
+enum class Action:std::uint32_t { Model=1, Restore, CloneAppearance, SpawnVehicle, Animation, StopAnimation, StopAll, Connect, StartCamera, StopCamera, ObservePlayer, TransferVehicles };
 enum State:std::int32_t { Idle=0, Ready=1, Busy=2, Done=3 };
 enum CameraMove:std::uint32_t { Forward=1,Backward=2,Left=4,Right=8,Up=16,Down=32,Fast=64 };
 struct Vec {float x=0,y=0,z=0;};
@@ -43,7 +43,7 @@ inline bool Valid(const Command& c){
  switch(c.action){
  case Action::Model:case Action::SpawnVehicle:return Text(c.text,sizeof(c.text),true);
  case Action::Animation:return Text(c.text,sizeof(c.text))&&Text(c.text2,sizeof(c.text2));
- case Action::CloneAppearance:case Action::ObservePlayer:return c.targetServerId>0&&c.targetServerId<=0x7fffffffULL;
+ case Action::CloneAppearance:case Action::ObservePlayer:case Action::TransferVehicles:return c.targetServerId>0&&c.targetServerId<=0x7fffffffULL;
  case Action::Restore:case Action::StopAnimation:case Action::StopAll:case Action::Connect:case Action::StartCamera:case Action::StopCamera:return true;
  default:return false;
  }

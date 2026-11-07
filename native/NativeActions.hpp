@@ -84,7 +84,7 @@ public:
    case Action::StopAnimation:Call(N::ClearTasks,{static_cast<std::uint64_t>(ped)});Finish(true,"Animacao interrompida");return;
    case Action::StopAll:if(weaponRequested)Call(N::ReleaseWeapon,{Hash("WEAPON_RPG")});weaponRequested=false;rpgState=0;Finish(true,"Acoes continuas interrompidas");return;
    case Action::Connect:Finish(true,"Ponte pronta");return;
-   case Action::StartCamera:case Action::StopCamera:case Action::ObservePlayer:Finish(false,"Comando de camera deve ser tratado pela ponte");return;
+   case Action::StartCamera:case Action::StopCamera:case Action::ObservePlayer:case Action::TransferVehicles:Finish(false,"Comando deve ser tratado pela ponte");return;
   }
   if(!Call(N::ModelValid,{model})||!Call(command.action==Action::SpawnVehicle?N::ModelVehicle:N::ModelPed,{model})){
    Finish(false,"Modelo invalido para esta acao");return;

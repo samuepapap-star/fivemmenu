@@ -13,7 +13,7 @@ public:
 };
 }
 namespace MenuBridge {
-struct RageContext {void* result;std::uint32_t count,pad0;void* arguments;std::uint32_t vectors,pad1;std::uint8_t vectorSpace[512];};
+struct alignas(16) RageContext {void* result;std::uint32_t count,pad0;void* arguments;std::uint32_t vectors,pad1;std::uint8_t vectorSpace[512];};
 using RageHandler=void(*)(RageContext*);
 using CfxHandler=std::function<void(fx::ScriptContext&)>;
 struct NativeSelection {

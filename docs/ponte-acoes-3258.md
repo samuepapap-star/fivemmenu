@@ -41,3 +41,7 @@ O protocolo IPC passou para a versao 3. Substitua o EXE e a DLL juntos e reinici
 Os controles de regeneracao de vida/colete, zerar vida e aplicar vida maxima foram movidos de Extras para Geral, logo abaixo de Restaurar vida e colete, em uma coluna.
 
 Observar jogador tambem usa a camera nativa da ponte: o alvo e localizado pelo ID do servidor, a camera acompanha o ped carregado e a observacao termina ao sair do alcance de carregamento, perder o heartbeat ou selecionar Parar observacao. Copiar roupa foi removido da interface; Clonar aparencia permanece. Ir ate o jogador e Puxar jogador ficam em Teleportar/Jogadores. O usuario confirmou a clonagem e o ajuste de distancia da camera em jogo antes desta atualizacao.
+
+Copiar Discord e Copiar Steam tambem foram removidos da interface.
+
+Chuva de carros e Enviar veiculos ao jogador agora enumeram os veiculos por natives CFX, usam os natives de transformacao/fisica e verificam a posicao 100 ms depois. A operacao e limitada a dez veiculos vazios num raio de 200 m. Entidades de rede sem controle do cliente sao ignoradas; nao ha tentativa de forcar propriedade. A resposta informa confirmados localmente, sem controle, ocupados, fora de alcance e nao confirmados. O iterador e fechado mesmo em caso de falha. Uma confirmacao local nao garante permanencia no servidor. Referencia da enumeracao: https://github.com/citizenfx/fivem/blob/master/code/components/extra-natives-five/src/PoolTraversalNatives.cpp .

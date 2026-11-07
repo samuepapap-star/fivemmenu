@@ -13,6 +13,7 @@
 #include "NativeDispatch.hpp"
 #include "cfx/ScriptThread.hpp"
 #include "NativeCamera.hpp"
+#include "NativeVehicleTransfer.hpp"
 
 extern "C" __declspec(dllexport) DWORD WINAPI FiveMMenuBridgeStart(void*);
 
@@ -50,35 +51,38 @@ class Api final:public NativeApi{
  std::unordered_map<std::uint64_t,NativeSelection> handlers;
 public:
  void Clear(){handlers.clear();}
- std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{
-  const bool cleanup=hash==CameraN::RenderScriptCams||hash==CameraN::DoesCamExist||hash==CameraN::DestroyCam||hash==CameraN::ClearFocus;
+ std::array<std::uint64_t,4> Invoke(std::uint64_t hash,const std::vector<std::uint64_t>& input){
+  const bool cleanup=hash==CameraN::RenderScriptCams||hash==CameraN::DoesCamExist||hash==CameraN::DestroyCam||hash==CameraN::ClearFocus||hash==Hash("END_FIND_VEHICLE");
   if((nativeFault&&!cleanup)||input.size()>32)throw std::runtime_error("Execucao de natives indisponivel");
   auto it=handlers.find(hash);auto handler=it==handlers.end()?SelectNative(hash,[](std::uint64_t h){return SafeResolve(resolve,h);},[](std::uint64_t h){return SafeCustom(resolveCustom,h);}):it->second;
   if(!handler)throw std::runtime_error(MissingNative(hash));
   handlers[hash]=handler;std::array<std::uint64_t,32> arguments{};std::array<std::uint64_t,4> result{};
   std::copy(input.begin(),input.end(),arguments.begin());Context context{};context.result=result.data();context.count=static_cast<std::uint32_t>(input.size());context.arguments=arguments.data();
   DWORD fault=0;
-  if(!SafeHandler(&handler,&context,&fault)){nativeFault=true;throw std::runtime_error(FailedNative(hash,fault));}return result[0];
+  if(!SafeHandler(&handler,&context,&fault)){nativeFault=true;throw std::runtime_error(FailedNative(hash,fault));}return result;
  }
+ std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{return Invoke(hash,input)[0];}
+ Vec Vector(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{return DecodeNativeVector(Invoke(hash,input));}
 };
-Api api;Actions actions(api);NativeCamera cameraActions(api);
+Api api;Actions actions(api);NativeCamera cameraActions(api);NativeVehicleTransfer vehicleTransfer(api);
 void Publish(const Reply& reply){shared->reply=reply;MemoryBarrier();Store(shared->commandState,Done);}
 void Failure(const char* text){Copy(shared->error,sizeof(shared->error),text);MemoryBarrier();Store(shared->service,-1);}
 void OnReset(){
  if(!shared)return;
  const auto state=ReadState(shared->commandState);
  if(state==Busy||state==Ready){Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),"Sessao reiniciada; acao cancelada");Publish(r);}
- actions.Reset();cameraActions.Reset();api.Clear();Store(shared->rpgState,0);Store(shared->cameraState,0);
+ actions.Reset();vehicleTransfer.Reset();cameraActions.Reset();api.Clear();Store(shared->rpgState,0);Store(shared->cameraState,0);
 }
 void Tick(){
  if(!shared||ReadState(shared->service)!=1)return;
  try{
   Frame frame{};if(!FrameSnapshot(frame))frame={};const auto now=GetTickCount64();
-  if(!Fresh(frame,now)&&!actions.Pending()&&actions.rpgState==0&&!cameraActions.Active())return;
-  if(!actions.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
+  if(!Fresh(frame,now)&&!actions.Pending()&&!vehicleTransfer.Pending()&&actions.rpgState==0&&!cameraActions.Active())return;
+  if(!actions.Pending()&&!vehicleTransfer.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
    Command command=shared->command;MemoryBarrier();
    if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
    else if(command.action==Action::StartCamera||command.action==Action::StopCamera||command.action==Action::ObservePlayer)Publish(cameraActions.Submit(command,frame,now));
+   else if(command.action==Action::TransferVehicles)vehicleTransfer.Submit(command,frame,now);
    else{
     if(command.action==Action::Model||command.action==Action::Restore||command.action==Action::CloneAppearance||command.action==Action::StopAll)cameraActions.Stop();
     actions.Submit(command,now);
@@ -86,10 +90,13 @@ void Tick(){
   }
   actions.Tick(frame,now,static_cast<std::uint64_t>(InterlockedCompareExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),0,0)));
   cameraActions.Tick(frame,now);Store(shared->cameraState,cameraActions.State());
+  vehicleTransfer.Tick(frame,now,static_cast<std::uint64_t>(InterlockedCompareExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),0,0)));
+  if(vehicleTransfer.hasReply){Publish(vehicleTransfer.reply);vehicleTransfer.hasReply=false;}
   Store(shared->rpgState,actions.rpgState);
   if(actions.hasReply){Publish(actions.reply);actions.hasReply=false;}
  }catch(const std::exception& error){
   try{cameraActions.Stop();}catch(...){}Store(shared->cameraState,0);
+  vehicleTransfer.Reset();
   Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),error.what());Publish(r);
   if(nativeFault){Failure(error.what());Store(shared->rpgState,0);}else{
    // Drop the operation before accepting another request; never report an exception as success.
