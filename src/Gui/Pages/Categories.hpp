@@ -18,8 +18,8 @@ inline void Cars() {
     else if(carTab==4)ExtraPages::Render(1);else BridgePages::Render(2);
 }
 inline void Players() {
-    Tab("ESP",0,playerTab,false); Tab("Lista e ações",1,playerTab,true); Tab("Radar e extras",2,playerTab,true);
-    if (playerTab == 0) Visuals::Render(0); else if(playerTab==1) World::Render(0); else ExtraPages::Render(3);
+    Tab("ESP",0,playerTab,false); Tab("Radar e extras",1,playerTab,true);
+    if (playerTab == 0) Visuals::Render(0); else ExtraPages::Render(3);
 }
 inline void Weapons() {
     Tab("Ajustes",0,weaponTab,false); Tab("Catálogo",1,weaponTab,true); Tab("Extras",2,weaponTab,true);

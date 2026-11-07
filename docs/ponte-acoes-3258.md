@@ -3,7 +3,7 @@
 ## Menus
 - Personagem → Modelos: modelos de ped/animais, nome personalizado e restauração da aparência original.
 - Personagem → Animações: dicionário/clip, repetição e parada.
-- Jogadores → Lista e ações: Clonar aparência do jogador selecionado; o comando antigo Copiar roupa permanece separado.
+- Teleportar → Jogadores: Ir ate o jogador, Puxar jogador, Observar jogador e Clonar aparencia, nessa ordem. A aba Lista e acoes foi removida da categoria Jogadores.
 - Carro → Gerar: modelo, entrada no veículo e solicitação opcional em rede.
 - Mira silenciosa: Silent RPG sem equipar a arma, disparado no alvo válido dentro do FOV com o botão esquerdo; desativa a mira silenciosa padrão enquanto ativo.
 
@@ -45,3 +45,5 @@ Observar jogador tambem usa a camera nativa da ponte: o alvo e localizado pelo I
 Copiar Discord e Copiar Steam tambem foram removidos da interface.
 
 Chuva de carros e Enviar veiculos ao jogador agora enumeram os veiculos por natives CFX, usam os natives de transformacao/fisica e verificam a posicao 100 ms depois. A operacao e limitada a dez veiculos vazios num raio de 200 m. Entidades de rede sem controle do cliente sao ignoradas; nao ha tentativa de forcar propriedade. A resposta informa confirmados localmente, sem controle, ocupados, fora de alcance e nao confirmados. O iterador e fechado mesmo em caso de falha. Uma confirmacao local nao garante permanencia no servidor. Referencia da enumeracao: https://github.com/citizenfx/fivem/blob/master/code/components/extra-natives-five/src/PoolTraversalNatives.cpp .
+
+Todas as acoes da lista de jogadores ficam em Teleportar/Jogadores. A categoria Jogadores apresenta apenas ESP e Radar e extras. A opcao Parar observacao aparece depois de Clonar aparencia enquanto a observacao estiver ativa.
