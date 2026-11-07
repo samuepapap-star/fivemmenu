@@ -56,6 +56,7 @@ inline void Render(int section){
   ImGui::TextDisabled("Arraste o radar enquanto o menu estiver aberto.");
   ImGui::SliderFloat("Tamanho dos textos ESP",&TextSize,8.f,24.f,"%.0f px");ImGui::SliderFloat("Espessura do esqueleto",&SkeletonWidth,0.5f,5.f,"%.1f");
   ImGui::SliderFloat("Espessura das caixas",&BoxWidth,0.5f,4.f,"%.1f");ImGui::Combo("Fonte do ESP",&Font,"Atual\0Fonte do menu\0Compacta\0");
+  Custom::CheckBox("Brilho ao redor do jogador",&PlayerGlow);
   Custom::CheckBox("Icone da arma",&WeaponIcon);
   Custom::CheckBox("Chapeu conico (China Hat)",&ChinaHat);if(ChinaHat)ImGui::SliderFloat("Tamanho do chapeu",&HatSize,0.1f,1.f,"%.2f");
   Custom::CheckBox("Aviso de possiveis invisiveis",&InvisibleWarning);

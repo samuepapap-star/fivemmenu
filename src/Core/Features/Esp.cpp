@@ -139,6 +139,11 @@ void Core::Features::cEsp::Draw( )
 
 
 
+        if (ExtraSettings::PlayerGlow) {
+            const ImU32 color = IsFriend ? static_cast<ImU32>(ImColor(g_Col.Base))
+                                         : ImGui::GetColorU32(Cfg->BoxCol.Value);
+            DrawList->AddShadowRect(BoxMin, BoxMax, color, 50.f, ImVec2(0, 0));
+        }
         if (possibleNoclip) {
             const char * label = "Possivel noclip";
             const ImVec2 textSize = ImGui::CalcTextSize(label);
