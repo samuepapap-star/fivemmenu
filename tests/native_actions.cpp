@@ -6,7 +6,7 @@
 #include <limits>
 using namespace MenuBridge;
 struct Fake:NativeApi{
- int player=1,next=100,sets=0,clones=0,shots=0,enters=0,releases=0,animations=0;
+ int player=1,next=100,sets=0,clones=0,shots=0,enters=0,releases=0,animations=0,modelRequests=0;
  bool loaded=false,inVehicle=false,attached=false,playing=false,validModel=true,denyChange=false;
  std::unordered_map<int,std::uint32_t> entities{{1,Hash("mp_m_freemode_01")},{2,Hash("s_m_y_cop_01")}};
  std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& a)override{
@@ -20,6 +20,7 @@ struct Fake:NativeApi{
   if(hash==N::Attached)return attached;
   if(hash==N::Dead)return 0;
   if(hash==N::ModelLoaded||hash==N::AnimLoaded)return loaded;
+  if(hash==N::RequestModel){modelRequests++;return 0;}
   if(hash==N::ClonePed){entities[next]=entities.at(entity());return static_cast<std::uint64_t>(next++);}
   if(hash==N::SetPlayerModel){sets++;if(!denyChange){player=next++;entities[player]=static_cast<std::uint32_t>(a.at(1));}return 0;}
   if(hash==N::CloneToTarget){clones++;return 0;}
@@ -75,6 +76,7 @@ int main(){
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);actions.Tick(FrameAt(17000),17000,0);assert(!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Restore),1000);assert(!actions.reply.success);}
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.sets==1&&api.clones==1&&api.entities.at(api.player)==Hash("s_m_y_cop_01"));}
+ {Fake api;api.entities[2]=api.entities[1];Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);assert(actions.hasReply&&actions.reply.success&&!actions.Pending()&&api.sets==0&&api.clones==1&&api.modelRequests==0&&api.releases==0);c=Cmd(Action::Restore);c.id=2;actions.Submit(c,1100);assert(actions.reply.success&&api.clones==2&&api.sets==0&&api.modelRequests==0&&api.releases==0);}
  {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);api.entities.erase(2);api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=9999;actions.Submit(c,1000);assert(actions.hasReply&&!actions.reply.success&&api.sets==0);}
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");c.flags=2;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&actions.reply.value==50&&api.enters==1);}

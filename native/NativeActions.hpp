@@ -84,6 +84,12 @@ public:
    Finish(false,"Modelo invalido para esta acao");return;
   }
   if(command.action!=Action::SpawnVehicle){EnsureBackup(ped);oldHealth=static_cast<int>(Call(N::GetHealth,{static_cast<std::uint64_t>(ped)}));oldArmor=static_cast<int>(Call(N::GetArmor,{static_cast<std::uint64_t>(ped)}));}
+  if((command.action==Action::CloneAppearance||command.action==Action::Restore)&&Call(N::EntityModel,{static_cast<std::uint64_t>(ped)})==model){
+   // Clothing/props on the same base model do not require destroying the player ped.
+   Call(N::CloneToTarget,{static_cast<std::uint64_t>(command.action==Action::Restore?backup:cloneSource),static_cast<std::uint64_t>(ped)});
+   if(command.action==Action::Restore)Delete(backup);
+   model=0;Finish(true,command.action==Action::Restore?"Aparencia original restaurada sem trocar o modelo":"Aparencia copiada sem trocar o modelo do personagem");return;
+  }
   Call(N::RequestModel,{model});
  }
  void Tick(const Frame& f,std::uint64_t now,std::uint64_t cancelled){

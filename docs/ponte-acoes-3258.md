@@ -26,3 +26,5 @@ A ponte não é um executor Lua genérico. A aceitação de modelo, animação e
 Referências de interface: https://github.com/citizenfx/fivem/blob/master/code/components/citizen-resources-core/include/ResourceManager.h e https://github.com/citizenfx/fivem/blob/master/code/components/rage-scripting-five/include/scrEngine.h .
 
 A interface CfxThread importada e documentada em https://github.com/citizenfx/fivem/blob/master/code/components/rage-scripting-five/include/scrThread.h ; sua implementacao em https://github.com/citizenfx/fivem/blob/master/code/components/rage-scripting-five/src/scrThread.cpp configura a thread ativa durante DoRun. A biblioteca de importacao e gerada a partir dos nomes exportados, sem enderecos internos fixos.
+
+Quando o modelo base do alvo ja e o mesmo do personagem, a clonagem copia os componentes e aderecos diretamente, preservando o ped. A restauracao no mesmo modelo tambem evita REQUEST_MODEL e SET_PLAYER_MODEL; modelos diferentes continuam pelo carregamento assincrono na thread propria.
