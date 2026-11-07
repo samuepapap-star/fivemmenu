@@ -1,4 +1,5 @@
 #pragma once
+#include <Bridge/Features.hpp>
 #include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/WorldClock.hpp>
@@ -11,12 +12,7 @@ inline void Render(int section){
  ImGui::BeginChild("Extras##Organized",ImVec2(704,440),false,0);
  ImGui::PushID(section);
  if(section==0){
-  ImGui::TextDisabled("Personagem / movimento e recuperacao");
-  Custom::CheckBox("Regenerar vida enquanto vivo",&RegenHealth);
-  Custom::CheckBox("Regenerar colete",&RegenArmor);
-  if(Custom::Button("Zerar vida do personagem",ImVec2(-1,30),0)){auto ped=Extras::Player();if(ped)ped->SetHealth(0.f);}
-  static float maximum=200;ImGui::SliderFloat("Vida maxima",&maximum,100.f,1000.f,"%.0f");
-  if(Custom::Button("Aplicar vida maxima",ImVec2(-1,30),0))Extras::SetMaximumHealth(maximum);
+  ImGui::TextDisabled("Personagem / movimento e camera");
   Custom::CheckBox("Super pulo",&SuperJump);Custom::CheckBox("Pulo da besta",&BeastJump);
   Custom::CheckBox("Bloquear mira assistida local",&BlockAim);
   Custom::CheckBox("Modo passivo local",&PassiveTargeting);
@@ -25,11 +21,12 @@ inline void Render(int section){
    Custom::CheckBox("Combat Glitch (giro no rolamento)",&CombatGlitch);
    if(CombatGlitch)ImGui::TextWrapped("Gira durante 800 ms apos mirar + Espaco, enquanto estiver no chao.");
   }
-  if(Custom::Button(ExtraCamera::freecam?"Parar camera livre":"Camera livre independente",ImVec2(-1,30),0)){if(ExtraCamera::freecam)ExtraCamera::Stop();else ExtraCamera::Start();}
-  ImGui::SliderFloat("Velocidade da camera",&ExtraCamera::speed,1.f,50.f,"%.0f m/s");
+  if(Custom::Button(BridgeFeatures::cameraRequested||MenuBridge::Connection().CameraState()?"Parar camera livre":"Camera livre independente",ImVec2(-1,30),0))BridgeFeatures::ToggleCamera();
+  ImGui::SliderFloat("Velocidade da camera livre",&ExtraCamera::speed,1.f,50.f,"%.0f m/s");
   Custom::CheckBox("Alterar distancia da camera",&CameraDistanceEnabled);
   if(CameraDistanceEnabled)ImGui::SliderFloat("Afastamento da camera",&CameraDistancePercent,0.f,100.f,"%.0f%%");
-  ImGui::TextWrapped("%s",ExtraCamera::status);
+  ImGui::TextWrapped("Camera livre: feche o menu; WASD, mouse, Espaco/Ctrl; Shift acelera; Esc encerra.");
+  BridgeFeatures::Status();
   ImGui::TextWrapped("%s",Extras::status);
  }
  if(section==1){

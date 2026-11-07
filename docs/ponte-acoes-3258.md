@@ -28,3 +28,14 @@ Referências de interface: https://github.com/citizenfx/fivem/blob/master/code/c
 A interface CfxThread importada e documentada em https://github.com/citizenfx/fivem/blob/master/code/components/rage-scripting-five/include/scrThread.h ; sua implementacao em https://github.com/citizenfx/fivem/blob/master/code/components/rage-scripting-five/src/scrThread.cpp configura a thread ativa durante DoRun. A biblioteca de importacao e gerada a partir dos nomes exportados, sem enderecos internos fixos.
 
 Quando o modelo base do alvo ja e o mesmo do personagem, a clonagem copia os componentes e aderecos diretamente, preservando o ped. A restauracao no mesmo modelo tambem evita REQUEST_MODEL e SET_PLAYER_MODEL; modelos diferentes continuam pelo carregamento assincrono na thread propria.
+
+## Atualizacao de interface, veiculos e camera livre
+O menu aberto recebe foco e usa as mensagens normais do teclado; o encaminhamento global de teclas foi removido. Ha seletores por mouse para veiculos e animacoes, mantendo os campos personalizados editaveis.
+
+A geracao de veiculo informa modelo e modo quando CREATE_VEHICLE retorna zero, solicita uma entidade vinculada ao script e aguarda ate dois segundos se um handle ainda nao estiver visivel. Nao ha repeticao automatica nem troca silenciosa do modo em rede para local. O servidor pode recusar entidades criadas pelo cliente, conforme https://docs.fivem.net/docs/scripting-reference/onesync/ .
+
+A camera livre em Personagem/Extras agora usa uma camera propria, por natives, na CfxThread da ponte. Nao depende da assinatura de codigo da camera antiga. Feche o menu para mover: WASD, mouse, Espaco/Ctrl; Shift dobra a velocidade; Esc encerra. O slider em m/s controla apenas o deslocamento da camera livre. A distancia da camera existente permanece independente. A camera criada e destruida pela ponte, e o foco de streaming e restaurado ao parar ou perder o heartbeat. NoClip e sem colisao devem estar desativados.
+
+O protocolo IPC passou para a versao 3. Substitua o EXE e a DLL juntos e reinicie completamente o FiveM. As novas alteracoes ainda precisam de confirmacao em jogo.
+
+Os controles de regeneracao de vida/colete, zerar vida e aplicar vida maxima foram movidos de Extras para Geral, logo abaixo de Restaurar vida e colete, em uma coluna.

@@ -147,9 +147,10 @@ public:
  bool Busy(){std::lock_guard<std::mutex> lock(mutex);return working;}
  std::string Status(){std::lock_guard<std::mutex> lock(mutex);return status;}
  int RpgState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->rpgState):0;}
+ int CameraState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->cameraState):0;}
  void Cancel(){std::lock_guard<std::mutex> lock(mutex);if(shared)InterlockedExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),static_cast<LONG64>(shared->command.id));}
  void Stop(){
-  {std::lock_guard<std::mutex> lock(mutex);stop=true;if(shared){InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->frameSequence));MemoryBarrier();shared->frame.rpg=0;shared->frame.input=0;MemoryBarrier();InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->frameSequence));InterlockedExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),static_cast<LONG64>(shared->command.id));}wake.notify_all();}
+  {std::lock_guard<std::mutex> lock(mutex);stop=true;if(shared){InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->frameSequence));MemoryBarrier();shared->frame.rpg=0;shared->frame.input=0;shared->frame.camera=0;shared->frame.cameraMoves=0;MemoryBarrier();InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->frameSequence));InterlockedExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),static_cast<LONG64>(shared->command.id));}wake.notify_all();}
   if(worker.joinable())worker.join();
   std::lock_guard<std::mutex> lock(mutex);if(shared){UnmapViewOfFile(shared);shared=nullptr;}if(mapping){CloseHandle(mapping);mapping=nullptr;}
  }

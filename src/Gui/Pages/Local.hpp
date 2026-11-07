@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/SelfGodMode.hpp>
 #include <Includes/includes.hpp>
 #include <windows.h>
@@ -72,6 +73,17 @@ namespace Local {
                         }
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Restaura a vida maxima e 100 de colete. Nao e uma funcao de reviver.");
+
+                        Custom::CheckBox("Regenerar vida enquanto vivo", &ExtraSettings::RegenHealth);
+                        Custom::CheckBox("Regenerar colete", &ExtraSettings::RegenArmor);
+                        if (Custom::Button("Zerar vida do personagem", ImVec2(-1,30),0)) {
+                            auto ped=Core::Features::Extras::Player();if(ped)ped->SetHealth(0.f);
+                        }
+                        static float extraMaximumHealth=200.f;
+                        ImGui::SliderFloat("Vida maxima",&extraMaximumHealth,100.f,1000.f,"%.0f");
+                        if(Custom::Button("Aplicar vida maxima",ImVec2(-1,30),0))
+                            Core::Features::Extras::SetMaximumHealth(extraMaximumHealth);
+
 
 						if ( Custom::CheckBoxCfg( xorstr( "God em si mesmo" ), &g_Config.Player->EnableGodMode, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->GodModeKey, &KeyMode ); }, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{

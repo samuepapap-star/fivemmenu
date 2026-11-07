@@ -4,6 +4,7 @@
 #include <initializer_list>
 #include <stdexcept>
 #include <algorithm>
+#include "NativeApi.hpp"
 
 namespace MenuBridge {
 namespace N {
@@ -22,11 +23,11 @@ constexpr std::uint64_t PlayerId=0x4F8644AF03D0E0D6,PlayerPed=0xD80958FC74E988A6
  RequestWeapon=0x5443438F033E29C3,WeaponLoaded=0x36E353271F0E90EE,ReleaseWeapon=0xAA08EF13F341C8FC,
  ShootBullet=0x867654CBC7606F2C;
 }
-struct NativeApi {virtual ~NativeApi()=default;virtual std::uint64_t Call(std::uint64_t,const std::vector<std::uint64_t>&)=0;};
 class Actions {
  NativeApi& api;Command command{};bool pending=false,animConfirm=false,animRequested=false;std::uint64_t deadline=0,animDeadline=0;
  std::uint32_t model=0;int cloneSource=0,backup=0,expectedPed=0,oldHealth=0,oldArmor=0;
  bool weaponRequested=false;std::uint64_t lastShot=0;
+ int spawned=0;bool spawnStarted=false;std::uint64_t spawnDeadline=0;
  std::uint64_t Call(std::uint64_t hash,std::initializer_list<std::uint64_t> args={}){return api.Call(hash,std::vector<std::uint64_t>(args));}
  bool Exists(int entity){return entity>0&&Call(N::EntityExists,{static_cast<std::uint64_t>(entity)})!=0;}
  void Delete(int& entity){if(Exists(entity))Call(N::DeleteEntity,{reinterpret_cast<std::uint64_t>(&entity)});entity=0;}
@@ -48,20 +49,24 @@ class Actions {
  void Release(){
   if(model)Call(N::ReleaseModel,{model});
   if(animRequested)Call(N::ReleaseAnim,{reinterpret_cast<std::uint64_t>(command.text)});
-  model=0;pending=false;animConfirm=false;animRequested=false;
+  model=0;pending=false;animConfirm=false;animRequested=false;spawned=0;spawnStarted=false;
  }
  void Finish(bool ok,const std::string& text,std::uint32_t value=0){
   reply={};reply.id=command.id;reply.success=ok?1u:0u;reply.value=value;Copy(reply.message,sizeof(reply.message),text);hasReply=true;Release();
+ }
+ void ConfirmVehicle(int ped){
+  if(command.flags&2u)Call(N::EnterVehicle,{static_cast<std::uint64_t>(ped),static_cast<std::uint64_t>(spawned),static_cast<std::uint64_t>(-1)});
+  Finish(true,std::string(command.flags&1u?"Veiculo em rede confirmado: ":"Veiculo local confirmado: ")+command.text,static_cast<std::uint32_t>(spawned));
  }
 public:
  Reply reply{};bool hasReply=false;int rpgState=0;
  explicit Actions(NativeApi& native):api(native){}
  bool Pending()const{return pending;}
- void Reset(){pending=false;animConfirm=false;animRequested=false;model=0;backup=0;expectedPed=0;weaponRequested=false;hasReply=false;rpgState=0;}
+ void Reset(){pending=false;animConfirm=false;animRequested=false;model=0;backup=0;expectedPed=0;weaponRequested=false;hasReply=false;rpgState=0;spawned=0;spawnStarted=false;}
  void Abort(const std::string& message){if(pending)Finish(false,message);}
  void Submit(const Command& value,std::uint64_t now){
   if(pending)throw std::runtime_error("Outra acao esta em andamento");
-  command=value;hasReply=false;model=0;animConfirm=false;animRequested=false;
+  command=value;hasReply=false;model=0;animConfirm=false;animRequested=false;spawned=0;spawnStarted=false;
   if(!Valid(value)){Finish(false,"Pedido invalido");return;}
   pending=true;deadline=now+15000;
   int ped=static_cast<int>(Call(N::PlayerPed));
@@ -79,6 +84,7 @@ public:
    case Action::StopAnimation:Call(N::ClearTasks,{static_cast<std::uint64_t>(ped)});Finish(true,"Animacao interrompida");return;
    case Action::StopAll:if(weaponRequested)Call(N::ReleaseWeapon,{Hash("WEAPON_RPG")});weaponRequested=false;rpgState=0;Finish(true,"Acoes continuas interrompidas");return;
    case Action::Connect:Finish(true,"Ponte pronta");return;
+   case Action::StartCamera:case Action::StopCamera:Finish(false,"Comando de camera deve ser tratado pela ponte");return;
   }
   if(!Call(N::ModelValid,{model})||!Call(command.action==Action::SpawnVehicle?N::ModelVehicle:N::ModelPed,{model})){
    Finish(false,"Modelo invalido para esta acao");return;
@@ -98,6 +104,10 @@ public:
   if(expectedPed&&ped!=expectedPed&&!pending){Delete(backup);expectedPed=ped;}
   if(pending){
    if(cancelled==command.id||now>=deadline||!fresh||!Exists(ped)){Finish(false,"Acao cancelada ou tempo de carregamento esgotado");}
+   else if(command.action==Action::SpawnVehicle&&spawnStarted){
+    if(Exists(spawned))ConfirmVehicle(ped);
+    else if(now>=spawnDeadline)Finish(false,"Veiculo recebeu handle, mas nao apareceu em 2 segundos; sem nova tentativa automatica");
+   }
    else if(command.action==Action::Animation){
     if(animConfirm){if(Call(N::PlayingAnim,{static_cast<std::uint64_t>(ped),reinterpret_cast<std::uint64_t>(command.text),reinterpret_cast<std::uint64_t>(command.text2),3}))Finish(true,"Animacao confirmada");else if(now>=animDeadline)Finish(false,"Animacao nao confirmada pelo jogo");}
     else if(Call(N::AnimLoaded,{reinterpret_cast<std::uint64_t>(command.text)})){
@@ -106,9 +116,9 @@ public:
    }else if(Call(N::ModelLoaded,{model})){
     if(command.action==Action::SpawnVehicle){
      const float heading=AsFloat(Call(N::Heading,{static_cast<std::uint64_t>(ped)}));
-     int car=static_cast<int>(Call(N::CreateVehicle,{model,Float(f.position.x+f.forward.x*5),Float(f.position.y+f.forward.y*5),Float(f.position.z+0.3f),Float(heading),(command.flags&1u)?1u:0u,0,0}));
-     if(!Exists(car))Finish(false,"O jogo nao confirmou a criacao do veiculo");
-     else{if(command.flags&2u)Call(N::EnterVehicle,{static_cast<std::uint64_t>(ped),static_cast<std::uint64_t>(car),static_cast<std::uint64_t>(-1)});Finish(true,(command.flags&1u)?"Veiculo criado; sincronizacao depende do servidor":"Veiculo local criado",static_cast<std::uint32_t>(car));}
+     spawned=static_cast<int>(Call(N::CreateVehicle,{model,Float(f.position.x+f.forward.x*5),Float(f.position.y+f.forward.y*5),Float(f.position.z+0.3f),Float(heading),(command.flags&1u)?1u:0u,1,0}));
+     if(spawned<=0)Finish(false,std::string("CREATE_VEHICLE retornou 0 para ")+command.text+((command.flags&1u)?" (rede). Teste desmarcando a opcao em rede; a sessao pode recusar entidades.":" (local). O jogo nao criou a entidade."));
+     else{spawnStarted=true;spawnDeadline=now+2000;if(Exists(spawned))ConfirmVehicle(ped);}
     }else if(Call(N::InVehicle,{static_cast<std::uint64_t>(ped),0})||Call(N::Attached,{static_cast<std::uint64_t>(ped)})){
      Finish(false,"Troca de modelo cancelada: personagem entrou em veiculo ou foi vinculado");
     }else{

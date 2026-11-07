@@ -8,6 +8,7 @@ using namespace MenuBridge;
 struct Fake:NativeApi{
  int player=1,next=100,sets=0,clones=0,shots=0,enters=0,releases=0,animations=0,modelRequests=0;
  bool loaded=false,inVehicle=false,attached=false,playing=false,validModel=true,denyChange=false;
+ bool denyVehicle=false,delayVehicle=false;int vehicleCalls=0,vehicleNetwork=-1,vehicleMission=-1;
  std::unordered_map<int,std::uint32_t> entities{{1,Hash("mp_m_freemode_01")},{2,Hash("s_m_y_cop_01")}};
  std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& a)override{
   auto entity=[&](){return static_cast<int>(a.at(0));};
@@ -31,7 +32,7 @@ struct Fake:NativeApi{
   if(hash==N::PlayerPedByIndex)return 2;
   if(hash==Hash("GET_PLAYER_FROM_SERVER_ID"))return a.at(0)==5137?1:static_cast<std::uint64_t>(-1);
   if(hash==N::Heading)return Float(90);
-  if(hash==N::CreateVehicle){assert(a.size()==8);assert(AsFloat(a.at(1))==10.f);entities[50]=static_cast<std::uint32_t>(a.at(0));return 50;}
+  if(hash==N::CreateVehicle){assert(a.size()==8);assert(AsFloat(a.at(1))==10.f);vehicleCalls++;vehicleNetwork=static_cast<int>(a.at(5));vehicleMission=static_cast<int>(a.at(6));if(denyVehicle)return 0;if(!delayVehicle)entities[50]=static_cast<std::uint32_t>(a.at(0));return 50;}
   if(hash==N::EnterVehicle){enters++;return 0;}
   if(hash==N::ReleaseModel||hash==N::ReleaseAnim){releases++;return 0;}
   if(hash==N::PlayAnim){animations++;playing=true;return 0;}
@@ -80,6 +81,10 @@ int main(){
  {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);api.entities.erase(2);api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=9999;actions.Submit(c,1000);assert(actions.hasReply&&!actions.reply.success&&api.sets==0);}
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");c.flags=2;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&actions.reply.value==50&&api.enters==1);}
+ {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"sultan");actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.vehicleCalls==1&&api.vehicleNetwork==0&&api.vehicleMission==1&&api.entities.at(50)==Hash("sultan"));}
+ {Fake api;api.loaded=true;api.denyVehicle=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"zentorno");c.flags=1;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.vehicleCalls==1&&api.vehicleNetwork==1&&std::string(actions.reply.message).find("zentorno")!=std::string::npos&&std::string(actions.reply.message).find("rede")!=std::string::npos);}
+ {Fake api;api.loaded=true;api.delayVehicle=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.Pending()&&api.vehicleCalls==1);api.entities[50]=Hash("adder");actions.Tick(FrameAt(1200),1200,0);assert(actions.reply.success&&api.vehicleCalls==1);}
+ {Fake api;api.loaded=true;api.delayVehicle=true;Actions actions(api);actions.Submit(Cmd(Action::SpawnVehicle,"adder"),1000);actions.Tick(FrameAt(1100),1100,0);actions.Tick(FrameAt(3200),3200,0);assert(!actions.Pending()&&!actions.reply.success&&api.vehicleCalls==1);}
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::Animation,"missminuteman_1ig_2");Copy(c.text2,sizeof(c.text2),"handsup_base");actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.Pending()&&api.animations==1);actions.Tick(FrameAt(1200),1200,0);assert(actions.reply.success);}
  {Fake api;Actions actions(api);auto f=FrameAt(1000);f.input=f.rpg=f.shoot=f.targetValid=1;f.target={100,100,10};actions.Tick(f,1000,0);assert(api.shots==1);f.heartbeat=1100;actions.Tick(f,1100,0);assert(api.shots==1);f.heartbeat=1800;actions.Tick(f,1800,0);assert(api.shots==2);actions.Tick(f,4000,0);assert(api.shots==2&&actions.rpgState==0);}
  {auto f=FrameAt(1000);f.position.x=std::numeric_limits<float>::quiet_NaN();assert(!Fresh(f,1000));assert(!Fresh(FrameAt(1001),1000));}

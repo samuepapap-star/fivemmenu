@@ -21,13 +21,20 @@ inline void Render(int section){
  if(section==1){
   ImGui::TextDisabled("Personagem / animacoes");
   static char dictionary[96]="missminuteman_1ig_2",animation[96]="handsup_base";static bool loop=true;
+  static int selectedAnimation=0;
+  const char* dictionaries[]={"missminuteman_1ig_2","anim@mp_player_intcelebrationmale@thumbs_up","anim@mp_player_intcelebrationmale@salute","anim@mp_player_intcelebrationmale@face_palm","amb@world_human_hang_out_street@male_c@idle_a"};
+  const char* clips[]={"handsup_base","thumbs_up","salute","face_palm","idle_a"};
+  if(ImGui::Combo("Escolher animacao",&selectedAnimation,"Maos ao alto\0Positivo\0Continencia\0Mao no rosto\0Esperar\0")){MenuBridge::Copy(dictionary,sizeof(dictionary),dictionaries[selectedAnimation]);MenuBridge::Copy(animation,sizeof(animation),clips[selectedAnimation]);}
   ImGui::InputText("Dicionario",dictionary,sizeof(dictionary));ImGui::InputText("Animacao",animation,sizeof(animation));Custom::CheckBox("Repetir",&loop);
   if(Custom::Button("Reproduzir animacao",ImVec2(-1,33),0))BridgeFeatures::Animate(dictionary,animation,loop);
   if(Custom::Button("Parar animacao",ImVec2(-1,33),0))BridgeFeatures::StopAnimation();
  }
  if(section==2){
   ImGui::TextDisabled("Carro / gerar veiculo");static char model[96]="adder";static bool network=false,enter=true;
-  ImGui::InputText("Nome do veiculo",model,sizeof(model));Custom::CheckBox("Solicitar veiculo em rede",&network);Custom::CheckBox("Entrar no veiculo gerado",&enter);
+  static int preset=0;const char* models[]={"adder","zentorno","t20","sultan","blista","bati","faggio","bmx"};
+  if(ImGui::Combo("Escolher veiculo",&preset,"Adder\0Zentorno\0T20\0Sultan\0Blista\0Bati 801\0Faggio\0BMX\0"))MenuBridge::Copy(model,sizeof(model),models[preset]);
+  ImGui::SetNextItemWidth(360);ImGui::InputText("Nome personalizado",model,sizeof(model));
+  Custom::CheckBox("Solicitar veiculo em rede",&network);Custom::CheckBox("Entrar no veiculo gerado",&enter);
   if(Custom::Button("Gerar veiculo",ImVec2(-1,33),0))BridgeFeatures::Spawn(model,network,enter);
   ImGui::TextWrapped("Sem rede, o veiculo e local. Em rede, a permanencia e sincronizacao dependem do servidor.");
  }

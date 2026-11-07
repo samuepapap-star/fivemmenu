@@ -19,20 +19,6 @@ namespace Gui
 {
 	typedef HWND( WINAPI * CreateWindowInBand )( _In_ DWORD dwExStyle, _In_opt_ ATOM atom, _In_opt_ LPCWSTR lpWindowName, _In_ DWORD dwStyle, _In_ int X, _In_ int Y, _In_ int nWidth, _In_ int nHeight, _In_opt_ HWND hWndParent, _In_opt_ HMENU hMenu, _In_opt_ HINSTANCE hInstance, _In_opt_ LPVOID lpParam, DWORD band );
 
-	inline HHOOK hKeyboardHook;
-
-	inline LRESULT CALLBACK KeyboardCallBack( int nCode, WPARAM wParam, LPARAM lParam )
-	{
-		if ( nCode >= 0 )
-		{
-		//	if ( GetForegroundWindow( ) == g_Variables.g_hCheatWindow )
-			//{
-				KBDLLHOOKSTRUCT * pKeyboard = ( KBDLLHOOKSTRUCT * ) lParam;
-				PostMessage( g_Variables.g_hCheatWindow, wParam, pKeyboard->vkCode, 0 );
-			//}
-		}
-		return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam );
-	}
 
 	void Overlay::Render( )
 	{
@@ -78,9 +64,7 @@ namespace Gui
 		ImGui_ImplWin32_Init( g_Variables.g_hCheatWindow );
 		ImGui_ImplDX11_Init( g_pd3dDevice, g_pd3dDeviceContext );
 
-#ifdef FULLSCREEN_EX
-		hKeyboardHook = SetWindowsHookEx( WH_KEYBOARD_LL, KeyboardCallBack, NULL, 0 );
-#endif // FULLSCREEN_EX
+
 
 		Core::StartThreads( );
 		if ( !Core::ThreadsStarted ) return;
@@ -92,7 +76,7 @@ namespace Gui
 
 		while ( Message.message != WM_QUIT )
 		{
-			if ( PeekMessage( &Message, g_Variables.g_hCheatWindow, 0, 0, PM_REMOVE ) ) {
+			while ( PeekMessage( &Message, g_Variables.g_hCheatWindow, 0, 0, PM_REMOVE ) ) {
 				TranslateMessage( &Message );
 				DispatchMessage( &Message );
 			}
@@ -106,18 +90,28 @@ namespace Gui
                 (ActiveWindow == g_Variables.g_hGameWindow ||
                  ActiveWindow == g_Variables.g_hCheatWindow)) {
                 g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
+
+            }
+            menuKeyWasDown = menuKeyDown;
+            static bool inputStateInitialized=false,lastMenuOpen=false;
+            if(!inputStateInitialized||lastMenuOpen!=g_MenuInfo.IsOpen){
 #ifdef FULLSCREEN_EX
-                const LONG openStyle = WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+                const LONG openStyle = WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
 #else
                 const LONG openStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW;
 #endif
                 const LONG closedStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
                 SetWindowLong(g_Variables.g_hCheatWindow, GWL_EXSTYLE,
                     g_MenuInfo.IsOpen ? openStyle : closedStyle);
-                if (!g_MenuInfo.IsOpen && ActiveWindow == g_Variables.g_hCheatWindow)
+                if (g_MenuInfo.IsOpen) {
+                    SetForegroundWindow(g_Variables.g_hCheatWindow);
+                    SetFocus(g_Variables.g_hCheatWindow);
+                } else if (ActiveWindow == g_Variables.g_hCheatWindow) {
                     SetForegroundWindow(g_Variables.g_hGameWindow);
+                }
+                lastMenuOpen=g_MenuInfo.IsOpen;inputStateInitialized=true;
             }
-            menuKeyWasDown = menuKeyDown;
+
 
 			static float BgAlpha = 0.f;
 			BgAlpha = ImLerp( BgAlpha, g_MenuInfo.IsOpen ? 1.f : 0.f, ImGui::GetIO( ).DeltaTime * 8 );
@@ -160,9 +154,7 @@ namespace Gui
 		DestroyWindow( g_Variables.g_hCheatWindow );
 		UnregisterClassW( wc.lpszClassName, wc.hInstance );
 
-#ifdef FULLSCREEN_EX
-		UnhookWindowsHookEx( hKeyboardHook );
-#endif // FULLSCREEN_EX
+
 		return;
 	}
 
