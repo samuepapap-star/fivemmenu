@@ -1,4 +1,5 @@
 #pragma once
+#include <Bridge/Features.hpp>
 #include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/SelfGodMode.hpp>
 #include <Includes/includes.hpp>
@@ -292,8 +293,10 @@ namespace Local {
 
 						if ( Custom::Button( xorstr( "Reparar veículo" ), ImVec2( -1, 33 ), 0 ) )
 						{
-							CurrentVehicle->Fix( );
-						}
+							BridgeFeatures::RepairVehicle( );
+                            }
+                            BridgeFeatures::Status();
+
                         ImGui::BeginDisabled(!InVehicle || !CurrentVehicle || g_Config.Player->VehicleGodMode);
                         if (Custom::Button("Destruir veículo atual", ImVec2(-1,33), 0)) {
                             const std::string result = Core::Features::CarreraAdditions::DestroyCurrentVehicle();

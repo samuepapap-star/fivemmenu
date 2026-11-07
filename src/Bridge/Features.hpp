@@ -37,6 +37,7 @@ inline void Restore(){MenuBridge::Command c{};c.action=MenuBridge::Action::Resto
 inline void Clone(int serverId){MenuBridge::Command c{};c.action=MenuBridge::Action::CloneAppearance;c.targetServerId=static_cast<std::uint64_t>(serverId);Submit(c,true);}
 inline void Spawn(const char* model,bool network,bool enter){MenuBridge::Command c{};c.action=MenuBridge::Action::SpawnVehicle;c.flags=(network?1u:0u)|(enter?2u:0u);MenuBridge::Copy(c.text,sizeof(c.text),model);Submit(c);}
 inline void TransferVehicles(int serverId,bool rain){MenuBridge::Command c{};c.action=MenuBridge::Action::TransferVehicles;c.targetServerId=static_cast<std::uint64_t>(serverId);c.flags=rain?1u:0u;Submit(c);}
+inline void RepairVehicle(){MenuBridge::Command c{};c.action=MenuBridge::Action::RepairVehicle;Submit(c);}
 inline void LoadVehicleCatalog(){MenuBridge::Command c{};c.action=MenuBridge::Action::VehicleCatalog;Submit(c);}
 inline void Animate(const char* dictionary,const char* animation,bool loop){MenuBridge::Command c{};c.action=MenuBridge::Action::Animation;c.flags=loop?1u:0u;MenuBridge::Copy(c.text,sizeof(c.text),dictionary);MenuBridge::Copy(c.text2,sizeof(c.text2),animation);Submit(c);}
 inline void StopAnimation(){MenuBridge::Command c{};c.action=MenuBridge::Action::StopAnimation;Submit(c);}
@@ -93,4 +94,3 @@ inline void Status(){
 }
 inline void EnableRpg(){MenuBridge::Command c{};c.action=MenuBridge::Action::Connect;if(!Submit(c))silentRpg=false;}
 }
-

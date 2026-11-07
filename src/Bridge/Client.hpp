@@ -150,16 +150,16 @@ public:
  int RpgState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->rpgState):0;}
  int CameraState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->cameraState):0;}
  std::uint64_t CatalogToken(){std::lock_guard<std::mutex> lock(mutex);return shared?(static_cast<std::uint64_t>(pid)<<32)|static_cast<std::uint32_t>(State(shared->catalogSequence)):0;}
- std::vector<std::string> Models(){
+ std::vector<VehicleModel> Models(){
   std::lock_guard<std::mutex> lock(mutex);if(!shared)return {};
   for(int retry=0;retry<3;retry++){
    const auto before=State(shared->catalogSequence);if(before&1)continue;MemoryBarrier();
    const auto count=shared->catalogCount;if(count>catalogMax)return {};
-   std::vector<std::string> result;result.reserve(count);
+   std::vector<VehicleModel> result;result.reserve(count);
    for(std::size_t i=0;i<count;i++){
     char name[catalogNameBytes]{};std::memcpy(name,shared->catalogNames[i],sizeof(name));
     const char* end=static_cast<const char*>(std::memchr(name,0,sizeof(name)));
-    if(!end)return {};result.emplace_back(name,static_cast<std::size_t>(end-name));
+    if(!end)return {};const auto vehicleClass=shared->catalogClasses[i];result.push_back({std::string(name,static_cast<std::size_t>(end-name)),vehicleClass<=22?static_cast<int>(vehicleClass):-1});
    }
    MemoryBarrier();if(before==State(shared->catalogSequence))return result;
   }return {};
@@ -173,4 +173,3 @@ public:
 };
 inline Client& Connection(){static Client value;return value;}
 }
-

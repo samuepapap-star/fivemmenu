@@ -8,10 +8,16 @@ using namespace MenuBridge;
 struct Fake:NativeApi{
  int player=1,next=100,sets=0,clones=0,shots=0,enters=0,releases=0,animations=0,modelRequests=0;
  bool loaded=false,inVehicle=false,attached=false,playing=false,validModel=true,denyChange=false;
+ int repairs=0;bool networked=false,controlled=true,repairDenied=false;int brokenDoors=2;
  bool denyVehicle=false,delayVehicle=false;int vehicleCalls=0,vehicleNetwork=-1,vehicleMission=-1;
  std::unordered_map<int,std::uint32_t> entities{{1,Hash("mp_m_freemode_01")},{2,Hash("s_m_y_cop_01")}};
  std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& a)override{
   auto entity=[&](){return static_cast<int>(a.at(0));};
+  if(hash==N::CurrentVehicle)return inVehicle?50u:0u;
+  if(hash==N::Networked)return networked;
+  if(hash==N::HasControl)return controlled;
+  if(hash==N::FixVehicle){repairs++;if(!repairDenied)brokenDoors=0;return 0;}
+  if(hash==N::DoorDamaged)return a.at(1)<static_cast<std::uint64_t>(brokenDoors);
   if(hash==N::PlayerPed)return static_cast<std::uint64_t>(player);
   if(hash==N::PlayerId)return 0;
   if(hash==N::EntityExists)return entities.count(entity());
@@ -88,5 +94,8 @@ int main(){
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::Animation,"missminuteman_1ig_2");Copy(c.text2,sizeof(c.text2),"handsup_base");actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.Pending()&&api.animations==1);actions.Tick(FrameAt(1200),1200,0);assert(actions.reply.success);}
  {Fake api;Actions actions(api);auto f=FrameAt(1000);f.input=f.rpg=f.shoot=f.targetValid=1;f.target={100,100,10};actions.Tick(f,1000,0);assert(api.shots==1);f.heartbeat=1100;actions.Tick(f,1100,0);assert(api.shots==1);f.heartbeat=1800;actions.Tick(f,1800,0);assert(api.shots==2);actions.Tick(f,4000,0);assert(api.shots==2&&actions.rpgState==0);}
  {auto f=FrameAt(1000);f.position.x=std::numeric_limits<float>::quiet_NaN();assert(!Fresh(f,1000));assert(!Fresh(FrameAt(1001),1000));}
+ {Fake api;Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success&&api.repairs==0);}
+ {Fake api;api.inVehicle=true;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(actions.reply.success&&api.repairs==1&&api.brokenDoors==0);}
+ {Fake api;api.inVehicle=true;api.networked=true;api.controlled=false;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success&&api.repairs==0&&api.brokenDoors==2);}
+ {Fake api;api.inVehicle=true;api.repairDenied=true;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success&&api.repairs==1&&api.brokenDoors==2);}
 }
-

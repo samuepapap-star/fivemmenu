@@ -1,4 +1,4 @@
-#include "../src/Bridge/ModelCatalog.hpp"
+#include "../src/Bridge/VehicleCategories.hpp"
 #include <cassert>
 using namespace MenuBridge;
 std::vector<std::uint8_t> Pack(const std::vector<std::string>& names){
@@ -14,5 +14,14 @@ int main(){
  assert(Rejected({0x91,0xa5,'a'}));assert(Rejected({0x91,0x01}));assert(Rejected({0x90,0}));assert(Rejected({0xdd,0,1,0,0}));assert(Rejected({0x91,0xdb,255,255,255,255}));
  {std::vector<std::string> input;for(std::size_t i=0;i<catalogMax+10;i++)input.push_back("car_"+std::to_string(i));auto b=Pack(input);auto n=ParseModelCatalog(b.data(),b.size());assert(n.size()==catalogMax);}
  {Command c{};c.id=1;c.action=Action::SpawnVehicle;Copy(c.text,sizeof(c.text),"rmod-x6");assert(Valid(c));c.action=Action::VehicleCatalog;assert(Valid(c));}
+ {const auto a=ParseVehicleAssignments("# servidor\ncustom_car;vip\ncustom_bike;policia\nmed;ambulancia\narmy;exercito\nfamily_car;geral\n");
+ assert(GroupFor({"custom_car",7},a)==VehicleGroup::Vip);assert(GroupFor({"family_car",7},a)==VehicleGroup::General);
+ assert(GroupFor({"unknown_vip",7},a)==VehicleGroup::General);assert(GroupFor({"police",18},a)==VehicleGroup::Police);
+ assert(GroupFor({"ambulance",18},a)==VehicleGroup::Ambulance);assert(GroupFor({"custom_emergency",18},a)==VehicleGroup::Emergency);
+ assert(GroupFor({"tank",19},a)==VehicleGroup::Army);assert(GroupFor({"police",18},ParseVehicleAssignments("police;geral"))==VehicleGroup::General);
+ assert(VehicleCategoryMatches({"custom_bike",8},2,3,a));assert(!VehicleCategoryMatches({"custom_bike",8},1,3,a));
+ assert(VehicleCategoryMatches({"custom_car",7},1,2,a));assert(!VehicleCategoryMatches({"custom_car",7},1,3,a));}
+ assert(VehicleTypeMatches(8,2)&&!VehicleTypeMatches(8,1));assert(VehicleTypeMatches(13,3)&&VehicleTypeMatches(15,3)&&VehicleTypeMatches(-1,3));
+ for(int c=0;c<=22;c++){int matches=0;for(int type=1;type<=3;type++)if(VehicleTypeMatches(c,type))matches++;assert(matches==1);}
+ for(const auto& text:{"bad", "car;vip;policia", "car;invalid", "bad code;vip", "car;vip\nCAR;geral"}){bool rejected=false;try{ParseVehicleAssignments(text);}catch(const std::runtime_error&){rejected=true;}assert(rejected);}
 }
-

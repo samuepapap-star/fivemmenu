@@ -22,6 +22,9 @@ constexpr std::uint64_t PlayerId=0x4F8644AF03D0E0D6,PlayerPed=0xD80958FC74E988A6
  PlayAnim=0xEA47FE3719165B94,PlayingAnim=0x1F0B79228E461EC9,ClearTasks=0xE1EF3C1216AFF2CD,
  RequestWeapon=0x5443438F033E29C3,WeaponLoaded=0x36E353271F0E90EE,ReleaseWeapon=0xAA08EF13F341C8FC,
  ShootBullet=0x867654CBC7606F2C;
+constexpr std::uint64_t CurrentVehicle=0x9A9112A0FE9A4713,FixVehicle=0x115722B1B9C14C1C,FixDeformation=0x953DA1E1B12C0491,
+ EngineHealth=0x45F6D8EEF34ABEF1,BodyHealth=0xB77D05AC8C78AADB,Undriveable=0x8ABA6AF54B942B95,DoorDamaged=0xB8E181E559464527,
+ Networked=0xC7827959479DCC78,HasControl=0x01BF60A500E28887;
 }
 class Actions {
  NativeApi& api;Command command{};bool pending=false,animConfirm=false,animRequested=false;std::uint64_t deadline=0,animDeadline=0;
@@ -83,6 +86,16 @@ public:
    case Action::Animation:Call(N::RequestAnim,{reinterpret_cast<std::uint64_t>(command.text)});animRequested=true;return;
    case Action::StopAnimation:Call(N::ClearTasks,{static_cast<std::uint64_t>(ped)});Finish(true,"Animacao interrompida");return;
    case Action::StopAll:if(weaponRequested)Call(N::ReleaseWeapon,{Hash("WEAPON_RPG")});weaponRequested=false;rpgState=0;Finish(true,"Acoes continuas interrompidas");return;
+   case Action::RepairVehicle:{
+    const auto vehicle=Call(N::CurrentVehicle,{static_cast<std::uint64_t>(ped),0});
+    if(!vehicle||!Call(N::EntityExists,{vehicle})){Finish(false,"Entre no veiculo para reparar");return;}
+    if(Call(N::Networked,{vehicle})&&!Call(N::HasControl,{vehicle})){Finish(false,"O cliente nao controla este veiculo; reparo nao aplicado");return;}
+    // Health alone does not restore detached doors; use the full repair native.
+    Call(N::EngineHealth,{vehicle,Float(1000.f)});Call(N::FixVehicle,{vehicle});Call(N::FixDeformation,{vehicle});
+    Call(N::BodyHealth,{vehicle,Float(1000.f)});Call(N::Undriveable,{vehicle,0});
+    int damaged=0;for(std::uint64_t door=0;door<8;door++)if(Call(N::DoorDamaged,{vehicle,door}))damaged++;
+    Finish(damaged==0,damaged?"Reparo aplicado, mas "+std::to_string(damaged)+" portas continuam danificadas localmente":"Reparo aplicado; portas sem dano confirmado localmente");return;
+   }
    case Action::Connect:Finish(true,"Ponte pronta");return;
    case Action::StartCamera:case Action::StopCamera:case Action::ObservePlayer:case Action::TransferVehicles:case Action::VehicleCatalog:Finish(false,"Comando deve ser tratado pela ponte");return;
   }
@@ -148,4 +161,3 @@ public:
  }
 };
 }
-

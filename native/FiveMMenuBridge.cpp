@@ -76,10 +76,10 @@ public:
 Api api;Actions actions(api);NativeCamera cameraActions(api);NativeVehicleTransfer vehicleTransfer(api);
 void Publish(const Reply& reply){shared->reply=reply;MemoryBarrier();Store(shared->commandState,Done);}
 void Failure(const char* text){Copy(shared->error,sizeof(shared->error),text);MemoryBarrier();Store(shared->service,-1);}
-void WriteCatalog(const std::vector<std::string>& models){
+void WriteCatalog(const std::vector<std::string>& models,const std::vector<std::uint8_t>& classes={}){
  InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->catalogSequence));MemoryBarrier();
  const auto count=(std::min)(models.size(),catalogMax);
- for(std::size_t i=0;i<count;i++)Copy(shared->catalogNames[i],catalogNameBytes,models[i]);
+ for(std::size_t i=0;i<count;i++){Copy(shared->catalogNames[i],catalogNameBytes,models[i]);shared->catalogClasses[i]=i<classes.size()?classes[i]:static_cast<std::uint8_t>(255);}
  shared->catalogCount=static_cast<std::uint32_t>(count);MemoryBarrier();
  InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->catalogSequence));
 }
@@ -100,9 +100,12 @@ void Tick(){
    else if(command.action==Action::StartCamera||command.action==Action::StopCamera||command.action==Action::ObservePlayer)Publish(cameraActions.Submit(command,frame,now));
    else if(command.action==Action::TransferVehicles)vehicleTransfer.Submit(command,frame,now);
    else if(command.action==Action::VehicleCatalog){
-    auto models=api.Strings(Hash("GET_ALL_VEHICLE_MODELS"),{});WriteCatalog(models);
+    auto models=api.Strings(Hash("GET_ALL_VEHICLE_MODELS"),{});
+    std::vector<std::uint8_t> classes(models.size(),255);bool classified=true;
+    for(std::size_t i=0;i<models.size();i++){try{const auto value=api.Call(0xDEDF1C8BD47C2200ULL,{Hash(models[i].c_str())});classes[i]=value<=22?static_cast<std::uint8_t>(value):static_cast<std::uint8_t>(255);}catch(const std::exception&){if(nativeFault)throw;classified=false;break;}}
+    WriteCatalog(models,classes);
     Reply reply{};reply.id=command.id;reply.success=models.empty()?0u:1u;reply.value=static_cast<std::uint32_t>(models.size());
-    Copy(reply.message,sizeof(reply.message),"Lista atualizada: "+std::to_string(models.size())+" modelos registrados, incluindo originais e personalizados.");Publish(reply);
+    Copy(reply.message,sizeof(reply.message),"Lista atualizada: "+std::to_string(models.size())+(classified?" modelos com classes do jogo.":" modelos; classificacao parcial indisponivel."));Publish(reply);
    }
    else{
     if(command.action==Action::Model||command.action==Action::Restore||command.action==Action::CloneAppearance||command.action==Action::StopAll)cameraActions.Stop();
@@ -185,4 +188,3 @@ extern "C" __declspec(dllexport) DWORD WINAPI FiveMMenuBridgeStart(void*){
  __except(EXCEPTION_EXECUTE_HANDLER){if(shared)Failure("Nao foi possivel validar a interface do runtime");return 0;}
 }
 BOOL WINAPI DllMain(HINSTANCE module,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH)DisableThreadLibraryCalls(module);return TRUE;}
-
