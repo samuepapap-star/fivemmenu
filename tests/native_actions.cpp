@@ -1,4 +1,5 @@
 #include "../native/NativeActions.hpp"
+#include "native_hashes_reference.hpp"
 #include "../native/NativeDispatch.hpp"
 #include <cassert>
 #include <unordered_map>
@@ -60,6 +61,8 @@ int main(){
   actions.Tick(FrameAt(1100),1100,0);assert(api.sets==0);api.loaded=true;actions.Tick(FrameAt(1200),1200,0);assert(actions.reply.success&&api.sets==1);
   auto restore=Cmd(Action::Restore);restore.id=2;actions.Submit(restore,1300);actions.Tick(FrameAt(1400),1400,0);assert(actions.reply.success&&api.clones==1&&api.entities.at(api.player)==Hash("mp_m_freemode_01"));}
  {Fake api;api.inVehicle=true;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);assert(!actions.reply.success&&!actions.Pending()&&api.sets==0);}
+ {Fake api;api.attached=true;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);assert(actions.hasReply&&!actions.reply.success&&!actions.Pending()&&api.sets==0);}
+ {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);api.attached=true;api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(actions.hasReply&&!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);api.inVehicle=true;api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.sets==0);}
  {Fake api;api.loaded=true;api.denyChange=true;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);actions.Tick(FrameAt(1100),1100,1);assert(!actions.Pending()&&!actions.reply.success&&api.sets==0);}
