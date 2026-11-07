@@ -42,7 +42,7 @@ inline void Render(int section){
   const auto& models=registered.empty()?defaults:registered;
   const auto filter=MenuBridge::LowerModel(search);std::vector<std::size_t> filtered;
   ImGui::SetNextItemWidth(-1);
-  if(ImGui::BeginCombo("##registered_vehicles",model)){
+  if(ImGui::BeginCombo("##registered_vehicles",model,0)){
    for(std::size_t i=0;i<models.size();i++)if(models[i].find(filter)!=std::string::npos)filtered.push_back(i);
    ImGuiListClipper clipper;clipper.Begin(static_cast<int>(filtered.size()));
    while(clipper.Step())for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;i++){
@@ -60,4 +60,3 @@ inline void Render(int section){
  Footer();ImGui::PopID();ImGui::EndChild();
 }
 }
-
