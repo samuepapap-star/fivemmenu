@@ -171,33 +171,6 @@ namespace World {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::VehiclesToPlayer(
                                     reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             }
-							if (actionMode == 0 && Custom::Button( xorstr( "Copiar Discord" ), ImVec2( -1, 30 ), 0 ) )
-							{
-								std::string PlayerDiscord = SelectedPed.NetworkInfo.DiscordId;
-								if ( PlayerDiscord.empty( ) )
-								{
-									std::thread( [ ] ( ) { NotifyManager::Send( xorstr( "ID do Discord não encontrado." ), 4000 ); } ).detach( );
-								}
-								else
-								{
-									std::thread( [ ] ( ) { NotifyManager::Send( xorstr( "ID do Discord copiado!" ), 4000 ); } ).detach( );
-									Utils::PasteClipboard( PlayerDiscord.c_str( ) );
-								}
-							}
-							if (actionMode == 0 && Custom::Button( xorstr( "Copiar Steam" ), ImVec2( -1, 30 ), 0 ) )
-							{
-								std::string PlayerSteam = SelectedPed.NetworkInfo.SteamId;
-								if ( PlayerSteam.empty( ) )
-								{
-									std::thread( [ ] ( ) { NotifyManager::Send( xorstr( "ID da Steam não encontrado." ), 4000 ); } ).detach( );
-								}
-								else
-								{
-									std::thread( [ ] ( ) { NotifyManager::Send( xorstr( "ID da Steam copiado!" ), 4000 ); } ).detach( );
-									Utils::PasteClipboard( PlayerSteam.c_str( ) );
-								}
-							}
-
 							ImGui::PopStyleVar( );
 						}
 					}
