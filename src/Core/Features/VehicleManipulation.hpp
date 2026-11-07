@@ -2,9 +2,12 @@
 #include <Core/SDK/SDK.hpp>
 #include <Core/Threads/VehicleList.hpp>
 #include <cmath>
+#include <thread>
+#include <chrono>
+#include <Core/Features/XrcVehiclePull.hpp>
 
-// HyperX single-vehicle pull + SHARK overhead grab movement.
-// No network ownership edits, driver ejection, protection patches or native injection.
+// XRC Updated vehicle pull + SHARK overhead grab movement.
+// XRC pull uses its game network-control fields; no driver ejection or native injection.
 namespace Core { namespace Features { namespace VehicleManipulation {
 inline bool enabled = false;
 inline float height = 5.f, throwSpeed = 60.f;
@@ -75,11 +78,17 @@ inline const char* Pull(uintptr_t vehicle, int slot = 0) {
         reinterpret_cast<uintptr_t>(SDK::Pointers::pLocalPlayer->GetLastVehicle()) == vehicle)
         return "Saia do veiculo antes de puxa-lo";
     if (held == vehicle) Release();
-    // Leave clearance from the character, unlike HyperX's exact overlap.
     const float side = (slot % 2 ? -1.f : 1.f) * ((slot + 1) / 2) * 4.f;
-    const D3DXVECTOR3 target(pos.x + f.x*5.f - f.y*side,
-        pos.y + f.y*5.f + f.x*side, pos.z + 0.5f);
-    return Move(vehicle, target) ? "Posicao local do carro atualizada" : "Falha ao puxar o carro";
+    // Preserve clearance for multi-pull; the selected car lands close to the character.
+    const D3DXVECTOR3 target(pos.x + f.x*3.f - f.y*side,
+        pos.y + f.y*3.f + f.x*side, pos.z + 0.5f);
+    auto reader=[](uintptr_t a,auto& v){return Read(a,v);};
+    auto writer=[](uintptr_t a,const auto& v){return Write(a,v);};
+    const bool applied=XrcVehiclePull::Apply(vehicle,ped,target,reader,writer,[](){
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    });
+    return applied ? "XRC: posicao confirmada neste instante; sincronizacao ainda nao validada"
+                   : "XRC: falha ao aplicar ou confirmar movimento do carro";
 }
 inline void PullFive() {
     std::vector<uintptr_t> targets;
