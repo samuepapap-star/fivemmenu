@@ -1,4 +1,6 @@
 #pragma once
+#include <Core/ExtensionSettings.hpp>
+#include <Core/Threads/EntityList.hpp>
 #include <Includes/Includes.hpp>
 #include <Includes/Utils.hpp>
 #include <Core/SDK/SDK.hpp>
@@ -118,20 +120,36 @@ public:
         auto local=SDK::Pointers::pLocalPlayer;
         if(!local){Restore();Status(1);return;}
         D3DXVECTOR3 target{};
-        float closest=float(cfg->FOV);
+        float closest=1.f;
         bool found=false;
         // SHARK-style selection: apply FOV, visibility and distance per target.
-        for(const auto& entity:SDK::Game::EntityList) {
+        std::vector<SDK::Game::EntityStruct> extraTargets;
+        {std::lock_guard<std::mutex> lock(Core::Threads::g_EntityList.EntityListMutex);extraTargets=SDK::Game::EntityList;}
+        for(const auto& entity:extraTargets) {
             if(!entity.Ped || entity.Ped==local || entity.IsFriend || entity.Health<=101.f ||
                 entity.Distance>cfg->MaxDistance || (cfg->IgnoreNPCs && entity.PedType!=2) ||
                 (cfg->OnlyVisible && !entity.Ped->IsVisible()))continue;
-            const auto bone=entity.Ped->GetBonePosDefault(0);
+            if(ExtraSettings::SilentForceDriver){
+                if(!entity.Ped->InVehicle())continue;
+                auto car=entity.Ped->GetLastVehicle();if(!car||car->GetDriver()!=entity.Ped)continue;
+            }
+            const int extraBones[]={0,7,6};
+            auto bone=entity.Ped->GetBonePosDefault(extraBones[ImClamp(ExtraSettings::SilentHitbox,0,2)]);
+            if(ExtraSettings::SilentPrediction){
+                D3DXVECTOR3 velocity{};
+                if(Read((uintptr_t)entity.Ped+0x320,&velocity,sizeof(velocity))&&SharkSilentPatch::Sane(velocity)&&
+                    std::abs(velocity.x)<150.f&&std::abs(velocity.y)<150.f&&std::abs(velocity.z)<150.f)
+                    bone+=velocity*ImClamp(ExtraSettings::PredictionSeconds,0.f,0.3f);
+            }
             if(!SharkSilentPatch::Sane(bone) || (bone.x==0 && bone.y==0 && bone.z==0))continue;
             const auto screen=SDK::Game::WorldToScreen(bone);
             if(!std::isfinite(screen.x)||!std::isfinite(screen.y)||screen.x<=0||screen.y<=0||
                 screen.x>=g_Variables.g_vGameWindowSize.x || screen.y>=g_Variables.g_vGameWindowSize.y)continue;
             const float distance=std::hypot(screen.x-g_Variables.g_vGameWindowCenter.x,screen.y-g_Variables.g_vGameWindowCenter.y);
-            if(distance<closest){closest=distance;target=bone;found=true;}
+            float allowed=float(cfg->FOV);
+            if(ExtraSettings::SilentDynamicFov)allowed=ImClamp(float(cfg->FOV)*40.f/(std::max)(entity.Distance,1.f),float((std::min)(ExtraSettings::SilentMinFov,cfg->FOV)),float(cfg->FOV));
+            const float score=allowed>0?distance/allowed:2.f;
+            if(score<closest){closest=score;target=bone;found=true;}
         }
         if(!found){Restore();Status(1);return;}
         if(cfg->MissChance>0 && Utils::GenRandomInt(0,99)<cfg->MissChance)target.z+=0.4f;
@@ -144,3 +162,4 @@ public:
 };
 inline cSharkSilentState g_SharkSilentState;
 }}
+

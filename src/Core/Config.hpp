@@ -2,6 +2,7 @@
 #include <Includes/Includes.hpp>
 #include <Includes/Utils.hpp>
 #include <iostream>
+#include <Core/ExtensionSettings.hpp>
 #include <cmath>
 
 namespace Core {
@@ -330,7 +331,8 @@ namespace Core {
                 FeaturesCfg["Player"]["InvisibleEnabled"] = Player->InvisibleEnabled;
 				FeaturesCfg[ xorstr( "Player" ) ][ xorstr( "GodModeKey" ) ] = Player->GodModeKey;
 
-				std::string CfgJsonStr = CfgJson.dump( );
+				CfgJson["Extensions"] = ExtraSettings::Save();
+                std::string CfgJsonStr = CfgJson.dump( );
 
 				return Utils::EncodeB64(Utils::Str2Hex(Utils::EncodeB64(CfgJsonStr)));
 			}
@@ -482,7 +484,8 @@ namespace Core {
 
 				ESP->UpdateCfgESP = true;
 
-				return xorstr( "Config loaded with success." );
+				if(CfgJson.contains("Extensions")) ExtraSettings::Load(CfgJson["Extensions"]);
+                return xorstr( "Config loaded with success." );
 			}
 			catch ( const std::exception & e ) {
 				//std::cout << e.what() << "\n";

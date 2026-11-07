@@ -51,10 +51,12 @@ inline void Tick(bool restore = false) {
     weaponRange.Apply(weapon ? weapon + 0x28C : 0, ready && cfg->WeaponRangeEnabled && RangeBuildSupported(),
         ImClamp(cfg->WeaponRange, 1.f, 1000.f), 0.f, 10000.f);
     if (ready && cfg->Crosshair) {
-        auto draw = ImGui::GetBackgroundDrawList();
-        const auto c = g_Variables.g_vGameWindowCenter;
-        draw->AddLine(ImVec2(c.x - 5, c.y), ImVec2(c.x + 5, c.y), IM_COL32(255,255,255,255));
-        draw->AddLine(ImVec2(c.x, c.y - 5), ImVec2(c.x, c.y + 5), IM_COL32(255,255,255,255));
+        auto draw=ImGui::GetBackgroundDrawList();const auto c=g_Variables.g_vGameWindowCenter;
+        const float size=ExtraSettings::CrossSize,width=ExtraSettings::CrossWidth;
+        const ImU32 col=ImGui::ColorConvertFloat4ToU32(ExtraSettings::CrossColor);
+        if(ExtraSettings::CrossType==0||ExtraSettings::CrossType==3){draw->AddLine(ImVec2(c.x-size,c.y),ImVec2(c.x+size,c.y),col,width);draw->AddLine(ImVec2(c.x,c.y-size),ImVec2(c.x,c.y+size),col,width);}
+        if(ExtraSettings::CrossType==1||ExtraSettings::CrossType==3)draw->AddCircleFilled(ImVec2(c.x,c.y),width+1,col);
+        if(ExtraSettings::CrossType==2)draw->AddCircle(ImVec2(c.x,c.y),size,col,32,width);
     }
 }
 }}}

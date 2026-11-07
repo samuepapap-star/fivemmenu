@@ -151,24 +151,27 @@ inline void Tick(bool stop = false) {
     if (stop || !enabled || !Player(ped, pos)) {
         Release(enabled && !stop ? "Personagem indisponivel" : "Desativado"); keyLatch = true; return;
     }
-    if (GetForegroundWindow() != g_Variables.g_hGameWindow) {
+    DWORD foregroundPid=0; GetWindowThreadProcessId(GetForegroundWindow(),&foregroundPid);
+    if (GetForegroundWindow() != g_Variables.g_hGameWindow &&
+        !(g_MenuInfo.IsOpen && foregroundPid==GetCurrentProcessId())) {
         Release("Solto ao sair da janela do jogo"); keyLatch = true; return;
     }
     if (held && (!HeldValid(ped) || SDK::Pointers::pLocalPlayer->InVehicle())) {
         Release("Veiculo ou personagem mudou");
     }
-    if (g_MenuInfo.IsOpen) { keyLatch = true; return; }
-    const bool key = (GetAsyncKeyState('Y') & 0x8000) != 0;
-    if (GetAsyncKeyState('X') & 0x8000) Release();
+    const bool menuOpen=g_MenuInfo.IsOpen;
+    if(menuOpen) keyLatch=true;
+    const bool key = !menuOpen && (GetAsyncKeyState('Y') & 0x8000) != 0;
+    if (!menuOpen && (GetAsyncKeyState('X') & 0x8000)) Release();
     else if (key && !keyLatch) {
         if (held) Throw();
         else if (!Grab(AimedVehicle())) status = "Nenhum carro valido na mira a ate 200 m";
     }
-    keyLatch = key;
+    if(!menuOpen) keyLatch = key;
     if (!held) return;
     const float dt = ImClamp(ImGui::GetIO().DeltaTime, 0.f, 0.05f);
-    if (GetAsyncKeyState(VK_UP) & 0x8000) height += dt*6.f;
-    if (GetAsyncKeyState(VK_DOWN) & 0x8000) height -= dt*6.f;
+    if (!menuOpen && (GetAsyncKeyState(VK_UP) & 0x8000)) height += dt*6.f;
+    if (!menuOpen && (GetAsyncKeyState(VK_DOWN) & 0x8000)) height -= dt*6.f;
     height = ImClamp(height, 3.f, 30.f);
     D3DXVECTOR3 current;
     if (!Read(held + 0x90, current) || !Sane(current)) { Release("Leitura do carro falhou"); return; }

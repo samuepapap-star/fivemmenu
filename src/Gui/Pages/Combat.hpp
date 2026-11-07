@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/ExtensionSettings.hpp>
 #include <Core/Features/SilentAim.hpp>
 #include <Includes/Includes.hpp>
 #include <windows.h>
@@ -114,6 +115,7 @@ namespace Combat {
 						}
 
 						Custom::CheckBox( xorstr( "Tiro inteligente" ), &g_Config.TriggerBot->SmartTrigger );
+                        ImGui::Combo("Regiao do tiro automatico",&ExtraSettings::TriggerHitbox,"Cabeca\0Pescoco\0Tronco\0");
 						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.TriggerBot->OnlyVisible );
 						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.TriggerBot->IgnoreNPCs );
 					}
@@ -160,7 +162,13 @@ namespace Combat {
 					ImGui::BeginChild( xorstr( "Ajustes" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::SliderInt( xorstr( "Campo de visão" ), &g_Config.SilentAim->FOV, 0, 400, xorstr( "%d" ), 0 );
-						ImGui::SliderInt( xorstr( "Chance de errar" ), &g_Config.SilentAim->MissChance, 0, 100, xorstr( "%dx" ), 0 );
+						ImGui::Combo("Regiao da mira silenciosa",&ExtraSettings::SilentHitbox,"Cabeca\0Pescoco\0Tronco\0");
+                        Custom::CheckBox("Predicao da mira silenciosa",&ExtraSettings::SilentPrediction);
+                        if(ExtraSettings::SilentPrediction)ImGui::SliderFloat("Antecipacao",&ExtraSettings::PredictionSeconds,0.f,0.3f,"%.2f s");
+                        Custom::CheckBox("Priorizar somente motoristas",&ExtraSettings::SilentForceDriver);
+                        Custom::CheckBox("FOV dinamico",&ExtraSettings::SilentDynamicFov);
+                        if(ExtraSettings::SilentDynamicFov)ImGui::SliderInt("FOV minimo",&ExtraSettings::SilentMinFov,1,g_Config.SilentAim->FOV);
+                        ImGui::SliderInt( xorstr( "Chance de errar" ), &g_Config.SilentAim->MissChance, 0, 100, xorstr( "%dx" ), 0 );
 						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.SilentAim->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
 						static int KeyMode = 1;
 						ImGui::Keybind( xorstr( "Tecla" ), &g_Config.SilentAim->KeyBind, &KeyMode );
@@ -182,4 +190,5 @@ namespace Combat {
 		ImGui::PopStyleVar( );
 	}
 }
+
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
 #include <Core/Features/VehicleManipulation.hpp>
 #include <Includes/includes.hpp>
@@ -152,6 +153,12 @@ namespace World {
 							//if ( Custom::Button( xorstr( "Observar" ), ImVec2( -1, 30 ), 0 ) ) 
 							//{
 							//}
+                            if(actionMode==0&&Custom::Button("Puxar jogador",ImVec2(-1,30),0))NotifyManager::Send(Core::Features::Extras::PullPlayer(reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
+                            if(actionMode==0&&Custom::Button("Observar jogador",ImVec2(-1,30),0)) {
+                                Core::Features::ExtraCamera::Start(reinterpret_cast<uintptr_t>(SelectedPed.Ped));
+                                NotifyManager::Send(Core::Features::ExtraCamera::status,4000);
+                            }
+                            if(actionMode==0&&Core::Features::ExtraCamera::target&&Custom::Button("Parar observacao",ImVec2(-1,30),0))Core::Features::ExtraCamera::Stop();
                             if(actionMode == 0 && Custom::Button("Copiar roupa",ImVec2(-1,30),0)) {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::CopyClothes(
                                     reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
@@ -330,4 +337,5 @@ namespace World {
 
 	}
 }
+
 

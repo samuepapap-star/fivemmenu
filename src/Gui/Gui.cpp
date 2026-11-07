@@ -1,4 +1,6 @@
 #include "Gui.hpp"
+#include <Core/Features/ExtraFeatures.hpp>
+#include <Core/Features/ExtraCamera.hpp>
 
 #include <Includes/CustomWidgets/Custom.hpp>
 #include <Includes/CustomWidgets/WaterMarks.hpp>
@@ -53,12 +55,17 @@ void Gui::Rendering( )
     }
     Core::Features::CarreraAdditions::TickCollision();
     ClientState::Tick();
+    Core::Features::Extras::Tick();
+    Core::Features::ExtraCamera::Tick();
+    Core::Features::Extras::DrawRadar();
     Core::Features::VehicleManipulation::Tick();
     Core::Features::NoclipVisibility::Tick();
     Core::Features::SelfGodMode::Tick();
     AdminList::Draw();
+    Core::Features::Extras::DrawWarnings();
     Core::Features::ExternalCameraOptions::Tick();
     g_Col.Base=g_Config.General->MenuAccent;
+    Core::Features::Extras::DrawMenuEffects();
     g_Col.ButtonHovered=ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);
 
 	if ( !g_MenuInfo.IsLogged )
@@ -144,7 +151,7 @@ void Gui::Rendering( )
 				Visuals::Render( );
 				break;
 			case g_MenuInfo.Local:
-				Local::Render(0);
+				Categories::Personagem();
 				break;
 			case g_MenuInfo.World:
 				World::Render( );
@@ -157,7 +164,7 @@ void Gui::Rendering( )
             case g_MenuInfo.Weapons: Categories::Weapons(); break;
             case g_MenuInfo.Teleports: Categories::Teleports(); break;
 			case g_MenuInfo.Settings:
-				Settings::Render( );
+				Categories::Settings();
 				break;
 
 			}
@@ -310,6 +317,8 @@ void Gui::Rendering( )
                 Core::Features::SelfGodMode::Tick(true);
                 Core::Features::ExternalCameraOptions::Tick(true);
                 Core::Features::VehicleManipulation::Tick(true);
+                Core::Features::ExtraCamera::Tick(true);
+                Core::Features::Extras::Tick(true);
                 ExitProcess( 0 );
 			}
 

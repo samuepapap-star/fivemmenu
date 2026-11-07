@@ -7,6 +7,7 @@
 
 #include <Core/Core.hpp>
 #include <Gui/AdminList.hpp>
+#include <Core/ExtensionSettings.hpp>
 
 using namespace std;
 
@@ -147,6 +148,8 @@ namespace Visuals {
 					{
 						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.VehicleESP->Enabled );
 						Custom::CheckBox( xorstr( "Nomes dos veículos" ), &g_Config.VehicleESP->VehName );
+                        Custom::CheckBox("Marcador nos veiculos",&ExtraSettings::VehicleMarker);
+                        Custom::CheckBox("Ignorar veiculos ocupados",&ExtraSettings::IgnoreOccupied);
 						Custom::CheckBox( xorstr( "Trancado/Destrancado" ), &g_Config.VehicleESP->ShowLockUnlock );
 						Custom::CheckBox( xorstr( "Linhas" ), &g_Config.VehicleESP->SnapLines );
 						Custom::CheckBox( xorstr( "Distância" ), &g_Config.VehicleESP->DistanceFromMe );

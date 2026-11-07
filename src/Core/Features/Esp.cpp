@@ -1,4 +1,6 @@
 #include "Esp.hpp"
+#include <Core/ExtensionSettings.hpp>
+#include <Core/Threads/VehicleList.hpp>
 #include <chrono>
 #include "ExternalAimMath.hpp"
 
@@ -7,6 +9,8 @@
 void Core::Features::cEsp::Draw( )
 {
 	auto Cfg = g_Config.ESP;
+    ImFont* extraFont=ExtraSettings::Font==1?ImGui::GetFont():g_Variables.m_DrawFont;
+    const float extraTextSize=ExtraSettings::TextSize;
 
 	if ( !Cfg->Enabled )
 		return;
@@ -236,7 +240,7 @@ void Core::Features::cEsp::Draw( )
             DrawList->AddRectFilled(BoxMin, BoxMax, Cfg->FilledBoxCol);
         if (Cfg->Box) {
             DrawList->AddRect(BoxMin, BoxMax, IM_COL32(0,0,0,220), 0, 0, 3.f);
-            DrawList->AddRect(BoxMin, BoxMax, Cfg->BoxCol, 0, 0, 1.f);
+            DrawList->AddRect(BoxMin, BoxMax, Cfg->BoxCol, 0, 0, ExtraSettings::BoxWidth);
         }
         if (Cfg->CornerBox) {
             const float length = (BoxRight - BoxLeft) * 0.25f;
@@ -247,8 +251,8 @@ void Core::Features::cEsp::Draw( )
                 const float dy = i & 2 ? -length : length;
                 DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), IM_COL32(0,0,0,220), 3.f);
                 DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), IM_COL32(0,0,0,220), 3.f);
-                DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), Cfg->CornerColor, 1.f);
-                DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), Cfg->CornerColor, 1.f);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x+dx,y), Cfg->CornerColor, ExtraSettings::BoxWidth);
+                DrawList->AddLine(ImVec2(x,y), ImVec2(x,y+dy), Cfg->CornerColor, ExtraSettings::BoxWidth);
             }
         }
 
@@ -259,7 +263,20 @@ void Core::Features::cEsp::Draw( )
                 const auto a = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(pair[0]));
                 const auto b = Core::SDK::Game::WorldToScreen(Ped->GetBonePosDefault(pair[1]));
                 if (validScreen(a) && validScreen(b))
-                    DrawList->AddLine(ImVec2(a.x,a.y), ImVec2(b.x,b.y), Cfg->SkeletonCol, 1.f);
+                    DrawList->AddLine(ImVec2(a.x,a.y), ImVec2(b.x,b.y), Cfg->SkeletonCol, ExtraSettings::SkeletonWidth);
+            }
+        }
+
+        if(ExtraSettings::ChinaHat && HeadPos!=D3DXVECTOR3(0,0,0)) {
+            auto apex=SDK::Game::WorldToScreen(HeadPos+D3DXVECTOR3(0,0,0.35f));
+            D3DXVECTOR2 last{};
+            for(int side=0;side<=24;side++){
+                float angle=side*6.2831853f/24.f;
+                auto ring=SDK::Game::WorldToScreen(HeadPos+D3DXVECTOR3(std::cos(angle)*ExtraSettings::HatSize,std::sin(angle)*ExtraSettings::HatSize,0.1f));
+                if(validScreen(ring)&&validScreen(apex)){
+                    if(side&&validScreen(last))DrawList->AddLine(ImVec2(last.x,last.y),ImVec2(ring.x,ring.y),Cfg->SkeletonCol,1.f);
+                    if(side%3==0)DrawList->AddLine(ImVec2(apex.x,apex.y),ImVec2(ring.x,ring.y),Cfg->SkeletonCol,1.f);
+                }last=ring;
             }
         }
 
@@ -283,7 +300,7 @@ void Core::Features::cEsp::Draw( )
 
 			std::string DistStr = std::to_string( ( int ) Distance ) + xorstr( "m" );
 
-			ImVec2 TextSize = g_Variables.m_DrawFont->CalcTextSizeA( g_Variables.m_DrawFont->FontSize, FLT_MAX, 0.0f, DistStr.c_str( ) );
+			ImVec2 TextSize = extraFont->CalcTextSizeA( extraTextSize, FLT_MAX, 0.0f, DistStr.c_str( ) );
 			ImVec2 TextPos = ImVec2( BoxCenter.x - ( TextSize.x / 2 ), FirstTextBoxBottom );
 
 			switch ( Cfg->DistanceFromMeState )
@@ -345,13 +362,13 @@ void Core::Features::cEsp::Draw( )
 				break;
 			}
 
-			/*DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );*/
+			/*DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), DistStr.c_str( ) );*/
 
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->DistanceCol.Value.w ), DistStr.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, TextPos, Cfg->DistanceCol, DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->DistanceCol.Value.w ), DistStr.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, TextPos, Cfg->DistanceCol, DistStr.c_str( ) );
 
 		}
 
@@ -371,7 +388,7 @@ void Core::Features::cEsp::Draw( )
 			if ( weaponName.empty( ) )
 				weaponName = xorstr( "Unarmed" );
 
-			ImVec2 TextSize = g_Variables.m_DrawFont->CalcTextSizeA( g_Variables.m_DrawFont->FontSize, FLT_MAX, 0.0f, to_lower( weaponName.c_str( ) ).c_str( ) );
+			ImVec2 TextSize = extraFont->CalcTextSizeA( extraTextSize, FLT_MAX, 0.0f, to_lower( weaponName.c_str( ) ).c_str( ) );
 			ImVec2 TextPos = ImVec2( BoxCenter.x - ( TextSize.x / 2 ), FirstTextBoxBottom );
 
 			if ( Cfg->DistanceFromMe )
@@ -411,13 +428,13 @@ void Core::Features::cEsp::Draw( )
 
 			std::string WeaponNameUnder = to_lower( weaponName.c_str( ) );
 
-			/*DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );*/
+			/*DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), WeaponNameUnder.c_str( ) );*/
 
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->WeaponNameCol.Value.w ), to_lower( weaponName.c_str( ) ).c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, TextPos, Cfg->WeaponNameCol, WeaponNameUnder.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->WeaponNameCol.Value.w ), to_lower( weaponName.c_str( ) ).c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, TextPos, Cfg->WeaponNameCol, WeaponNameUnder.c_str( ) );
 		}
 
 		if ( Cfg->UserNames )
@@ -425,7 +442,7 @@ void Core::Features::cEsp::Draw( )
 
 			std::string PlayerName = Entity.NetworkInfo.UserName;
 
-			ImVec2 TextSize = g_Variables.m_DrawFont->CalcTextSizeA( g_Variables.m_DrawFont->FontSize, FLT_MAX, 0.0f, PlayerName.c_str( ) );
+			ImVec2 TextSize = extraFont->CalcTextSizeA( extraTextSize, FLT_MAX, 0.0f, PlayerName.c_str( ) );
 			ImVec2 TextPos = ImVec2( BoxCenter.x - ( TextSize.x / 2 ), FirstTextBoxTop );
 
 			switch ( Cfg->UserNamesState )
@@ -442,13 +459,13 @@ void Core::Features::cEsp::Draw( )
 				break;
 			}
 
-			/*DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
-			DrawList->AddText( g_Variables.m_DrawFont, g_Variables.m_DrawFont->FontSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );*/
+			/*DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y + 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x - 1, TextPos.y - 1 ), ImColor( 0, 0, 0, 100 ), PlayerName.c_str( ) );*/
 
-			DrawList->AddText( ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->UserNamesCol.Value.w ), PlayerName.c_str( ) );
-			DrawList->AddText( TextPos, Cfg->UserNamesCol, PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, ImVec2( TextPos.x + 1, TextPos.y + 1 ), ImColor( 0.f, 0.f, 0.f, Cfg->UserNamesCol.Value.w ), PlayerName.c_str( ) );
+			DrawList->AddText( extraFont, extraTextSize, TextPos, Cfg->UserNamesCol, PlayerName.c_str( ) );
 		}
 
 		const auto DrawHealthBarV = [ &DrawList ] ( ImVec2 pos, ImVec2 dim, ImColor col, int background ) {
@@ -641,9 +658,12 @@ void Core::Features::cEsp::DrawVehicle( )
 	if ( !Cfg->Enabled )
 		return;
 
-	for ( auto Entity : Core::SDK::Game::VehicleList )
+	std::vector<SDK::Game::VehicleStructure> extraVehicles;
+    {std::lock_guard<std::mutex> lock(Core::Threads::g_VehicleList.vehicleListMutex);extraVehicles=SDK::Game::VehicleList;}
+    for ( auto Entity : extraVehicles )
 	{
 		CVehicle * Vehicle = Entity.Pointer;
+        if(!Vehicle || (ExtraSettings::IgnoreOccupied && Entity.Driver))continue;
 		auto DrawList = ImGui::GetBackgroundDrawList( );
 
 		float Distance = Entity.Dist;
@@ -667,7 +687,9 @@ void Core::Features::cEsp::DrawVehicle( )
 			DrawList->AddLine( ImVec2( g_Variables.g_vGameWindowCenter.x, g_Variables.g_vGameWindowPos.y + g_Variables.g_vGameWindowSize.y ), ImVec2( VehicleLocation.x, VehicleLocation.y + 30 ), Cfg->SnapLinesCol, 1.5 );
 		}
 
-		if ( Cfg->VehName )
+		if(ExtraSettings::VehicleMarker)DrawList->AddCircleFilled(ImVec2(VehicleLocation.x,VehicleLocation.y),4,IM_COL32(180,80,255,255));
+
+        if ( Cfg->VehName )
 		{
 			ImVec2 text_size = g_Variables.m_DrawFont->CalcTextSizeA( g_Variables.m_DrawFont->FontSize, FLT_MAX, 0.0f, Entity.Name.c_str( ) );
 
