@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/ExtensionSettings.hpp>
 #include <Core/SDK/SDK.hpp>
 #include <cmath>
 namespace Core { namespace Features { namespace ExternalCameraOptions {

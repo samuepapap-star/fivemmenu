@@ -67,7 +67,7 @@ inline void Tick(bool stop=false){
  D3DXVECTOR3 direction;if(!Extras::Read(camera+0x40,direction)||!Extras::Sane(direction)){Stop();return;}
  float length=D3DXVec3Length(&direction);if(length<0.1f||length>2.f){Stop();return;}direction*=1.f/length;
  if(target){
-  bool exists=false;{std::lock_guard<std::mutex> lock(Core::Threads::g_EntityList.EntityListMutex);for(const auto&e:SDK::Game::EntityList)if((uintptr_t)e.Ped==target){exists=true;break;}}
+  bool exists=false;{for(const auto&e:SDK::Game::SnapshotEntities())if((uintptr_t)e.Ped==target){exists=true;break;}}
   D3DXVECTOR3 pos;if(!exists||!Extras::Read(target+0x90,pos)||!Extras::Sane(pos)){Stop();return;}position=pos-direction*6.f+D3DXVECTOR3(0,0,2.f);
  }else if(!g_MenuInfo.IsOpen){
   float movement=ImClamp(speed,1.f,50.f)*ImClamp(ImGui::GetIO().DeltaTime,0.f,0.05f);if(GetAsyncKeyState(VK_SHIFT)&0x8000)movement*=2;

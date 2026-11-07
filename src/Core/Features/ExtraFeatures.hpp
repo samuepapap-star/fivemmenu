@@ -2,9 +2,7 @@
 #include <Core/SDK/SDK.hpp>
 #include <Core/ExtensionSettings.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
-#include <Core/Threads/VehicleList.hpp>
 #include <array>
-#include <Core/Threads/EntityList.hpp>
 #include <Gui/AdminList.hpp>
 #include <Core/Features/XrcVehiclePull.hpp>
 #include <cmath>
@@ -41,11 +39,11 @@ struct Bits {
   mask=owned;Write(next,(current&~owned)|(wanted&owned));
  }
 };
-inline Override<float> weaponY,weaponZ,reload,shotInterval;
+inline Override<float> weaponY,weaponZ,reload,shotInterval,traction,suspension,lift,gravity,driftMinimum,driftLoss;
 inline Bits frameFlags,aimFlags,modelFlags;
 inline const char* PullPlayer(uintptr_t target){
  auto p=Player();if(!p||target==(uintptr_t)p)return "Alvo indisponivel";
- bool listed=false;{std::lock_guard<std::mutex> lock(Core::Threads::g_EntityList.EntityListMutex);for(const auto&e:SDK::Game::EntityList)if((uintptr_t)e.Ped==target&&e.PedType==2){listed=true;break;}}
+ bool listed=false;{for(const auto&e:SDK::Game::SnapshotEntities())if((uintptr_t)e.Ped==target&&e.PedType==2){listed=true;break;}}
  auto pos=p->GetPos();D3DXVECTOR3 forward;
  if(!listed||!Sane(pos)||!Read((uintptr_t)p+0x70,forward)||!Sane(forward))return "Alvo ou posicao indisponivel";
  forward.z=0;float length=std::hypot(forward.x,forward.y);if(length<0.1f||length>2.f)return "Direcao indisponivel";forward*=1.f/length;
@@ -108,6 +106,13 @@ inline void Tick(bool stop=false){
   float base=shotInterval.address==weapon+0x13C?shotInterval.original:interval;
   shotInterval.Set(weapon+0x13C,ready&&RapidFire,base/ImClamp(FireRate,1.f,10.f),0.001f,10.f);
  }else shotInterval.Restore();
+ uintptr_t handling=0;if(vehicle&&g_Offsets.m_Handling)Read(vehicle+g_Offsets.m_Handling,handling);
+ traction.Set(handling>=0x10000?handling+0x88:0,ready&&(MaxTractionOn||Drift),Drift?0.9f:ImClamp(MaxTraction,0.1f,10.f),0.01f,50.f);
+ suspension.Set(handling>=0x10000?handling+0xBC:0,ready&&SuspensionOn,ImClamp(Suspension,0.1f,10.f),0.01f,50.f);
+ lift.Set(handling>=0x10000?handling+0xD0:0,ready&&LiftOn,ImClamp(Lift,-0.5f,1.f),-5.f,5.f);
+ gravity.Set(vehicle&&g_Offsets.m_VehicleGravity?vehicle+g_Offsets.m_VehicleGravity:0,ready&&GravityOn,ImClamp(Gravity,0.1f,20.f),0.f,100.f);
+ driftMinimum.Set(handling>=0x10000?handling+0x90:0,ready&&Drift,0.75f,0.01f,50.f);
+ driftLoss.Set(handling>=0x10000?handling+0xB8:0,ready&&Drift,1.5f,0.f,50.f);
  uint32_t carMask=0; // model flags: preserve every unrelated bit.
  if(ready&&RocketBoost)carMask|=0x40u<<24;if(ready&&JumpCar)carMask|=0x20u<<24;
  modelFlags.Set(model>=0x10000?model+0x588:0,carMask,carMask);
@@ -140,8 +145,8 @@ inline void DrawRadar(){
  float length=std::hypot(f.x,f.y);if(!Sane(f)||length<0.1f){f=D3DXVECTOR3(0,1,0);length=1;}f.x/=length;f.y/=length;
  auto point=[&](D3DXVECTOR3 pos,const char* name,ImU32 color){if(!Sane(pos)||!Sane(here))return;auto d=pos-here;float dist=std::hypot(d.x,d.y);if(dist>RadarRange)return;
  float x=d.x*f.y-d.y*f.x,y=d.x*f.x+d.y*f.y;ImVec2 q(c.x+x/RadarRange*radius,c.y-y/RadarRange*radius);draw->AddCircleFilled(q,3,color);if(RadarNames&&name)draw->AddText(ImVec2(q.x+4,q.y),color,name);};
- std::vector<SDK::Game::EntityStruct> players;{std::lock_guard<std::mutex> lock(Core::Threads::g_EntityList.EntityListMutex);players=SDK::Game::EntityList;}
- for(const auto&e:players)if(e.Ped&&e.Ped!=Player()&&(RadarNPCs||e.PedType==2)&&e.Health>100.f)point(e.Pos,e.NetworkInfo.UserName.c_str(),e.IsFriend?IM_COL32(80,255,100,255):IM_COL32(255,255,255,255));
+ auto players=SDK::Game::SnapshotEntities();
+ for(const auto&e:players)if(e.Ped&&e.Ped!=Player()&&(RadarNPCs||e.PedType==2)&&(e.PedType==2?e.Health>100.f:e.Health>0.f))point(e.Pos,e.NetworkInfo.UserName.c_str(),e.IsFriend?IM_COL32(80,255,100,255):IM_COL32(255,255,255,255));
  if(RadarVehicles){std::vector<SDK::Game::VehicleStructure> cars;{std::lock_guard<std::mutex> lock(Core::Threads::g_VehicleList.vehicleListMutex);cars=SDK::Game::VehicleList;}for(const auto&v:cars)point(v.Pos,v.Name.c_str(),IM_COL32(100,180,255,255));}
  draw->AddTriangleFilled(ImVec2(c.x,c.y-5),ImVec2(c.x-4,c.y+4),ImVec2(c.x+4,c.y+4),IM_COL32(180,80,255,255));}
  }ImGui::End();

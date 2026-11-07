@@ -15,7 +15,7 @@ namespace Core
         class cEntityList 
         {
         private:
-            std::mutex EntityListMutex;
+            std::mutex& EntityListMutex=Core::SDK::Game::EntityMutex;
         private:
             CPedInterFace * CPedInterFace = nullptr;
             CPedList * CPedList = nullptr;
@@ -131,4 +131,5 @@ namespace Core
         inline cEntityList g_EntityList;
     }
 }
+
 

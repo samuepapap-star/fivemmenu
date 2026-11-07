@@ -1,6 +1,5 @@
 #include "Esp.hpp"
 #include <Core/ExtensionSettings.hpp>
-#include <Core/Threads/VehicleList.hpp>
 #include <chrono>
 #include "ExternalAimMath.hpp"
 
@@ -658,8 +657,7 @@ void Core::Features::cEsp::DrawVehicle( )
 	if ( !Cfg->Enabled )
 		return;
 
-	std::vector<SDK::Game::VehicleStructure> extraVehicles;
-    {std::lock_guard<std::mutex> lock(Core::Threads::g_VehicleList.vehicleListMutex);extraVehicles=SDK::Game::VehicleList;}
+	auto extraVehicles=SDK::Game::SnapshotVehicles();
     for ( auto Entity : extraVehicles )
 	{
 		CVehicle * Vehicle = Entity.Pointer;

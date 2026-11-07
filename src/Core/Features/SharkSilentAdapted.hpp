@@ -1,6 +1,5 @@
 #pragma once
 #include <Core/ExtensionSettings.hpp>
-#include <Core/Threads/EntityList.hpp>
 #include <Includes/Includes.hpp>
 #include <Includes/Utils.hpp>
 #include <Core/SDK/SDK.hpp>
@@ -123,8 +122,7 @@ public:
         float closest=1.f;
         bool found=false;
         // SHARK-style selection: apply FOV, visibility and distance per target.
-        std::vector<SDK::Game::EntityStruct> extraTargets;
-        {std::lock_guard<std::mutex> lock(Core::Threads::g_EntityList.EntityListMutex);extraTargets=SDK::Game::EntityList;}
+        auto extraTargets=SDK::Game::SnapshotEntities();
         for(const auto& entity:extraTargets) {
             if(!entity.Ped || entity.Ped==local || entity.IsFriend || entity.Health<=101.f ||
                 entity.Distance>cfg->MaxDistance || (cfg->IgnoreNPCs && entity.PedType!=2) ||

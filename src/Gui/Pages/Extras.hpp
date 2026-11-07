@@ -30,6 +30,13 @@ inline void Render(int section){
   if(Custom::Button("Destrancar carros proximos",ImVec2(-1,30),0))Extras::SetDoors(true,false);
   if(Custom::Button("Trancar carros proximos",ImVec2(-1,30),0))Extras::SetDoors(false,false);
   Custom::CheckBox("Boost por tecla",&HornBoost);if(HornBoost){Key("Tecla do boost",HornKey);ImGui::SliderFloat("Forca do boost",&BoostPower,1.f,100.f,"%.0f");}
+  Custom::CheckBox("Tracao maxima personalizada",&MaxTractionOn);if(MaxTractionOn)ImGui::SliderFloat("Tracao maxima",&MaxTraction,0.1f,10.f,"%.2f");
+  Custom::CheckBox("Suspensao personalizada",&SuspensionOn);if(SuspensionOn)ImGui::SliderFloat("Forca da suspensao",&Suspension,0.1f,10.f,"%.2f");
+  Custom::CheckBox("Altura da suspensao",&LiftOn);if(LiftOn)ImGui::SliderFloat("Elevacao",&Lift,-0.5f,1.f,"%.2f");
+  Custom::CheckBox("Gravidade do veiculo",&GravityOn);if(GravityOn)ImGui::SliderFloat("Gravidade",&Gravity,0.1f,20.f,"%.1f");
+  Custom::CheckBox("Modo drift",&Drift);
+  if(Custom::Button("Preset de aderencia",ImVec2(-1,30),0)){Drift=false;MaxTractionOn=true;MaxTraction=3.f;SuspensionOn=true;Suspension=2.5f;}
+  if(Custom::Button("Restaurar ajustes adicionais",ImVec2(-1,30),0)){Drift=MaxTractionOn=SuspensionOn=LiftOn=GravityOn=false;}
   Custom::CheckBox("Rocket Boost",&RocketBoost);Custom::CheckBox("Carro pulando",&JumpCar);Custom::CheckBox("Carro planando",&PlaningCar);
   ImGui::TextWrapped("%s",Extras::status);
  }
@@ -66,6 +73,8 @@ inline void Render(int section){
   ImGui::Combo("Estilo do menu",&Theme,"Atual\0Arredondado\0Quadrado\0");ImGui::SliderFloat("Espessura da borda",&BorderSize,0.f,4.f,"%.1f");
   Custom::CheckBox("Particulas",&Particles);if(Particles){ImGui::SliderInt("Quantidade",&ParticleCount,0,150);ImGui::SliderFloat("Velocidade das particulas",&ParticleSpeed,0.05f,2.f,"%.2f");ImGui::SliderFloat("Tamanho das particulas",&ParticleSize,1.f,5.f,"%.1f");}
   Custom::CheckBox("Ocultar da barra de tarefas",&HideTaskbar);
+  Custom::CheckBox("Projetar overlay em outro monitor",&SecondMonitor);
+  if(SecondMonitor)ImGui::TextWrapped("Move o overlay para um monitor secundario mantendo a resolucao do jogo. Sem outro monitor, permanece no jogo.");
   Custom::CheckBox("Reticulo central",&g_Config.Aimbot->Crosshair);ImGui::Combo("Tipo do reticulo",&CrossType,"Cruz\0Ponto\0Circulo\0Cruz com ponto\0");
   ImGui::SliderFloat("Tamanho do reticulo",&CrossSize,1.f,30.f,"%.0f");ImGui::SliderFloat("Espessura do reticulo",&CrossWidth,0.5f,5.f,"%.1f");ImGui::ColorEdit4("Cor do reticulo",&CrossColor.x);
  }
