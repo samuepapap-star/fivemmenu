@@ -1,4 +1,5 @@
 #pragma once
+#include <Core/ExtensionSettings.hpp>
 #include <Core/SDK/SDK.hpp>
 #include <cmath>
 #include "VisibilityEvidence.hpp"
@@ -15,7 +16,8 @@ inline void Draw() {
     static VisibilityEvidence::Filter filter;
     static DWORD processId=0;
     if(processId!=Mem.ProcId){filter.Clear();processId=Mem.ProcId;}
-    if (!g_MenuInfo.IsLogged || !cfg->Enabled || (!cfg->AdminList && !cfg->AdminHighlight)) {
+    if (!g_MenuInfo.IsLogged || (!cfg->Enabled && !ExtraSettings::InvisibleWarning) ||
+        (!cfg->AdminList && !cfg->AdminHighlight && !ExtraSettings::InvisibleWarning)) {
         filter.Clear();
         return;
     }
@@ -36,7 +38,7 @@ inline void Draw() {
         // HyperX heuristic: visibility flags only. No administrator role information.
         const std::string name=entity.NetworkInfo.UserName.empty()?"Desconhecido":entity.NetworkInfo.UserName;
         rows.push_back(name+" | ID "+std::to_string(entity.Id)+" | "+std::to_string(int(entity.Distance))+" m");
-        if (cfg->AdminHighlight) {
+        if (cfg->AdminHighlight && cfg->Enabled) {
             const auto screen=Core::SDK::Game::WorldToScreen(pos);
             if (Core::SDK::Game::IsOnScreen(screen))
                 draw->AddText(ImGui::GetFont(),11.f,ImVec2(screen.x,screen.y),IM_COL32(255,255,255,255),"ADM");
