@@ -3,6 +3,8 @@
 #include <Core/ExtensionSettings.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
 #include <array>
+#include <chrono>
+#include <Core/Features/RollSpinLogic.hpp>
 #include <Core/Features/SourceOptionLogic.hpp>
 #include <Gui/AdminList.hpp>
 #include <Core/Features/XrcVehiclePull.hpp>
@@ -145,7 +147,17 @@ inline void Tick(bool stop=false){
   if(Read(vehicle+0x29,flags)&&Read(vehicle+0x97F,boost)&&Read(vehicle+0xAD4,power)&&std::isfinite(power)&&std::abs(power)<=10000.f){Write(vehicle+0x29,uint8_t(flags|1));Write(vehicle+0x97F,uint8_t(boost|0x80));Write(vehicle+0xAD4,ImClamp(BoostPower,1.f,100.f));}
  }
  if(input&&PlaningCar&&vehicle){D3DXVECTOR3 velocity;if(Read(vehicle+0x320,velocity)&&Sane(velocity)&&velocity.z<-1.f){velocity.z=-1.f;Write(vehicle+0x320,velocity);}}
- if(input&&Spin&&!p->InVehicle()){
+ static RollSpinLogic::Gate rollSpin;
+ bool spinAllowed=input&&Spin&&!p->InVehicle();
+ if(CombatGlitch){
+  uint32_t flags=0;
+  const bool readAir=spinAllowed&&g_Offsets.m_PedFlag&&Read((uintptr_t)p+g_Offsets.m_PedFlag+(76/32)*sizeof(uint32_t),flags);
+  const bool inAir=!readAir||(flags&(1u<<(76%32)))!=0;
+  const auto now=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+  spinAllowed=rollSpin.Update(spinAllowed,inAir,
+      (GetAsyncKeyState(VK_RBUTTON)&0x8000)&&(GetAsyncKeyState(VK_SPACE)&0x8000),static_cast<uint64_t>(now));
+ }else rollSpin.Reset();
+ if(spinAllowed){
   D3DXVECTOR3 f,r,u;uintptr_t nav=0;
   if(Read((uintptr_t)p+0x70,f)&&Read((uintptr_t)p+0x60,r)&&Read((uintptr_t)p+0x80,u)&&Sane(f)&&Sane(r)&&Sane(u)&&Read((uintptr_t)p+0x30,nav)&&nav>=0x10000){
    float angle=ImClamp(SpinSpeed,10.f,360.f)*ImClamp(ImGui::GetIO().DeltaTime,0.f,0.05f)*0.0174532925f;

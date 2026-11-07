@@ -11,6 +11,9 @@ Base: feature/shark-integration, commit 77ad0cb. Esta alteração NÃO conclui t
 ## Horário local integrado depois da coleta 3258
 Configurações → Ambiente permite aplicar e manter hora/minuto ou usar presets. A revisão do binário, assinatura e campos são verificados antes de escrever. Ao desligar, as escritas cessam e o relógio volta a avançar; o servidor pode ressincronizar. Consulte docs/horario-local-3258.md.
 
+## Combat Glitch
+Personagem → Extras → Spinbot oferece o modo de giro durante a janela de 800 ms iniciada por mirar + Espaço, bloqueado no ar. É a variante de Spinbot da HyperX, não uma garantia de que o jogo iniciou a animação de rolamento. O estado é descartado ao desativar, morrer, entrar no carro ou perder o foco.
+
 ## Diagnóstico necessário
 Com o FiveM aberto, execute o novo EXE com o argumento:
 ```powershell
@@ -19,7 +22,7 @@ Com o FiveM aberto, execute o novo EXE com o argumento:
 O coletor informa o caminho de ALTOS_PODERES_<build>.json na pasta temporária. Não escreve na memória do jogo, não instala hooks e não inicia o menu. Correspondências de padrões são candidatos, não endereços automaticamente confiáveis.
 
 ## Ainda pendente
-Ponte/runtime Lua, clima/densidade, tuning cosmético completo e acessórios, spawn/delete, controle remoto, transformações/animais, escala de outros peds, modos extras de freecam, Anti Attack/Kill Aim, Combat Glitch/liberar ações, Solo Session/Fake Lag/Desync, Indicate Headshot e variantes nativas originais de Double Shot/Freeze Ammo 2.
+Ponte/runtime Lua, clima/densidade, tuning cosmético completo e acessórios, spawn/delete, controle remoto, transformações/animais, escala de outros peds, modos extras de freecam, Anti Attack/Kill Aim, liberar ações, Solo Session/Fake Lag/Desync, Indicate Headshot e variantes nativas originais de Double Shot/Freeze Ammo 2.
 
 A branch não tem um despachante de natives compatível validado. Não foram copiados os caminhos que liberam memória remota após um timeout sem confirmar o término da thread. Não foi inferido que perda de vida significa headshot: o indicador precisa de um evento/dado de impacto confiável.
 

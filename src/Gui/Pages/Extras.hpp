@@ -21,6 +21,10 @@ inline void Render(int section){
   Custom::CheckBox("Bloquear mira assistida local",&BlockAim);
   Custom::CheckBox("Modo passivo local",&PassiveTargeting);
   Custom::CheckBox("Spinbot",&Spin);if(Spin)ImGui::SliderFloat("Velocidade da rotacao",&SpinSpeed,10.f,360.f,"%.0f graus/s");
+  if(Spin){
+   Custom::CheckBox("Combat Glitch (giro no rolamento)",&CombatGlitch);
+   if(CombatGlitch)ImGui::TextWrapped("Gira durante 800 ms apos mirar + Espaco, enquanto estiver no chao.");
+  }
   if(Custom::Button(ExtraCamera::freecam?"Parar camera livre":"Camera livre independente",ImVec2(-1,30),0)){if(ExtraCamera::freecam)ExtraCamera::Stop();else ExtraCamera::Start();}
   ImGui::SliderFloat("Velocidade da camera",&ExtraCamera::speed,1.f,50.f,"%.0f m/s");
   Custom::CheckBox("Alterar distancia da camera",&CameraDistanceEnabled);

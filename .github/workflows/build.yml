@@ -32,6 +32,10 @@ jobs:
           if errorlevel 1 exit /b 1
           native_candidate_logic.exe
           if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\roll_spin_logic.cpp /Fe:roll_spin_logic.exe
+          if errorlevel 1 exit /b 1
+          roll_spin_logic.exe
+          if errorlevel 1 exit /b 1
 
       - name: Instala DirectX SDK
         run: |
