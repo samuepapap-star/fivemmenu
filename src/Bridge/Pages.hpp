@@ -1,6 +1,7 @@
 #pragma once
 #include <Includes/CustomWidgets/Custom.hpp>
 #include <Bridge/Features.hpp>
+#include <Bridge/ModelCatalog.hpp>
 namespace BridgePages {
 inline void Footer(){
  BridgeFeatures::Status();
@@ -31,8 +32,26 @@ inline void Render(int section){
  }
  if(section==2){
   ImGui::TextDisabled("Carro / gerar veiculo");static char model[96]="adder";static bool network=false,enter=true;
-  static int preset=0;const char* models[]={"adder","zentorno","t20","sultan","blista","bati","faggio","bmx"};
-  if(ImGui::Combo("Escolher veiculo",&preset,"Adder\0Zentorno\0T20\0Sultan\0Blista\0Bati 801\0Faggio\0BMX\0"))MenuBridge::Copy(model,sizeof(model),models[preset]);
+  static const std::vector<std::string> defaults={"adder","zentorno","t20","sultan","blista","bati","faggio","bmx"};
+  static std::vector<std::string> registered;static std::uint64_t cachedToken=0;static char search[96]{};
+  const auto token=MenuBridge::Connection().CatalogToken();
+  if(token!=cachedToken&&!(token&1u)){registered=MenuBridge::Connection().Models();cachedToken=token;}
+  if(Custom::Button("Carregar lista de modelos",ImVec2(-1,30),0))BridgeFeatures::LoadVehicleCatalog();
+  ImGui::TextDisabled(registered.empty()?"Predefinidos; carregue a lista completa do cliente":"Modelos registrados: %u",static_cast<unsigned>(registered.size()));
+  ImGui::SetNextItemWidth(-1);ImGui::InputTextWithHint("##vehicle_filter","Buscar modelo na lista...",search,sizeof(search));
+  const auto& models=registered.empty()?defaults:registered;
+  const auto filter=MenuBridge::LowerModel(search);std::vector<std::size_t> filtered;
+  ImGui::SetNextItemWidth(-1);
+  if(ImGui::BeginCombo("##registered_vehicles",model)){
+   for(std::size_t i=0;i<models.size();i++)if(models[i].find(filter)!=std::string::npos)filtered.push_back(i);
+   ImGuiListClipper clipper;clipper.Begin(static_cast<int>(filtered.size()));
+   while(clipper.Step())for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;i++){
+    const auto& code=models[filtered[static_cast<std::size_t>(i)]];
+    if(ImGui::Selectable(code.c_str(),code==model))MenuBridge::Copy(model,sizeof(model),code);
+   }
+   if(filtered.empty())ImGui::TextDisabled("Nenhum modelo corresponde a busca");
+   ImGui::EndCombo();
+  }
   ImGui::SetNextItemWidth(360);ImGui::InputText("Nome personalizado",model,sizeof(model));
   Custom::CheckBox("Solicitar veiculo em rede",&network);Custom::CheckBox("Entrar no veiculo gerado",&enter);
   if(Custom::Button("Gerar veiculo",ImVec2(-1,33),0))BridgeFeatures::Spawn(model,network,enter);

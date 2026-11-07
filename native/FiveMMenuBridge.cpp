@@ -14,6 +14,7 @@
 #include "cfx/ScriptThread.hpp"
 #include "NativeCamera.hpp"
 #include "NativeVehicleTransfer.hpp"
+#include "../src/Bridge/ModelCatalog.hpp"
 
 extern "C" __declspec(dllexport) DWORD WINAPI FiveMMenuBridgeStart(void*);
 
@@ -33,6 +34,7 @@ GtaThread* ownedThread=nullptr;std::uint64_t registeredAt=0,lastScriptTick=0;
 std::int32_t ReadState(std::int32_t& s){return InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&s),0,0);}
 void Store(std::int32_t& s,std::int32_t value){InterlockedExchange(reinterpret_cast<volatile LONG*>(&s),value);}
 bool SafeHandler(const NativeSelection* function,Context* context,DWORD* fault){__try{function->InvokeInScript(*context,reinterpret_cast<std::uintptr_t>(activeScript()),reinterpret_cast<std::uintptr_t>(ownedThread));return true;}__except((*fault=GetExceptionCode()),EXCEPTION_EXECUTE_HANDLER){return false;}}
+bool SafeCopyCatalog(void* target,const void* source,std::size_t size){__try{std::memcpy(target,source,size);return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}}
 Handler SafeResolve(GetHandler function,std::uint64_t hash){__try{return function(hash);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
 CfxHandler* SafeCustom(GetCustom function,std::uint64_t hash){__try{return function(hash);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
 ManagerView* SafeManager(GetManager function){__try{return function(true);}__except(EXCEPTION_EXECUTE_HANDLER){return nullptr;}}
@@ -63,15 +65,29 @@ public:
  }
  std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{return Invoke(hash,input)[0];}
  Vec Vector(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{return DecodeNativeVector(Invoke(hash,input));}
+ std::vector<std::string> Strings(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{
+  auto result=Invoke(hash,input);const auto size=static_cast<std::size_t>(result[1]);
+  if(!result[0]||!size||size>catalogInputLimit)throw std::runtime_error("Retorno do catalogo invalido");
+  std::vector<std::uint8_t> bytes(size);
+  if(!SafeCopyCatalog(bytes.data(),reinterpret_cast<const void*>(result[0]),size))throw std::runtime_error("Nao foi possivel ler o catalogo");
+  return ParseModelCatalog(bytes.data(),bytes.size());
+ }
 };
 Api api;Actions actions(api);NativeCamera cameraActions(api);NativeVehicleTransfer vehicleTransfer(api);
 void Publish(const Reply& reply){shared->reply=reply;MemoryBarrier();Store(shared->commandState,Done);}
 void Failure(const char* text){Copy(shared->error,sizeof(shared->error),text);MemoryBarrier();Store(shared->service,-1);}
+void WriteCatalog(const std::vector<std::string>& models){
+ InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->catalogSequence));MemoryBarrier();
+ const auto count=(std::min)(models.size(),catalogMax);
+ for(std::size_t i=0;i<count;i++)Copy(shared->catalogNames[i],catalogNameBytes,models[i]);
+ shared->catalogCount=static_cast<std::uint32_t>(count);MemoryBarrier();
+ InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->catalogSequence));
+}
 void OnReset(){
  if(!shared)return;
  const auto state=ReadState(shared->commandState);
  if(state==Busy||state==Ready){Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),"Sessao reiniciada; acao cancelada");Publish(r);}
- actions.Reset();vehicleTransfer.Reset();cameraActions.Reset();api.Clear();Store(shared->rpgState,0);Store(shared->cameraState,0);
+ actions.Reset();vehicleTransfer.Reset();cameraActions.Reset();api.Clear();WriteCatalog({});Store(shared->rpgState,0);Store(shared->cameraState,0);
 }
 void Tick(){
  if(!shared||ReadState(shared->service)!=1)return;
@@ -83,6 +99,11 @@ void Tick(){
    if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
    else if(command.action==Action::StartCamera||command.action==Action::StopCamera||command.action==Action::ObservePlayer)Publish(cameraActions.Submit(command,frame,now));
    else if(command.action==Action::TransferVehicles)vehicleTransfer.Submit(command,frame,now);
+   else if(command.action==Action::VehicleCatalog){
+    auto models=api.Strings(Hash("GET_ALL_VEHICLE_MODELS"),{});WriteCatalog(models);
+    Reply reply{};reply.id=command.id;reply.success=models.empty()?0u:1u;reply.value=static_cast<std::uint32_t>(models.size());
+    Copy(reply.message,sizeof(reply.message),"Lista atualizada: "+std::to_string(models.size())+" modelos registrados, incluindo originais e personalizados.");Publish(reply);
+   }
    else{
     if(command.action==Action::Model||command.action==Action::Restore||command.action==Action::CloneAppearance||command.action==Action::StopAll)cameraActions.Stop();
     actions.Submit(command,now);

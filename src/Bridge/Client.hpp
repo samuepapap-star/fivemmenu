@@ -11,6 +11,7 @@
 #include <optional>
 #include <atomic>
 #include <stdexcept>
+#include <vector>
 #include "Protocol.hpp"
 
 namespace MenuBridge {
@@ -148,6 +149,21 @@ public:
  std::string Status(){std::lock_guard<std::mutex> lock(mutex);return status;}
  int RpgState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->rpgState):0;}
  int CameraState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->cameraState):0;}
+ std::uint64_t CatalogToken(){std::lock_guard<std::mutex> lock(mutex);return shared?(static_cast<std::uint64_t>(pid)<<32)|static_cast<std::uint32_t>(State(shared->catalogSequence)):0;}
+ std::vector<std::string> Models(){
+  std::lock_guard<std::mutex> lock(mutex);if(!shared)return {};
+  for(int retry=0;retry<3;retry++){
+   const auto before=State(shared->catalogSequence);if(before&1)continue;MemoryBarrier();
+   const auto count=shared->catalogCount;if(count>catalogMax)return {};
+   std::vector<std::string> result;result.reserve(count);
+   for(std::size_t i=0;i<count;i++){
+    char name[catalogNameBytes]{};std::memcpy(name,shared->catalogNames[i],sizeof(name));
+    const char* end=static_cast<const char*>(std::memchr(name,0,sizeof(name)));
+    if(!end)return {};result.emplace_back(name,static_cast<std::size_t>(end-name));
+   }
+   MemoryBarrier();if(before==State(shared->catalogSequence))return result;
+  }return {};
+ }
  void Cancel(){std::lock_guard<std::mutex> lock(mutex);if(shared)InterlockedExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),static_cast<LONG64>(shared->command.id));}
  void Stop(){
   {std::lock_guard<std::mutex> lock(mutex);stop=true;if(shared){InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->frameSequence));MemoryBarrier();shared->frame.rpg=0;shared->frame.input=0;shared->frame.camera=0;shared->frame.cameraMoves=0;MemoryBarrier();InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->frameSequence));InterlockedExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),static_cast<LONG64>(shared->command.id));}wake.notify_all();}

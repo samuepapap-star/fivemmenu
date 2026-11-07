@@ -36,7 +36,7 @@ A geracao de veiculo informa modelo e modo quando CREATE_VEHICLE retorna zero, s
 
 A camera livre em Personagem/Extras agora usa uma camera propria, por natives, na CfxThread da ponte. Nao depende da assinatura de codigo da camera antiga. Feche o menu para mover: WASD, mouse, Espaco/Ctrl; Shift dobra a velocidade; Esc encerra. O slider em m/s controla apenas o deslocamento da camera livre. A distancia da camera existente permanece independente. A camera criada e destruida pela ponte, e o foco de streaming e restaurado ao parar ou perder o heartbeat. NoClip e sem colisao devem estar desativados.
 
-O protocolo IPC passou para a versao 3. Substitua o EXE e a DLL juntos e reinicie completamente o FiveM. As novas alteracoes ainda precisam de confirmacao em jogo.
+O protocolo IPC passou para a versao 4. Substitua o EXE e a DLL juntos e reinicie completamente o FiveM. As novas alteracoes ainda precisam de confirmacao em jogo.
 
 Os controles de regeneracao de vida/colete, zerar vida e aplicar vida maxima foram movidos de Extras para Geral, logo abaixo de Restaurar vida e colete, em uma coluna.
 
@@ -47,3 +47,8 @@ Copiar Discord e Copiar Steam tambem foram removidos da interface.
 Chuva de carros e Enviar veiculos ao jogador agora enumeram os veiculos por natives CFX, usam os natives de transformacao/fisica e verificam a posicao 100 ms depois. A operacao e limitada a dez veiculos vazios num raio de 200 m. Entidades de rede sem controle do cliente sao ignoradas; nao ha tentativa de forcar propriedade. A resposta informa confirmados localmente, sem controle, ocupados, fora de alcance e nao confirmados. O iterador e fechado mesmo em caso de falha. Uma confirmacao local nao garante permanencia no servidor. Referencia da enumeracao: https://github.com/citizenfx/fivem/blob/master/code/components/extra-natives-five/src/PoolTraversalNatives.cpp .
 
 Todas as acoes da lista de jogadores ficam em Teleportar/Jogadores. A categoria Jogadores apresenta apenas ESP e Radar e extras. A opcao Parar observacao aparece depois de Clonar aparencia enquanto a observacao estiver ativa.
+
+## Catalogo de modelos disponiveis
+Em Carro/Gerar, Carregar lista de modelos consulta GET_ALL_VEHICLE_MODELS, incluindo modelos originais e personalizados registrados no cliente. A busca filtra pelo codigo do modelo; selecionar um item preenche Nome personalizado. A lista nao classifica veiculos VIP e nao concede garagem ou permissoes do servidor. A lista e limitada a 8192 nomes, e e limpa ao reiniciar a sessao; use o botao para atualizar apos mudar de servidor.
+
+O retorno documentado e um fx::scrObject com um array MessagePack de strings. O parser aceita apenas esse formato, com limites de tamanho e quantidade, valida os nomes, ordena e remove duplicatas. O IPC usa protocolo 4 para compartilhar a lista com leitura protegida por contador de sequencia. Referencias: https://github.com/citizenfx/fivem/blob/master/ext/native-decls/GetAllVehicleModels.md e https://github.com/citizenfx/fivem/blob/master/code/components/extra-natives-five/src/ModelListNatives.cpp .
