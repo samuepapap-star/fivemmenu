@@ -1,3 +1,4 @@
+#include <Core/Features/SourceOptionLogic.hpp>
 #pragma once
 #include <Core/ExtensionSettings.hpp>
 #include <Core/Features/SilentAim.hpp>
@@ -171,6 +172,9 @@ namespace Combat {
                         Custom::CheckBox("Predicao da mira silenciosa",&ExtraSettings::SilentPrediction);
                         if(ExtraSettings::SilentPrediction)ImGui::SliderFloat("Antecipacao",&ExtraSettings::PredictionSeconds,0.f,0.3f,"%.2f s");
                         Custom::CheckBox("Priorizar somente motoristas",&ExtraSettings::SilentForceDriver);
+                        Custom::CheckBox("Distancia automatica pela arma",&ExtraSettings::SilentAutoDistance);
+                        if(ExtraSettings::SilentAutoDistance&&!SourceOptionLogic::KnownWeaponRangeLayout(g_Offsets.CurrentBuild))
+                            ImGui::TextWrapped("Alcance da arma nao validado nesta build; usando distancia manual.");
                         Custom::CheckBox("FOV dinamico",&ExtraSettings::SilentDynamicFov);
                         if(ExtraSettings::SilentDynamicFov)ImGui::SliderInt("FOV minimo",&ExtraSettings::SilentMinFov,1,g_Config.SilentAim->FOV);
                         ImGui::SliderInt( xorstr( "Chance de errar" ), &g_Config.SilentAim->MissChance, 0, 100, xorstr( "%dx" ), 0 );

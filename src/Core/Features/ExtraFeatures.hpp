@@ -3,6 +3,7 @@
 #include <Core/ExtensionSettings.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
 #include <array>
+#include <Core/Features/SourceOptionLogic.hpp>
 #include <Gui/AdminList.hpp>
 #include <Core/Features/XrcVehiclePull.hpp>
 #include <cmath>
@@ -39,6 +40,7 @@ struct Bits {
   mask=owned;Write(next,(current&~owned)|(wanted&owned));
  }
 };
+inline Override<float> cameraDistance;
 inline Override<float> weaponY,weaponZ,reload,shotInterval,traction,suspension,lift,gravity,driftMinimum,driftLoss;
 inline Bits frameFlags,aimFlags,modelFlags;
 inline Bits passiveFriendlyLock, passiveFriendlyDamage;
@@ -98,6 +100,12 @@ inline void Tick(bool stop=false){
    Write(frozenAmmo,ammoValue);
   }else frozenAmmo=0;
  }
+ // Renaissance/Priv XRC: model-owned camera distance, independent from camera FOV.
+ uintptr_t pedModel=0;
+ if(ready&&!p->InVehicle())Read((uintptr_t)p+0x20,pedModel);
+ cameraDistance.Set(pedModel>=0x10000?pedModel+0x38:0,
+     ready&&CameraDistanceEnabled&&pedModel>=0x10000,
+     SourceOptionLogic::CameraDistance(CameraDistancePercent),-5.f,1.f);
  uint32_t owned=0,wanted=0;
  auto flag=[&](bool enabled,int bit){if(enabled){owned|=1u<<bit;wanted|=1u<<bit;}};
  flag(ready&&input&&SuperJump&&(GetAsyncKeyState(VK_SPACE)&0x8000),14);flag(ready&&input&&BeastJump&&(GetAsyncKeyState(VK_SPACE)&0x8000),28);

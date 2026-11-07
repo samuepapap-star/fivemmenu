@@ -22,6 +22,8 @@ inline void Render(int section){
   Custom::CheckBox("Spinbot",&Spin);if(Spin)ImGui::SliderFloat("Velocidade da rotacao",&SpinSpeed,10.f,360.f,"%.0f graus/s");
   if(Custom::Button(ExtraCamera::freecam?"Parar camera livre":"Camera livre independente",ImVec2(-1,30),0)){if(ExtraCamera::freecam)ExtraCamera::Stop();else ExtraCamera::Start();}
   ImGui::SliderFloat("Velocidade da camera",&ExtraCamera::speed,1.f,50.f,"%.0f m/s");
+  Custom::CheckBox("Alterar distancia da camera",&CameraDistanceEnabled);
+  if(CameraDistanceEnabled)ImGui::SliderFloat("Afastamento da camera",&CameraDistancePercent,0.f,100.f,"%.0f%%");
   ImGui::TextWrapped("%s",ExtraCamera::status);
   ImGui::TextWrapped("%s",Extras::status);
  }

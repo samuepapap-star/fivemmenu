@@ -2,7 +2,7 @@ name: Build Wexize EXE
 
 on:
   push:
-    branches: [ main, feature/shark-integration ]
+    branches: [ main, feature/shark-integration, feature/source-additions ]
   workflow_dispatch:
 
 jobs:
@@ -15,6 +15,15 @@ jobs:
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
+
+      - name: Testa opcoes portadas das sources
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do call "%%i\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\source_option_logic.cpp /Fe:source_option_logic.exe
+          if errorlevel 1 exit /b 1
+          source_option_logic.exe
+          if errorlevel 1 exit /b 1
 
       - name: Instala DirectX SDK
         run: |
