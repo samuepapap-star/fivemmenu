@@ -18,6 +18,7 @@ inline void Render(int section){
   if(Custom::Button("Aplicar vida maxima",ImVec2(-1,30),0))Extras::SetMaximumHealth(maximum);
   Custom::CheckBox("Super pulo",&SuperJump);Custom::CheckBox("Pulo da besta",&BeastJump);
   Custom::CheckBox("Bloquear mira assistida local",&BlockAim);
+  Custom::CheckBox("Modo passivo local",&PassiveTargeting);
   Custom::CheckBox("Spinbot",&Spin);if(Spin)ImGui::SliderFloat("Velocidade da rotacao",&SpinSpeed,10.f,360.f,"%.0f graus/s");
   if(Custom::Button(ExtraCamera::freecam?"Parar camera livre":"Camera livre independente",ImVec2(-1,30),0)){if(ExtraCamera::freecam)ExtraCamera::Stop();else ExtraCamera::Start();}
   ImGui::SliderFloat("Velocidade da camera",&ExtraCamera::speed,1.f,50.f,"%.0f m/s");

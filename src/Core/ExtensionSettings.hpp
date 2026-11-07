@@ -6,7 +6,7 @@ namespace ExtraSettings {
  X(FreezeAmmo) X(WeaponIcon) X(SecondMonitor) X(MaxTractionOn) X(SuspensionOn) X(LiftOn) X(GravityOn) X(Drift) X(RegenHealth) X(RegenArmor) X(SuperJump) X(BeastJump) X(ExplosiveFist) X(FireAmmo) X(ExplosiveAmmo) X(BlockAim) \
  X(AimHumanization) X(SilentPrediction) X(SilentDynamicFov) X(SilentForceDriver) X(Spin) X(WeaponScaleOn) X(FastReload) X(RapidFire) X(HornBoost) X(RocketBoost) X(JumpCar) X(PlaningCar) \
  X(Radar) X(RadarVehicles) X(RadarNames) X(RadarRotate) X(RadarNPCs) X(VehicleMarker) X(IgnoreOccupied) \
- X(PlayerGlow) X(ChinaHat) X(InvisibleWarning) X(Particles) X(Rainbow) X(HideTaskbar) X(ESPHotkeyOn)
+ X(PassiveTargeting) X(PlayerGlow) X(ChinaHat) X(InvisibleWarning) X(Particles) X(Rainbow) X(HideTaskbar) X(ESPHotkeyOn)
 #define DECL_BOOL(n) inline bool n=false;
 EXTRA_BOOLS(DECL_BOOL)
 #undef DECL_BOOL

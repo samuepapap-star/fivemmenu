@@ -41,6 +41,7 @@ struct Bits {
 };
 inline Override<float> weaponY,weaponZ,reload,shotInterval,traction,suspension,lift,gravity,driftMinimum,driftLoss;
 inline Bits frameFlags,aimFlags,modelFlags;
+inline Bits passiveFriendlyLock, passiveFriendlyDamage;
 inline const char* PullPlayer(uintptr_t target){
  auto p=Player();if(!p||target==(uintptr_t)p)return "Alvo indisponivel";
  bool listed=false;{for(const auto&e:SDK::Game::SnapshotEntities())if((uintptr_t)e.Ped==target&&e.PedType==2){listed=true;break;}}
@@ -104,7 +105,13 @@ inline void Tick(bool stop=false){
  frameFlags.Set(info>=0x10000?info+0x270:0,wanted,owned);
  // DisablePlayerLockon, shared with the sources' Bubble/Block Aim variants.
  const uintptr_t pedFlag=ready&&g_Offsets.m_PedFlag?(uintptr_t)p+g_Offsets.m_PedFlag+4:0;
- aimFlags.Set(pedFlag,BlockAim?1u<<11:0,ready&&BlockAim?1u<<11:0);
+ const bool blockLock = BlockAim || PassiveTargeting;
+ aimFlags.Set(pedFlag,1u<<11,ready&&blockLock?1u<<11:0);
+ const auto flagBase = pedFlag ? pedFlag - sizeof(uint32_t) : uintptr_t{};
+ // Quarntime's AllowPlayerLockOnIfFriendly (266) and TreatAsFriendlyForTargetingAndDamage (423).
+ const bool passive = flagBase && PassiveTargeting;
+ passiveFriendlyLock.Set(flagBase ? flagBase + (266 / 32) * 4 : 0, 1u << (266 % 32), passive ? 1u << (266 % 32) : 0);
+ passiveFriendlyDamage.Set(flagBase ? flagBase + (423 / 32) * 4 : 0, 1u << (423 % 32), passive ? 1u << (423 % 32) : 0);
  const bool scales=ready&&WeaponScaleOn&&object>=0x10000;
  weaponY.Set(object?object+0x7C:0,scales,ImClamp(WeaponScale,0.1f,5.f),-5.f,5.f);
  weaponZ.Set(object?object+0x8C:0,scales,ImClamp(WeaponScale,0.1f,5.f),-5.f,5.f);
