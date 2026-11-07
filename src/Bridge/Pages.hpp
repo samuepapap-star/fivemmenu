@@ -1,4 +1,5 @@
 #pragma once
+#include <Includes/CustomWidgets/Custom.hpp>
 #include <Bridge/Features.hpp>
 namespace BridgePages {
 inline void Footer(){

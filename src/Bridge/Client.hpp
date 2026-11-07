@@ -111,7 +111,7 @@ class Client {
     Connect(target,h);
     {std::lock_guard<std::mutex> lock(mutex);
      if(pid!=target||!shared||State(shared->service)!=1)throw std::runtime_error(shared?shared->error:"Ponte indisponivel");
-     const auto state=State(shared->commandState);if(state==Busy||state==Ready)throw std::runtime_error("Outra acao esta em andamento na ponte");
+     const auto state=State(shared->commandState);if(state==MenuBridge::Busy||state==Ready)throw std::runtime_error("Outra acao esta em andamento na ponte");
      shared->command=command;MemoryBarrier();InterlockedExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Ready);
     }
     bool done=false;const auto end=GetTickCount64()+20000;
