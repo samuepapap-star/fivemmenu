@@ -42,7 +42,9 @@ namespace Custom
 					}
 					else if ( Widget.Pos == 4 )
 					{
-						Widget.Pos = Widget.PossiblePos;
+						if (Widget.PossiblePos >= 0 && Widget.PossiblePos < 4)
+                            *ConfiguredPosition(i) = Widget.PossiblePos;
+                        Widget.Pos = ImClamp(*ConfiguredPosition(i), 0, 3);
 						Widget.PossiblePos = -1;
 					}
 
@@ -144,80 +146,25 @@ namespace Custom
 					break;
 				case 2:
 					Widget.Enabled = g_Config.ESP->UserNames;
+                    Widget.Color = g_Config.ESP->UserNamesCol;
 					g_Config.ESP->UserNamesPos = Widget.RawPos;
 					break;
 				case 3:
 					Widget.Enabled = g_Config.ESP->WeaponName;
+                    Widget.Color = g_Config.ESP->WeaponNameCol;
 					g_Config.ESP->WeaponNamePos = Widget.RawPos;
 					break;
 				case 4:
 					Widget.Enabled = g_Config.ESP->DistanceFromMe;
+                    Widget.Color = g_Config.ESP->DistanceCol;
 					g_Config.ESP->DistanceFromMePos = Widget.RawPos;
 					break;
 				}
 
-				static int seloco = 0;
-
-				switch ( i )
-				{
-				case 0:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->HealthBarState;
-							seloco++;
-						}
-						else
-							g_Config.ESP->HealthBarState = Widget.Pos;
-					}
-					break;
-				case 1:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->ArmorBarState;		seloco++;
-						}
-						else
-							g_Config.ESP->ArmorBarState = Widget.Pos;
-					}
-					break;
-				case 2:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->UserNamesState;		seloco++;
-						}
-						else
-							g_Config.ESP->UserNamesState = Widget.Pos;
-					}
-					break;
-				case 3:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->WeaponNameState;		seloco++;
-						}
-						else
-							g_Config.ESP->WeaponNameState = Widget.Pos;
-					}
-					break;
-				case 4:
-					if ( Widget.Pos != 4 )
-					{
-						if ( g_Config.ESP->UpdateCfgESP )
-						{
-							Widget.Pos = g_Config.ESP->DistanceFromMeState;		seloco++;
-						}
-						else {
-							g_Config.ESP->DistanceFromMeState = Widget.Pos;
-						}
-					}
-					break;
-				}
+				// Selectors and loaded profiles are authoritative. Only an actual
+                // drag-drop completion is allowed to change the configured side.
+                if (Widget.Pos != 4)
+                    Widget.Pos = ImClamp(*ConfiguredPosition(i), 0, 3);
 
 
 				Widget.AlphaAnimation = ImClamp( Widget.AlphaAnimation + ( 6 * ImGui::GetIO( ).DeltaTime * ( Widget.Enabled ? 1.f : -1.f ) ), 0.f, 1.f );
@@ -328,12 +275,10 @@ namespace Custom
 				ImGui::PopFont( );
 
 
-				if ( seloco == 4 )
-				{
-					g_Config.ESP->UpdateCfgESP = false;
-					seloco = 0;
-				}
+
 			}
+
+            g_Config.ESP->UpdateCfgESP = false;
 
 			for ( size_t i = 0; i < 4; i++ )
 			{
@@ -343,6 +288,16 @@ namespace Custom
 		}
 
 	private:
+        int* ConfiguredPosition(size_t widget) {
+            switch(widget) {
+            case 0: return &g_Config.ESP->HealthBarState;
+            case 1: return &g_Config.ESP->ArmorBarState;
+            case 2: return &g_Config.ESP->UserNamesState;
+            case 3: return &g_Config.ESP->WeaponNameState;
+            default: return &g_Config.ESP->DistanceFromMeState;
+            }
+        }
+
 		class cDragWidget {
 		public:
 			int Type; // 0 = Text | 1 = Bar
@@ -413,3 +368,4 @@ namespace Custom
 	inline EspPreview g_EspPreview;
 
 }
+

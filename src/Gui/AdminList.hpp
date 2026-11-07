@@ -1,6 +1,7 @@
 #pragma once
 #include <Core/SDK/SDK.hpp>
 #include <cmath>
+#include "VisibilityEvidence.hpp"
 namespace AdminList {
 inline std::vector<std::string> entries;
 template<class T> inline bool Read(uintptr_t address,T& value) {
@@ -11,7 +12,15 @@ template<class T> inline bool Read(uintptr_t address,T& value) {
 inline void Draw() {
     const auto cfg=g_Config.ESP;
     entries.clear();
-    if (!g_MenuInfo.IsLogged || !cfg->Enabled || (!cfg->AdminList && !cfg->AdminHighlight)) return;
+    static VisibilityEvidence::Filter filter;
+    static DWORD processId=0;
+    if(processId!=Mem.ProcId){filter.Clear();processId=Mem.ProcId;}
+    if (!g_MenuInfo.IsLogged || !cfg->Enabled || (!cfg->AdminList && !cfg->AdminHighlight)) {
+        filter.Clear();
+        return;
+    }
+    const auto now=GetTickCount64();
+    filter.Prune(now);
     auto& rows=entries;
     auto draw=ImGui::GetBackgroundDrawList();
     for (const auto& entity:Core::SDK::Game::EntityList) {
@@ -23,7 +32,7 @@ inline void Draw() {
         BYTE visibility=0,alpha=255;
         const uintptr_t ped=reinterpret_cast<uintptr_t>(entity.Ped);
         if (!Read(ped+0x2C,visibility) || !Read(ped+0xAC,alpha)) continue;
-        if ((visibility&1)!=0 && alpha!=0) continue;
+        if (!filter.Observe(ped,entity.Id,visibility,alpha,entity.Ped->InVehicle(),now)) continue;
         // HyperX heuristic: visibility flags only. No administrator role information.
         const std::string name=entity.NetworkInfo.UserName.empty()?"Desconhecido":entity.NetworkInfo.UserName;
         rows.push_back(name+" | ID "+std::to_string(entity.Id)+" | "+std::to_string(int(entity.Distance))+" m");
