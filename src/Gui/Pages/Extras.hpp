@@ -42,6 +42,7 @@ inline void Render(int section){
  }
  if(section==2){
   ImGui::TextDisabled("Armas / efeitos e velocidade");
+  Custom::CheckBox("Congelar quantidade de municao",&FreezeAmmo);
   Custom::CheckBox("Punho explosivo",&ExplosiveFist);Custom::CheckBox("Municao incendiaria",&FireAmmo);Custom::CheckBox("Municao explosiva",&ExplosiveAmmo);
   Custom::CheckBox("Recarga rapida",&FastReload);if(FastReload)ImGui::SliderFloat("Multiplicador da recarga",&ReloadSpeed,1.f,10.f,"%.1fx");
   Custom::CheckBox("Cadencia ajustavel",&RapidFire);if(RapidFire)ImGui::SliderFloat("Multiplicador da cadencia",&FireRate,1.f,10.f,"%.1fx");
@@ -54,7 +55,8 @@ inline void Render(int section){
   ImGui::SliderFloat("Tamanho do radar",&RadarSize,120.f,400.f,"%.0f px");ImGui::SliderFloat("Alcance do radar",&RadarRange,20.f,1000.f,"%.0f m");
   ImGui::TextDisabled("Arraste o radar enquanto o menu estiver aberto.");
   ImGui::SliderFloat("Tamanho dos textos ESP",&TextSize,8.f,24.f,"%.0f px");ImGui::SliderFloat("Espessura do esqueleto",&SkeletonWidth,0.5f,5.f,"%.1f");
-  ImGui::SliderFloat("Espessura das caixas",&BoxWidth,0.5f,4.f,"%.1f");ImGui::Combo("Fonte do ESP",&Font,"Atual\0Fonte do menu\0");
+  ImGui::SliderFloat("Espessura das caixas",&BoxWidth,0.5f,4.f,"%.1f");ImGui::Combo("Fonte do ESP",&Font,"Atual\0Fonte do menu\0Compacta\0");
+  Custom::CheckBox("Icone da arma",&WeaponIcon);
   Custom::CheckBox("Chapeu conico (China Hat)",&ChinaHat);if(ChinaHat)ImGui::SliderFloat("Tamanho do chapeu",&HatSize,0.1f,1.f,"%.2f");
   Custom::CheckBox("Aviso de possiveis invisiveis",&InvisibleWarning);
   Custom::CheckBox("Tecla para ativar/desativar ESP",&ESPHotkeyOn);if(ESPHotkeyOn)Key("Tecla ESP",EspKey);
@@ -70,6 +72,7 @@ inline void Render(int section){
  if(section==5){
   ImGui::TextDisabled("Configuracoes / aparencia");
   Custom::CheckBox("Cores animadas no menu",&Rainbow);if(Rainbow)ImGui::SliderFloat("Velocidade das cores",&RainbowSpeed,0.01f,1.f,"%.2f");
+  ImGui::Combo("Fundo animado",&Background,"Atual\0Matrix\0Estrelas\0Ondas\0Coracoes\0Vortice\0Raios\0Galaxia\0Chuva\0");
   ImGui::Combo("Estilo do menu",&Theme,"Atual\0Arredondado\0Quadrado\0");ImGui::SliderFloat("Espessura da borda",&BorderSize,0.f,4.f,"%.1f");
   Custom::CheckBox("Particulas",&Particles);if(Particles){ImGui::SliderInt("Quantidade",&ParticleCount,0,150);ImGui::SliderFloat("Velocidade das particulas",&ParticleSpeed,0.05f,2.f,"%.2f");ImGui::SliderFloat("Tamanho das particulas",&ParticleSize,1.f,5.f,"%.1f");}
   Custom::CheckBox("Ocultar da barra de tarefas",&HideTaskbar);

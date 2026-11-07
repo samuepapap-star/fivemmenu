@@ -1,4 +1,6 @@
 #pragma once
+#include <Core/Features/ExtraCamera.hpp>
+#include <Core/Features/SelfGodMode.hpp>
 #include <Core/SDK/ClientState.hpp>
 #include <Core/Features/NoclipVisibility.hpp>
 #include <Core/Features/ExternalCameraOptions.hpp>
@@ -73,11 +75,15 @@ namespace Settings {
 
 						if ( Custom::Button( xorstr( "Encerrar" ), ImVec2( -1, 30 ), 0 ) ) 
 						{
+                            Core::Features::ExtraCamera::Stop();
+                            if(Core::Features::ExtraCamera::patched)NotifyManager::Send(Core::Features::ExtraCamera::status,4000);
+                            Core::Features::Extras::Tick(true);
+                            Core::Features::SelfGodMode::Tick(true);
                             g_Config.Player->NoCollisionEnabled=false;
                             Core::Features::NoclipVisibility::Tick(true);
                             Core::Features::ExternalCameraOptions::Tick(true);
                             Core::Features::CarreraAdditions::TickCollision(true);
-							exit( 0 );
+							if(!Core::Features::ExtraCamera::patched)exit( 0 );
 						}
 					}
 					ImGui::EndChild( );
@@ -122,5 +128,6 @@ namespace Settings {
 		ImGui::PopStyleVar( );
 	}
 }
+
 
 

@@ -163,6 +163,10 @@ namespace World {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::CopyClothes(
                                     reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             }
+                            if(actionMode==1&&Custom::Button("Chuva de carros",ImVec2(-1,30),0)){
+                                const auto result=Core::Features::CarreraAdditions::VehiclesToPlayer(reinterpret_cast<uintptr_t>(SelectedPed.Ped),true);
+                                NotifyManager::Send(result.c_str(),4000);
+                            }
                             if(actionMode == 1 && Custom::Button("Enviar veículos ao jogador",ImVec2(-1,30),0,true,
                                 "Leva veículos carregados a até 200 m de você até o jogador selecionado.")) {
                                 NotifyManager::Send(Core::Features::CarreraAdditions::VehiclesToPlayer(

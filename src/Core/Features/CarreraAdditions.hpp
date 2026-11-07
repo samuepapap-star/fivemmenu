@@ -114,7 +114,7 @@ namespace Core { namespace Features { namespace CarreraAdditions {
         }
         return "Dados de roupa copiados localmente.";
     }
-    inline std::string VehiclesToPlayer(uintptr_t selectedPed) {
+    inline std::string VehiclesToPlayer(uintptr_t selectedPed, bool rain=false) {
         AltosDiagnostics::Log("action=veiculos_para_jogador click");
         D3DXVECTOR3 target{},local{};
         if(!Position(selectedPed,target) || !Position(LocalPlayer(),local)) {
@@ -134,13 +134,15 @@ namespace Core { namespace Features { namespace CarreraAdditions {
             const D3DXVECTOR3 delta=current-local;
             if(delta.x*delta.x+delta.y*delta.y+delta.z*delta.z>200.f*200.f) {++outside;continue;}
             ++nearby;
+            D3DXVECTOR3 destination=target;
+            if(rain){float angle=nearby*2.399963f;destination.x+=std::cos(angle)*5.f;destination.y+=std::sin(angle)*5.f;destination.z+=15.f;}
             uintptr_t navigation=0;
             if(!Read(vehicle+0x30,navigation) || !navigation) {++failed;continue;}
             // Same dual-transform update used by SHARK CVehicle::SetPos.
-            AltosDiagnostics::TeleportTrace trace(Mem.ProcHandle,vehicle,target,
+            AltosDiagnostics::TeleportTrace trace(Mem.ProcHandle,vehicle,destination,
                 g_Offsets.CurrentBuild,"veiculo",nearby==1);
-            const bool visual=Write(vehicle+0x90,target);
-            const bool nav=Write(navigation+0x50,target);
+            const bool visual=Write(vehicle+0x90,destination);
+            const bool nav=Write(navigation+0x50,destination);
             trace.Results(visual,nav);
             if(visual && nav)++updated;else ++failed;
         }

@@ -1,4 +1,5 @@
 #include "Gui.hpp"
+#include <cstdlib>
 #include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/ExtraCamera.hpp>
 
@@ -48,6 +49,9 @@ inline void CheatLogin( )
 
 void Gui::Rendering( )
 {
+    static bool cleanupRegistered=false;
+    if(!cleanupRegistered){std::atexit([](){Core::Features::ExtraCamera::Stop();Core::Features::Extras::Tick(true);});cleanupRegistered=true;}
+
     static bool diagnosticSession=false;
     if(!diagnosticSession) {
         AltosDiagnostics::Log("session_started version=client_state_diagnostics");
@@ -104,6 +108,7 @@ void Gui::Rendering( )
 	{
 
 		AltosInterface::Background();
+        Core::Features::Extras::DrawBackground();
         // Keep dragging inside the logo/sidebar; combat tabs occupy x >= 176.
         const ImVec2 savedCursor = ImGui::GetCursorPos();
         ImGui::SetCursorPos(ImVec2(285.f, 0.f));

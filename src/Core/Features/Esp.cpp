@@ -1,4 +1,5 @@
 #include "Esp.hpp"
+#include <Core/Features/ExtraWeaponIcons.hpp>
 #include <Core/ExtensionSettings.hpp>
 #include <chrono>
 #include "ExternalAimMath.hpp"
@@ -8,7 +9,7 @@
 void Core::Features::cEsp::Draw( )
 {
 	auto Cfg = g_Config.ESP;
-    ImFont* extraFont=ExtraSettings::Font==1?ImGui::GetFont():g_Variables.m_DrawFont;
+    ImFont* extraFont=ExtraSettings::Font==1?ImGui::GetFont():ExtraSettings::Font==2?g_Variables.m_FontSmaller:g_Variables.m_DrawFont;
     const float extraTextSize=ExtraSettings::TextSize;
 
 	if ( !Cfg->Enabled )
@@ -145,7 +146,7 @@ void Core::Features::cEsp::Draw( )
             DrawList->AddText(ImVec2(labelPos.x + 1.f, labelPos.y + 1.f), IM_COL32(0, 0, 0, 255), label);
             DrawList->AddText(labelPos, IM_COL32(255, 190, 60, 255), label);
         }
-		float FirstTextBoxTop = BoxMin.y - 18;
+		float FirstTextBoxTop = BoxMin.y - (extraTextSize+4.f);
 
 		float FirstTextBoxBottom = BoxMax.y + 4;
 		float SecondTextBoxBottom = BoxMax.y + ( 4 * 2 ) + 8; //8 is padding
@@ -277,6 +278,11 @@ void Core::Features::cEsp::Draw( )
                     if(side%3==0)DrawList->AddLine(ImVec2(apex.x,apex.y),ImVec2(ring.x,ring.y),Cfg->SkeletonCol,1.f);
                 }last=ring;
             }
+        }
+
+        if(ExtraSettings::WeaponIcon){
+            auto manager=Ped->GetWeaponManager();auto info=manager?manager->GetWeaponInfo():nullptr;
+            if(info){auto texture=ExtraWeaponIcons::Find(info->GetName());if(texture)DrawList->AddImage(texture,ImVec2(BoxCenter.x-24,BoxMax.y+3.f*(extraTextSize+4.f)+16.f),ImVec2(BoxCenter.x+24,BoxMax.y+3.f*(extraTextSize+4.f)+40.f));}
         }
 
 		if ( Cfg->HeadCircle )

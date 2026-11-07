@@ -81,6 +81,8 @@ inline void Tick(bool stop=false){
  if(input){if(Edge(SavePeekKey,saveHeld))SavePeek();if(Edge(ReturnPeekKey,returnHeld))ReturnPeek();if(Edge(EspKey,espHeld)&&ESPHotkeyOn)g_Config.ESP->Enabled=!g_Config.ESP->Enabled;}
  else {saveHeld=returnHeld=espHeld=true;}
  if(peekSaved&&(peekPid!=Mem.ProcId||peekPed!=(uintptr_t)p))peekSaved=false;
+ static uintptr_t frozenAmmo=0;static DWORD ammoPid=0;static int ammoValue=0;
+ if(!ready||!FreezeAmmo||ammoPid!=Mem.ProcId)frozenAmmo=0;
  if(ready){
   float max=p->GetMaxHealth(),armor=p->GetArmor();
   if(RegenHealth&&std::isfinite(max)&&max>100.f&&max<=10000.f&&health<max)p->SetHealth(max);
@@ -88,6 +90,13 @@ inline void Tick(bool stop=false){
  }
  uintptr_t info=0,weapon=0,object=0,vehicle=0,model=0;
  if(ready){if(g_Offsets.m_PlayerInfo)Read((uintptr_t)p+g_Offsets.m_PlayerInfo,info);auto manager=p->GetWeaponManager();if(manager){weapon=(uintptr_t)manager->GetWeaponInfo();if(g_Offsets.m_CObject)Read((uintptr_t)manager+g_Offsets.m_CObject,object);}if(p->InVehicle()){vehicle=(uintptr_t)p->GetLastVehicle();if(vehicle)Read(vehicle+0x20,model);}}
+ if(ready&&FreezeAmmo&&weapon){
+  uintptr_t ammo=0,count=0,container=0;int current=0;
+  if(Read(weapon+0x60,ammo)&&ammo>=0x10000&&Read(ammo+8,count)&&count>=0x10000&&Read(count,container)&&container>=0x10000&&Read(container+0x18,current)&&current>=0&&current<=100000){
+   if(frozenAmmo!=container+0x18){frozenAmmo=container+0x18;ammoPid=Mem.ProcId;ammoValue=current;}
+   Write(frozenAmmo,ammoValue);
+  }else frozenAmmo=0;
+ }
  uint32_t owned=0,wanted=0;
  auto flag=[&](bool enabled,int bit){if(enabled){owned|=1u<<bit;wanted|=1u<<bit;}};
  flag(ready&&input&&SuperJump&&(GetAsyncKeyState(VK_SPACE)&0x8000),14);flag(ready&&input&&BeastJump&&(GetAsyncKeyState(VK_SPACE)&0x8000),28);
@@ -155,6 +164,24 @@ inline void DrawWarnings(){
  if(!ExtraSettings::InvisibleWarning||!g_MenuInfo.IsLogged||AdminList::entries.empty())return;
  const std::string message="Possiveis invisiveis: "+std::to_string(AdminList::entries.size());
  ImGui::GetBackgroundDrawList()->AddText(ImVec2(20,70),IM_COL32(255,255,255,255),message.c_str());
+}
+inline void DrawBackground(){
+ using namespace ExtraSettings;if(!Background||!g_MenuInfo.IsOpen||!g_MenuInfo.IsLogged)return;
+ auto draw=ImGui::GetWindowDrawList();auto origin=ImGui::GetWindowPos();auto size=ImGui::GetWindowSize();
+ const ImVec2 end(origin.x+size.x,origin.y+size.y);draw->PushClipRect(origin,end,true);
+ float t=(float)ImGui::GetTime();const ImU32 col=IM_COL32(160,100,230,55);
+ auto point=[&](float x,float y){return ImVec2(origin.x+x,origin.y+y);};
+ if(Background==3){for(int row=0;row<6;row++){ImVec2 previous=point(0,size.y*.3f+row*35);for(int x=8;x<size.x;x+=8){auto next=point((float)x,size.y*.3f+row*35+std::sin(x*.018f+t+row)*24);draw->AddLine(previous,next,col,1);previous=next;}}}
+ else for(int i=0;i<48;i++){
+  float x=std::fmod(i*127.13f,ImMax(size.x,1.f)),y=std::fmod(i*83.17f+t*(10.f+i%11),ImMax(size.y,1.f));
+  if(Background==1){char text[2]={char('0'+(i%2)),0};draw->AddText(point(x,y),IM_COL32(80,220,120,65),text);}
+  else if(Background==2)draw->AddCircleFilled(point(x,y),1.f+i%2,col);
+  else if(Background==4){auto a=point(x,y);draw->AddCircleFilled(ImVec2(a.x-3,a.y),4,col);draw->AddCircleFilled(ImVec2(a.x+3,a.y),4,col);draw->AddTriangleFilled(ImVec2(a.x-7,a.y),ImVec2(a.x+7,a.y),ImVec2(a.x,a.y+10),col);}
+  else if(Background==5||Background==7){float angle=t*.4f+i*.45f,r=(i+1)*4.f;auto q=point(size.x*.5f+std::cos(angle)*r*1.6f,size.y*.5f+std::sin(angle)*r);draw->AddCircleFilled(q,Background==7?2.f:1.f,col);}
+  else if(Background==6&&i<8){auto a=point(x,0),b=point(x+16,size.y*.45f),c=point(x-10,size.y*.55f),d=point(x+12,size.y);draw->AddLine(a,b,col,1);draw->AddLine(b,c,col,1);draw->AddLine(c,d,col,1);}
+  else if(Background==8)draw->AddLine(point(x,y),point(x-6,y+18),col,1);
+ }
+ draw->PopClipRect();
 }
 inline void DrawMenuEffects(){
  using namespace ExtraSettings;if(!g_MenuInfo.IsLogged||!g_MenuInfo.IsOpen)return;

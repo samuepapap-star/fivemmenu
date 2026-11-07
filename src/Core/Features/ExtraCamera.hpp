@@ -60,7 +60,7 @@ inline bool Start(uintptr_t spectate=0){
 inline void Tick(bool stop=false){
  if(stop){Stop();return;}if(!patched)return;
  auto p=Extras::Player();float health=0;uintptr_t cam=0;
- if(pid!=Mem.ProcId||pedOwner!=(uintptr_t)p||!p||!Extras::Read((uintptr_t)p+0x280,health)||health<=100.f||!Extras::Read(SDK::Pointers::pCamGamePlayDirector+0x2C0,cam)||cam!=camera||p->InVehicle()||g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){Stop();return;}
+ if(!g_MenuInfo.IsLogged||pid!=Mem.ProcId||pedOwner!=(uintptr_t)p||!p||!Extras::Read((uintptr_t)p+0x280,health)||health<=100.f||!Extras::Read(SDK::Pointers::pCamGamePlayDirector+0x2C0,cam)||cam!=camera||p->InVehicle()||g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){Stop();return;}
  DWORD foreground=0;GetWindowThreadProcessId(GetForegroundWindow(),&foreground);
  if(GetForegroundWindow()!=g_Variables.g_hGameWindow&&!(g_MenuInfo.IsOpen&&foreground==GetCurrentProcessId())){Stop();return;}
  uintptr_t model=0;Extras::Read((uintptr_t)p+0x20,model);frozenModel.Set(model>=0x10000?model+0x2C:0,true,0.f,-100.f,100.f);
