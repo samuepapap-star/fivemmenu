@@ -1,6 +1,7 @@
 #pragma once
 #include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/ExtraCamera.hpp>
+#include <Core/Features/WorldClock.hpp>
 #include <Core/Features/VehicleManipulation.hpp>
 namespace ExtraPages {
 inline void Key(const char* label,int& value){static int mode=1;ImGui::Keybind(label,&value,&mode);}
@@ -87,6 +88,21 @@ inline void Render(int section){
  }
  if(section==6){
   ImGui::TextDisabled("Carro / ESP adicional");Custom::CheckBox("Marcador nos veiculos",&VehicleMarker);Custom::CheckBox("Ignorar veiculos ocupados",&IgnoreOccupied);
+ }
+ if(section==7){
+  ImGui::TextDisabled("Ambiente / horario local");
+  ImGui::SliderInt("Hora",&ClockHour,0,23,"%02d");
+  ImGui::SliderInt("Minuto",&ClockMinute,0,59,"%02d");
+  if(Custom::Button("Aplicar horario local",ImVec2(-1,30),0))WorldClock::Request();
+  Custom::CheckBox("Manter horario local",&FreezeClock);
+  if(Custom::Button("Manha (08:00)",ImVec2(200,30),0)){ClockHour=8;ClockMinute=0;WorldClock::Request();}
+  ImGui::SameLine();
+  if(Custom::Button("Meio-dia (12:00)",ImVec2(200,30),0)){ClockHour=12;ClockMinute=0;WorldClock::Request();}
+  if(Custom::Button("Entardecer (18:30)",ImVec2(200,30),0)){ClockHour=18;ClockMinute=30;WorldClock::Request();}
+  ImGui::SameLine();
+  if(Custom::Button("Meia-noite (00:00)",ImVec2(200,30),0)){ClockHour=0;ClockMinute=0;WorldClock::Request();}
+  ImGui::TextWrapped("Ao desligar, o relogio volta a avancar. O servidor pode ressincronizar o horario.");
+  ImGui::TextWrapped("%s",WorldClock::status);
  }
  ImGui::PopID();ImGui::EndChild();
 }

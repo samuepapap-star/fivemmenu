@@ -24,6 +24,14 @@ jobs:
           if errorlevel 1 exit /b 1
           source_option_logic.exe
           if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\world_clock.cpp /Fe:world_clock.exe
+          if errorlevel 1 exit /b 1
+          world_clock.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\native_candidate_logic.cpp /Fe:native_candidate_logic.exe
+          if errorlevel 1 exit /b 1
+          native_candidate_logic.exe
+          if errorlevel 1 exit /b 1
 
       - name: Instala DirectX SDK
         run: |

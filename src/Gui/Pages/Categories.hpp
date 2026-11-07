@@ -30,6 +30,6 @@ inline void Teleports() {
     else if(teleportTab==1) World::Render(0,2); else ExtraPages::Render(4);
 }
 inline void Personagem(){Tab("Geral",0,selfTab,false);Tab("Extras",1,selfTab,true);if(!selfTab)Local::Render(0);else ExtraPages::Render(0);}
-inline void Settings(){Tab("Geral",0,configTab,false);Tab("Aparencia",1,configTab,true);if(!configTab)::Settings::Render();else ExtraPages::Render(5);}
+inline void Settings(){Tab("Geral",0,configTab,false);Tab("Aparencia",1,configTab,true);Tab("Ambiente",2,configTab,true);if(!configTab)::Settings::Render();else ExtraPages::Render(configTab==1?5:7);}
 }
 
