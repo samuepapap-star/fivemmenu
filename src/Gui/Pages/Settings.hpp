@@ -1,4 +1,5 @@
 #pragma once
+#include <Gui/MenuScale.hpp>
 #include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/SelfGodMode.hpp>
 #include <Core/SDK/ClientState.hpp>
@@ -41,6 +42,7 @@ namespace Settings {
                         Custom::CheckBox("Painel de teclas", &g_Config.General->BindManager);
                         ImGui::SliderInt("Escala do menu", &g_Config.General->MenuScale, 0, 100);
                         ImGui::TextDisabled("0 = 50%% | 50 = 100%% | 100 = 150%%");
+                        ImGui::TextDisabled("Solte o mouse para aplicar. Atual: %.0f%%",MenuScale::factor*100.f);
                         if (ImGui::Button("Restaurar escala")) g_Config.General->MenuScale = 50;
 						if ( Custom::CheckBox( xorstr( "Ocultar em capturas" ), &g_Config.General->StreamProof ) )
 						{

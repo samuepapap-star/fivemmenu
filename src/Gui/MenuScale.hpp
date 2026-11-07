@@ -2,6 +2,7 @@
 #include <Includes/ImGui/Files/imgui_internal.h>
 #include <algorithm>
 #include <cfloat>
+#include <Gui/MenuScaleLogic.hpp>
 
 namespace MenuScale {
 inline float factor = 1.f, previous = 1.f;
@@ -12,21 +13,24 @@ inline bool backgroundClip = false;
 inline void PrepareFrame() {
     auto& io = ImGui::GetIO();
     physicalSize = io.DisplaySize;
-    const int setting = (std::max)(0, (std::min)(100, g_Config.General->MenuScale));
-    factor = 0.5f + float(setting) * 0.01f;
-    // Keep the complete menu reachable on small displays.
-    if (physicalSize.x > 0 && physicalSize.y > 0) {
-        const ImVec2 base = g_MenuInfo.IsLogged ? ImVec2(920.f,600.f) : ImVec2(500.f,350.f);
-        const float fit = (std::min)(physicalSize.x / base.x, physicalSize.y / base.y);
-        factor = (std::min)(factor, (std::max)(0.1f, fit));
-    }
+    bool leftDown=io.MouseDown[ImGuiMouseButton_Left];
+    for(const auto& event:GImGui->InputEventsQueue)
+        if(event.Type==ImGuiInputEventType_MouseButton&&event.MouseButton.Button==ImGuiMouseButton_Left)
+            leftDown=event.MouseButton.Down;
+    const bool dragging=leftDown&&GImGui->ActiveId!=0;
+    const ImVec2 base=g_MenuInfo.IsLogged?ImVec2(920.f,600.f):ImVec2(500.f,350.f);
+    factor=MenuScaleLogic::Resolve(g_Config.General->MenuScale,previous,physicalSize.x,physicalSize.y,base.x,base.y,dragging);
     auto convert = [](ImVec2& point, float multiplier) {
         if (point.x > -FLT_MAX * 0.5f && point.y > -FLT_MAX * 0.5f) {
             point.x *= multiplier; point.y *= multiplier;
         }
     };
     // Cached positions already use last frame's logical coordinates.
-    const float ratio = previous / factor;
+    const float ratio = MenuScaleLogic::CoordinateRatio(previous,factor);
+    if(ratio!=1.f){
+        if(ImGuiWindow* menu=ImGui::FindWindowByName(" "))
+            ImGui::SetWindowPos(menu,ImVec2(menu->Pos.x*ratio,menu->Pos.y*ratio),ImGuiCond_Always);
+    }
     convert(io.MousePos, ratio);
     convert(io.MousePosPrev, ratio);
     for (auto& point : io.MouseClickedPos) convert(point, ratio);
