@@ -39,7 +39,7 @@ namespace Gui
 #endif // FULLSCREEN_EX		
 		
 		SetLayeredWindowAttributes( g_Variables.g_hCheatWindow, RGB( 0, 0, 0 ), 255, LWA_ALPHA );
-		MARGINS Margin = { g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x,g_Variables.g_vGameWindowSize.y };
+		MARGINS Margin = { -1, -1, -1, -1 };
 		DwmExtendFrameIntoClientArea( g_Variables.g_hCheatWindow, &Margin );
 
 		if ( !CreateDeviceD3D( g_Variables.g_hCheatWindow ) )
@@ -280,6 +280,7 @@ namespace Gui
 		switch ( msg ) {
 		case WM_SIZE:
 			if ( g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED ) {
+				g_pd3dDeviceContext->OMSetRenderTargets( 0, nullptr, nullptr );
 				Overlay::CleanupRenderTarget( );
 				g_pSwapChain->ResizeBuffers( 0, ( UINT ) LOWORD( lParam ), ( UINT ) HIWORD( lParam ), DXGI_FORMAT_UNKNOWN, 0 );
 				Overlay::CreateRenderTarget( );
