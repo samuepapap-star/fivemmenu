@@ -111,6 +111,7 @@ namespace Core {
 			inline static ImVec2 UserNamesPos;
 			inline static int UserNamesState = 0;
 			inline static bool HeadCircle;
+            inline static float HeadSize = 3.f;
 			inline static bool IgnoreNPCs;
 			inline static bool ShowLocalPlayer;
 			inline static bool HighlightVisible;
@@ -299,6 +300,7 @@ namespace Core {
                 FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
                 FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
                 FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
+                FeaturesCfg["ESP"]["HeadSize"] = ESP->HeadSize;
                 FeaturesCfg["ESP"]["BoxSize"] = ESP->BoxSize;
                 FeaturesCfg["ESP"]["PreviewEnabled"] = ESP->PreviewEnabled;
 
@@ -453,6 +455,7 @@ namespace Core {
                 ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
                 if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
                 ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);
+                ESP->HeadSize = ImClamp(FeaturesCfg["ESP"].value("HeadSize", 3.f), 1.f, 20.f);
                 ESP->BoxSize = FeaturesCfg["ESP"].value("BoxSize", 0);
                 ESP->PreviewEnabled = FeaturesCfg["ESP"].value("PreviewEnabled", true);
 
