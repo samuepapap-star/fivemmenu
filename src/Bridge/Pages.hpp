@@ -45,11 +45,17 @@ inline void Render(int section){
   for(std::size_t i=0;i<models.size();i++)if(models[i].name.find(filter)!=std::string::npos)filtered.push_back(i);
   ImGui::TextDisabled("Resultados: %u",static_cast<unsigned>(filtered.size()));
   ImGui::SetNextItemWidth(-1);
-  if(ImGui::BeginCombo("Escolher veiculo",model,0)){
-   ImGuiListClipper clipper;clipper.Begin(static_cast<int>(filtered.size()));
+  const int resultCount=static_cast<int>(filtered.size());
+  const int visibleRows=resultCount<1?1:(resultCount>8?8:resultCount);
+  const float rowHeight=ImGui::GetTextLineHeight();
+  const float popupHeight=(rowHeight+ImGui::GetStyle().ItemSpacing.y)*visibleRows+ImGui::GetStyle().WindowPadding.y*2.f;
+  ImGui::SetNextWindowSizeConstraints(ImVec2(0,popupHeight),ImVec2(10000.f,popupHeight));
+  // Custom BeginCombo uses its third parameter as the result count, not flags.
+  if(ImGui::BeginCombo("Escolher veiculo",model,resultCount)){
+   ImGuiListClipper clipper;clipper.Begin(resultCount,rowHeight+ImGui::GetStyle().ItemSpacing.y);
    while(clipper.Step())for(int i=clipper.DisplayStart;i<clipper.DisplayEnd;i++){
     const auto& code=models[filtered[static_cast<std::size_t>(i)]].name;
-    if(ImGui::Selectable(code.c_str(),code==model))MenuBridge::Copy(model,sizeof(model),code);
+    if(ImGui::Selectable(code.c_str(),code==model,0,ImVec2(0,rowHeight))){MenuBridge::Copy(model,sizeof(model),code);ImGui::CloseCurrentPopup();}
    }
    if(filtered.empty())ImGui::TextDisabled("Nenhum veiculo encontrado com esse nome");
    ImGui::EndCombo();
