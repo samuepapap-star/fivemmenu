@@ -296,7 +296,7 @@ namespace Local {
 							BridgeFeatures::RepairVehicle( );
                             }
                             if(Custom::Button("Apagar veiculo proximo (15 m)",ImVec2(-1,33),0))BridgeFeatures::DeleteClosestVehicle();
-                            ImGui::TextWrapped("Apaga apenas um veiculo vazio proximo. Nao apaga aquele em que voce esta.");
+                            ImGui::TextWrapped("Apaga o veiculo elegivel mais proximo, mesmo ocupado. Ignora seu veiculo atual e veiculos sem controle local.");
                             BridgeFeatures::Status();
 
                         ImGui::BeginDisabled(!InVehicle || !CurrentVehicle || g_Config.Player->VehicleGodMode);
