@@ -99,13 +99,29 @@ public:
    case Action::DeleteClosestVehicle:{
     const Vec pos=api.Vector(N::EntityCoords,{static_cast<std::uint64_t>(ped),0});
     if(!Sane(pos)){Finish(false,"Posicao indisponivel");return;}
-    int vehicle=static_cast<int>(Call(N::ClosestVehicle,{Float(pos.x),Float(pos.y),Float(pos.z),Float(15.f),0,71}));
-    const auto id=static_cast<std::uint64_t>(vehicle);
-    if(!Exists(vehicle)){Finish(false,"Nenhum veiculo proximo encontrado em 15 m");return;}
-    if(Call(N::CurrentVehicle,{static_cast<std::uint64_t>(ped),0})==id){Finish(false,"Saia do seu veiculo; ele nao sera apagado enquanto voce estiver dentro");return;}
-    if(Call(N::Passengers,{id})||!Call(N::SeatFree,{id,static_cast<std::uint64_t>(-1),1})){Finish(false,"Veiculo ocupado; exclusao recusada");return;}
-    if(Call(N::Networked,{id})&&!Call(N::HasControl,{id})){Finish(false,"Sem controle local deste veiculo; exclusao recusada");return;}
-    Call(N::MissionEntity,{id,1,1});Call(N::DeleteVehicle,{reinterpret_cast<std::uint64_t>(&vehicle)});
+    const auto own=Call(N::CurrentVehicle,{static_cast<std::uint64_t>(ped),0});
+    int vehicle=0,best=0,occupied=0,uncontrolled=0,outside=0;float bestDistance=15.f*15.f;
+    {
+     const int handle=static_cast<int>(Call(Hash("FIND_FIRST_VEHICLE"),{reinterpret_cast<std::uint64_t>(&vehicle)}));
+     struct Iterator{NativeApi& api;int handle;~Iterator(){if(handle>=0)try{api.Call(Hash("END_FIND_VEHICLE"),{static_cast<std::uint64_t>(handle)});}catch(...){}}} iterator{api,handle};
+     for(int scanned=0;handle>=0&&vehicle>0&&scanned<512;scanned++){
+      const auto id=static_cast<std::uint64_t>(vehicle);
+      if(Exists(vehicle)&&id!=own){
+       const Vec current=api.Vector(N::EntityCoords,{id,0});
+       const float x=current.x-pos.x,y=current.y-pos.y,z=current.z-pos.z,distance=x*x+y*y+z*z;
+       if(!Sane(current)||distance>15.f*15.f)outside++;
+       else if(Call(N::Passengers,{id})||!Call(N::SeatFree,{id,static_cast<std::uint64_t>(-1),1}))occupied++;
+       else if(Call(N::Networked,{id})&&!Call(N::HasControl,{id}))uncontrolled++;
+       else if(distance<=bestDistance){best=vehicle;bestDistance=distance;}
+      }
+      if(!Call(Hash("FIND_NEXT_VEHICLE"),{static_cast<std::uint64_t>(handle),reinterpret_cast<std::uint64_t>(&vehicle)}))break;
+     }
+    }
+    if(!best){Finish(false,"Nenhum veiculo elegivel em 15 m. Ocupados: "+std::to_string(occupied)+". Sem controle: "+std::to_string(uncontrolled)+". Fora do raio: "+std::to_string(outside)+". Seu veiculo atual e ignorado.");return;}
+    const auto id=static_cast<std::uint64_t>(best);
+    if(!Exists(best)||Call(N::Passengers,{id})||!Call(N::SeatFree,{id,static_cast<std::uint64_t>(-1),1})){Finish(false,"Veiculo indisponivel ou ocupado; exclusao cancelada");return;}
+    if(Call(N::Networked,{id})&&!Call(N::HasControl,{id})){Finish(false,"Sem controle local deste veiculo; exclusao cancelada");return;}
+    Call(N::MissionEntity,{id,1,1});Call(N::DeleteVehicle,{reinterpret_cast<std::uint64_t>(&best)});
     const bool removed=!Call(N::EntityExists,{id});
     Finish(removed,removed?"Veiculo proximo apagado; ausencia confirmada localmente":"O jogo nao confirmou a exclusao do veiculo");return;
    }
