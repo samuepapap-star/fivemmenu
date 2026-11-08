@@ -266,17 +266,7 @@ void Gui::Rendering( )
 
 					ImGui::PopFont( );
 				}
-				else {
-
-					if ( ImGui::GetStyle( ).Alpha >= 0.9f )
-					{
-						g_MenuInfo.IsOpen = false;
-						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT );
-					}
-
-				}
-
-			}
+}
 		}
 		else {
 

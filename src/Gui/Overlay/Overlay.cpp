@@ -109,10 +109,7 @@ namespace Gui
                 const LONG closedStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
                 SetWindowLong(g_Variables.g_hCheatWindow, GWL_EXSTYLE,
                     g_MenuInfo.IsOpen ? openStyle : closedStyle);
-                if (g_MenuInfo.IsOpen) {
-                    SetForegroundWindow(g_Variables.g_hCheatWindow);
-                    SetFocus(g_Variables.g_hCheatWindow);
-                } else if (ActiveWindow == g_Variables.g_hCheatWindow) {
+                if (!g_MenuInfo.IsOpen && ActiveWindow == g_Variables.g_hCheatWindow) {
                     SetForegroundWindow(g_Variables.g_hGameWindow);
                 }
                 lastMenuOpen=g_MenuInfo.IsOpen;inputStateInitialized=true;
