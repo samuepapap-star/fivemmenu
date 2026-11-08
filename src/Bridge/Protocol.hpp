@@ -19,7 +19,7 @@ struct Command {
 };
 struct Frame {
  std::uint64_t heartbeat=0,localAddress=0;Vec position{},forward{},target{};
- std::uint32_t valid=0,input=0,shoot=0,rpg=0,targetValid=0,reserved=0;
+ std::uint32_t valid=0,input=0,shoot=0,rpg=0,targetValid=0,vehicleArmor=0;
  std::uint32_t camera=0,cameraMoves=0;float cameraSpeed=10.f;std::uint32_t cameraReserved=0;
 };
 struct Reply {std::uint64_t id=0;std::uint32_t success=0,value=0;char message[240]{};};

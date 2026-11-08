@@ -7,6 +7,7 @@
 #include <Core/Features/ExternalCameraOptions.hpp>
 
 namespace BridgeFeatures {
+inline bool vehicleArmor=false;
 inline bool silentRpg=false;
 inline bool cameraRequested=false;inline std::uint64_t cameraRequestedAt=0;
 inline std::string localStatus;
@@ -60,6 +61,7 @@ inline void Tick(){
     Core::Features::Extras::Read((uintptr_t)p+0x90,pos)&&Core::Features::Extras::Sane(pos)&&
     Core::Features::Extras::Read((uintptr_t)p+0x70,direction)&&Core::Features::Extras::Sane(direction)){
   float length=D3DXVec3Length(&direction);if(length>0.1f&&length<2.f){direction*=1.f/length;
+   f.vehicleArmor=vehicleArmor?1u:0u;
    f.valid=1;f.localAddress=(uintptr_t)p;f.position={pos.x,pos.y,pos.z};f.forward={direction.x,direction.y,direction.z};
    f.input=!g_MenuInfo.IsOpen&&GetForegroundWindow()==g_Variables.g_hGameWindow;
    f.shoot=f.input&&(GetAsyncKeyState(VK_LBUTTON)&0x8000);f.rpg=silentRpg&&!cameraRequested?1u:0u;
@@ -88,7 +90,7 @@ inline void Tick(){
  if(silentRpg)g_Config.SilentAim->Enabled=false;
  MenuBridge::Connection().Tick(Core::Mem.ProcId,Core::Mem.ProcHandle,f);
 }
-inline void Stop(){silentRpg=false;cameraRequested=false;MenuBridge::Connection().Stop();}
+inline void Stop(){vehicleArmor=false;silentRpg=false;cameraRequested=false;MenuBridge::Connection().Stop();}
 inline void Status(){
  const auto text=localStatus.empty()?MenuBridge::Connection().Status():localStatus;ImGui::TextWrapped("%s",text.c_str());
  if(silentRpg){const auto state=MenuBridge::Connection().RpgState();ImGui::TextDisabled(state==2?"RPG pronto; botao esquerdo dispara no alvo dentro do FOV":state==1?"Carregando o RPG":"RPG aguardando conexao/alvo e menu fechado");}

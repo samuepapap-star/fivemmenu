@@ -200,7 +200,13 @@ namespace Local {
 
 					ImGui::BeginChild( xorstr( "Outros" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						if ( Custom::CheckBox( xorstr( "Invencibilidade" ), &g_Config.Player->VehicleGodMode ) )
+						if (Custom::CheckBox("Blindagem do veiculo", &BridgeFeatures::vehicleArmor) && BridgeFeatures::vehicleArmor) {
+                            MenuBridge::Command connect{};
+                            connect.action = MenuBridge::Action::Connect;
+                            if (!BridgeFeatures::Submit(connect)) BridgeFeatures::vehicleArmor = false;
+                        }
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Protege voce e o carro contra tiros, fogo e explosoes. Repara os vidros.");
+                        if ( Custom::CheckBox( xorstr( "Invencibilidade" ), &g_Config.Player->VehicleGodMode ) )
 						{
 							if ( !InVehicle )
 							{

@@ -11,6 +11,7 @@
 #include "cfx/event.h"
 #include "NativeActions.hpp"
 #include "NativeDispatch.hpp"
+#include "VehicleArmor.hpp"
 #include "cfx/ScriptThread.hpp"
 #include "NativeCamera.hpp"
 #include "NativeVehicleTransfer.hpp"
@@ -73,7 +74,7 @@ public:
   return ParseModelCatalog(bytes.data(),bytes.size());
  }
 };
-Api api;Actions actions(api);NativeCamera cameraActions(api);NativeVehicleTransfer vehicleTransfer(api);
+Api api;VehicleArmor armor(api);Actions actions(api);NativeCamera cameraActions(api);NativeVehicleTransfer vehicleTransfer(api);
 void Publish(const Reply& reply){shared->reply=reply;MemoryBarrier();Store(shared->commandState,Done);}
 void Failure(const char* text){Copy(shared->error,sizeof(shared->error),text);MemoryBarrier();Store(shared->service,-1);}
 void WriteCatalog(const std::vector<std::string>& models,const std::vector<std::uint8_t>& classes={}){
@@ -87,12 +88,13 @@ void OnReset(){
  if(!shared)return;
  const auto state=ReadState(shared->commandState);
  if(state==Busy||state==Ready){Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),"Sessao reiniciada; acao cancelada");Publish(r);}
- actions.Reset();vehicleTransfer.Reset();cameraActions.Reset();api.Clear();WriteCatalog({});Store(shared->rpgState,0);Store(shared->cameraState,0);
+ armor.Reset();actions.Reset();vehicleTransfer.Reset();cameraActions.Reset();api.Clear();WriteCatalog({});Store(shared->rpgState,0);Store(shared->cameraState,0);
 }
 void Tick(){
  if(!shared||ReadState(shared->service)!=1)return;
  try{
   Frame frame{};if(!FrameSnapshot(frame))frame={};const auto now=GetTickCount64();
+  armor.Tick(Fresh(frame,now) && frame.vehicleArmor, now);
   if(!Fresh(frame,now)&&!actions.Pending()&&!vehicleTransfer.Pending()&&actions.rpgState==0&&!cameraActions.Active())return;
   if(!actions.Pending()&&!vehicleTransfer.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
    Command command=shared->command;MemoryBarrier();
