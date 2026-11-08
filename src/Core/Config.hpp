@@ -112,6 +112,8 @@ namespace Core {
 			inline static int UserNamesState = 0;
 			inline static bool HeadCircle;
             inline static float HeadSize = 3.f;
+            inline static int HealthBarWidth = 1;
+            inline static int ArmorBarWidth = 1;
 			inline static bool IgnoreNPCs;
 			inline static bool ShowLocalPlayer;
 			inline static bool HighlightVisible;
@@ -301,6 +303,8 @@ namespace Core {
                 FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
                 FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
                 FeaturesCfg["ESP"]["HeadSize"] = ESP->HeadSize;
+            FeaturesCfg["ESP"]["HealthBarWidth"] = ESP->HealthBarWidth;
+                FeaturesCfg["ESP"]["ArmorBarWidth"] = ESP->ArmorBarWidth;
                 FeaturesCfg["ESP"]["BoxSize"] = ESP->BoxSize;
                 FeaturesCfg["ESP"]["PreviewEnabled"] = ESP->PreviewEnabled;
 
@@ -456,6 +460,8 @@ namespace Core {
                 if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
                 ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);
                 ESP->HeadSize = ImClamp(FeaturesCfg["ESP"].value("HeadSize", 3.f), 1.f, 20.f);
+            ESP->HealthBarWidth = ImClamp(FeaturesCfg["ESP"].value("HealthBarWidth", 1), 1, 6);
+                ESP->ArmorBarWidth = ImClamp(FeaturesCfg["ESP"].value("ArmorBarWidth", 1), 1, 6);
                 ESP->BoxSize = FeaturesCfg["ESP"].value("BoxSize", 0);
                 ESP->PreviewEnabled = FeaturesCfg["ESP"].value("PreviewEnabled", true);
 

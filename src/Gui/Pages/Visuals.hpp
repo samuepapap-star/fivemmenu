@@ -90,7 +90,11 @@ namespace Visuals {
 
 						Custom::CheckBox( xorstr( "Círculo na cabeça" ), &g_Config.ESP->HeadCircle );
 						Custom::CheckBox( xorstr( "Barra de vida" ), &g_Config.ESP->HealthBar );
+                        if (g_Config.ESP->HealthBar)
+                            ImGui::SliderInt("Espessura vida", &g_Config.ESP->HealthBarWidth, 1, 6, "%d px");
 						Custom::CheckBox( xorstr( "Barra de colete" ), &g_Config.ESP->ArmorBar );
+                        if (g_Config.ESP->ArmorBar)
+                            ImGui::SliderInt("Espessura colete", &g_Config.ESP->ArmorBarWidth, 1, 6, "%d px");
 						Custom::CheckBox( xorstr( "Linhas" ), &g_Config.ESP->SnapLines );
 						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.ESP->HighlightVisible );
 						Custom::CheckBoxCfg( xorstr( "Marcar amigo" ), &g_Config.ESP->FriendsMarker, [ ]

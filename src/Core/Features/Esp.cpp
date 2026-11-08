@@ -319,16 +319,16 @@ void Core::Features::cEsp::Draw( )
         }
         if (Cfg->DistanceFromMe && !IsLocalPlayer)
             label(std::to_string(static_cast<int>(Distance)) + "m", y, Cfg->DistanceCol);
-        auto bar = [&](float x, float fraction, ImU32 ink) {
-            DrawList->AddRectFilled(ImVec2(x, BoxMin.y), ImVec2(x+3.f, BoxMax.y), IM_COL32(0,0,0,150), 2.f);
-            DrawList->AddRectFilled(ImVec2(x, BoxMax.y - Height * ImClamp(fraction,0.f,1.f)), ImVec2(x+3.f,BoxMax.y), ink, 2.f);
+        auto bar = [&](float x, float width, float fraction, ImU32 ink) {
+            DrawList->AddRectFilled(ImVec2(x, BoxMin.y), ImVec2(x+width, BoxMax.y), IM_COL32(0,0,0,150), 2.f);
+            DrawList->AddRectFilled(ImVec2(x, BoxMax.y - Height * ImClamp(fraction,0.f,1.f)), ImVec2(x+width,BoxMax.y), ink, 2.f);
         };
         if (Cfg->HealthBar && Entity.MaxHealth > 0.f) {
             const float hp = Health / Entity.MaxHealth;
-            bar(BoxMin.x - 6.f, hp, hp > 0.7f ? IM_COL32(0,255,0,255) : hp > 0.3f ? IM_COL32(255,255,0,255) : IM_COL32(255,0,0,255));
+            bar(BoxMin.x - 3.f - Cfg->HealthBarWidth, Cfg->HealthBarWidth, hp, hp > 0.7f ? IM_COL32(0,255,0,255) : hp > 0.3f ? IM_COL32(255,255,0,255) : IM_COL32(255,0,0,255));
         }
         if (Cfg->ArmorBar && Entity.Armor > 0.f)
-            bar(BoxMax.x + 3.f, Entity.Armor / 100.f, IM_COL32(0,150,255,255));
+            bar(BoxMax.x + 3.f, Cfg->ArmorBarWidth, Entity.Armor / 100.f, IM_COL32(0,150,255,255));
     }
 }
 
