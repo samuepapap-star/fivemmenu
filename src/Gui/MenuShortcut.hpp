@@ -38,6 +38,7 @@ inline bool Poll(int& configured, bool focused) {
 
 inline std::string Label(int key) {
     if (editing) return "Pressione uma tecla (Esc cancela)###menu-shortcut";
+    if (!key) return "Alterar tecla: P / Insert###menu-shortcut";
     char name[64]{};
     UINT scan = MapVirtualKeyW(static_cast<UINT>(key), MAPVK_VK_TO_VSC_EX);
     LONG code = static_cast<LONG>((scan & 255) << 16);

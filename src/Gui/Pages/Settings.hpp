@@ -42,7 +42,8 @@ namespace Settings {
 						ImGui::TextUnformatted("Abrir e fechar o menu");
                         if (ImGui::Button(MenuShortcut::Label(g_Config.General->MenuKey).c_str()))
                             MenuShortcut::Begin();
-                        ImGui::TextDisabled("P e Insert continuam ativos.");
+                        if (g_Config.General->MenuKey && ImGui::SmallButton("Restaurar P e Insert"))
+                            g_Config.General->MenuKey = 0;
                         Custom::CheckBox( xorstr( "VSync" ), &g_Config.General->VSync );
                         Custom::CheckBox("Painel de teclas", &g_Config.General->BindManager);
                         ImGui::SliderInt("Escala do menu", &g_Config.General->MenuScale, 0, 100);

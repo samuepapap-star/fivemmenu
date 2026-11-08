@@ -21,7 +21,7 @@ namespace Core {
             inline static bool BindManager = false;
             inline static ImVec4 MenuAccent = ImVec4(138.f/255.f,43.f/255.f,226.f/255.f,1.f);
 			inline static int ProcessPriority = 0;
-			inline static int MenuKey = VK_INSERT;
+			inline static int MenuKey = 0; // Zero uses the default P and Insert shortcuts.
             inline static int MenuScale = 50;
 		} *General;
 
@@ -366,7 +366,8 @@ namespace Core {
 					General->ArrayList = GeneralCfg[ xorstr( "ArrayList" ) ];
 					General->VSync = GeneralCfg[ xorstr( "VSync" ) ];
 					General->ProcessPriority = GeneralCfg[ xorstr( "ProcessPriority" ) ];
-					General->MenuKey = GeneralCfg[ xorstr( "MenuKey" ) ];
+					const auto savedMenuKey = GeneralCfg.value("MenuKey", 0);
+                    General->MenuKey = savedMenuKey > 0 && savedMenuKey < 255 ? savedMenuKey : 0;
                 General->MenuScale = ImClamp(GeneralCfg.value("MenuScale", 50), 0, 100);
                     if (GeneralCfg.contains("MenuAccent")) {
                         const auto &accent=GeneralCfg["MenuAccent"];

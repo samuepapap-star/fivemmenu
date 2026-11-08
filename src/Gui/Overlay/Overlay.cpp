@@ -87,11 +87,13 @@ namespace Gui
             // Toggle once per key press, including while the overlay has focus.
             static unsigned previousMenuKeys = 0;
             unsigned menuKeys = 0;
-            if (GetAsyncKeyState('P') & 0x8000) menuKeys |= 1u;
-            if (GetAsyncKeyState(VK_INSERT) & 0x8000) menuKeys |= 2u;
             const int customKey = g_Config.General->MenuKey;
-            if (customKey > 0 && customKey < 255 && customKey != 'P' && customKey != VK_INSERT &&
-                (GetAsyncKeyState(customKey) & 0x8000)) menuKeys |= 4u;
+            if (customKey > 0 && customKey < 255) {
+                if (GetAsyncKeyState(customKey) & 0x8000) menuKeys |= 4u;
+            } else {
+                if (GetAsyncKeyState('P') & 0x8000) menuKeys |= 1u;
+                if (GetAsyncKeyState(VK_INSERT) & 0x8000) menuKeys |= 2u;
+            }
             const bool pressed = (menuKeys & ~previousMenuKeys) != 0;
             previousMenuKeys = menuKeys;
             const bool editingShortcut = MenuShortcut::Poll(g_Config.General->MenuKey,
