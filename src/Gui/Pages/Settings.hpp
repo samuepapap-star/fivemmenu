@@ -1,4 +1,5 @@
 #pragma once
+#include <Gui/MenuShortcut.hpp>
 #include <Gui/MenuScale.hpp>
 #include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/SelfGodMode.hpp>
@@ -38,7 +39,11 @@ namespace Settings {
 				{
 					ImGui::BeginChild( xorstr( "Geral" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						Custom::CheckBox( xorstr( "VSync" ), &g_Config.General->VSync );
+						ImGui::TextUnformatted("Abrir e fechar o menu");
+                        if (ImGui::Button(MenuShortcut::Label(g_Config.General->MenuKey).c_str()))
+                            MenuShortcut::Begin();
+                        ImGui::TextDisabled("P e Insert continuam ativos.");
+                        Custom::CheckBox( xorstr( "VSync" ), &g_Config.General->VSync );
                         Custom::CheckBox("Painel de teclas", &g_Config.General->BindManager);
                         ImGui::SliderInt("Escala do menu", &g_Config.General->MenuScale, 0, 100);
                         ImGui::TextDisabled("0 = 50%% | 50 = 100%% | 100 = 150%%");
@@ -69,9 +74,6 @@ namespace Settings {
 						//	Custom::CheckBox( xorstr( "Arco-íris" ), &Rainbow );
 						//} );
 
-
-						static int KeyMode = 1;
-						ImGui::Keybind( xorstr( "Tecla do menu" ), &g_Config.General->MenuKey, &KeyMode );
 
                         ClientState::Render();
 
