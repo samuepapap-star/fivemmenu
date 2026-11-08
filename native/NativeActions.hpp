@@ -24,7 +24,10 @@ constexpr std::uint64_t PlayerId=0x4F8644AF03D0E0D6,PlayerPed=0xD80958FC74E988A6
  ShootBullet=0x867654CBC7606F2C;
 constexpr std::uint64_t CurrentVehicle=0x9A9112A0FE9A4713,FixVehicle=0x115722B1B9C14C1C,FixDeformation=0x953DA1E1B12C0491,
  EngineHealth=0x45F6D8EEF34ABEF1,BodyHealth=0xB77D05AC8C78AADB,Undriveable=0x8ABA6AF54B942B95,DoorDamaged=0xB8E181E559464527,
- Networked=0xC7827959479DCC78,HasControl=0x01BF60A500E28887;
+ Networked=0xC7827959479DCC78,HasControl=0x01BF60A500E28887,
+ NetworkId=0xA11700682F3AD45C,NetworkIdExists=0x38CE16C96BD11344,
+ ClosestVehicle=0xF73EB622C4F1689B,EntityCoords=0x3FEF770D40960D5A,DeleteVehicle=0xEA386986E786A54F,
+ Passengers=0x24CB2137731FFE89,SeatFree=0x22AC59A870E6A669;
 }
 class Actions {
  NativeApi& api;Command command{};bool pending=false,animConfirm=false,animRequested=false;std::uint64_t deadline=0,animDeadline=0;
@@ -57,9 +60,16 @@ class Actions {
  void Finish(bool ok,const std::string& text,std::uint32_t value=0){
   reply={};reply.id=command.id;reply.success=ok?1u:0u;reply.value=value;Copy(reply.message,sizeof(reply.message),text);hasReply=true;Release();
  }
- void ConfirmVehicle(int ped){
+ bool ConfirmVehicle(int ped){
+  std::uint64_t networkId=0;
+  if(command.flags&1u){
+   if(!Call(N::Networked,{static_cast<std::uint64_t>(spawned)}))return false;
+   networkId=Call(N::NetworkId,{static_cast<std::uint64_t>(spawned)});
+   if(!networkId||networkId>0x7fffffffULL||!Call(N::NetworkIdExists,{networkId}))return false;
+  }
   if(command.flags&2u)Call(N::EnterVehicle,{static_cast<std::uint64_t>(ped),static_cast<std::uint64_t>(spawned),static_cast<std::uint64_t>(-1)});
-  Finish(true,std::string(command.flags&1u?"Veiculo em rede confirmado: ":"Veiculo local confirmado: ")+command.text,static_cast<std::uint32_t>(spawned));
+  const std::string message=(command.flags&1u)?"Registro em rede confirmado (ID "+std::to_string(networkId)+"): "+command.text+". Visibilidade depende do servidor.":"Veiculo LOCAL criado: "+std::string(command.text)+". Visivel somente para voce.";
+  Finish(true,message,static_cast<std::uint32_t>(spawned));return true;
  }
 public:
  Reply reply{};bool hasReply=false;int rpgState=0;
@@ -86,6 +96,19 @@ public:
    case Action::Animation:Call(N::RequestAnim,{reinterpret_cast<std::uint64_t>(command.text)});animRequested=true;return;
    case Action::StopAnimation:Call(N::ClearTasks,{static_cast<std::uint64_t>(ped)});Finish(true,"Animacao interrompida");return;
    case Action::StopAll:if(weaponRequested)Call(N::ReleaseWeapon,{Hash("WEAPON_RPG")});weaponRequested=false;rpgState=0;Finish(true,"Acoes continuas interrompidas");return;
+   case Action::DeleteClosestVehicle:{
+    const Vec pos=api.Vector(N::EntityCoords,{static_cast<std::uint64_t>(ped),0});
+    if(!Sane(pos)){Finish(false,"Posicao indisponivel");return;}
+    int vehicle=static_cast<int>(Call(N::ClosestVehicle,{Float(pos.x),Float(pos.y),Float(pos.z),Float(15.f),0,71}));
+    const auto id=static_cast<std::uint64_t>(vehicle);
+    if(!Exists(vehicle)){Finish(false,"Nenhum veiculo proximo encontrado em 15 m");return;}
+    if(Call(N::CurrentVehicle,{static_cast<std::uint64_t>(ped),0})==id){Finish(false,"Saia do seu veiculo; ele nao sera apagado enquanto voce estiver dentro");return;}
+    if(Call(N::Passengers,{id})||!Call(N::SeatFree,{id,static_cast<std::uint64_t>(-1),1})){Finish(false,"Veiculo ocupado; exclusao recusada");return;}
+    if(Call(N::Networked,{id})&&!Call(N::HasControl,{id})){Finish(false,"Sem controle local deste veiculo; exclusao recusada");return;}
+    Call(N::MissionEntity,{id,1,1});Call(N::DeleteVehicle,{reinterpret_cast<std::uint64_t>(&vehicle)});
+    const bool removed=!Call(N::EntityExists,{id});
+    Finish(removed,removed?"Veiculo proximo apagado; ausencia confirmada localmente":"O jogo nao confirmou a exclusao do veiculo");return;
+   }
    case Action::RepairVehicle:{
     const auto vehicle=Call(N::CurrentVehicle,{static_cast<std::uint64_t>(ped),0});
     if(!vehicle||!Call(N::EntityExists,{vehicle})){Finish(false,"Entre no veiculo para reparar");return;}
@@ -118,7 +141,7 @@ public:
   if(pending){
    if(cancelled==command.id||now>=deadline||!fresh||!Exists(ped)){Finish(false,"Acao cancelada ou tempo de carregamento esgotado");}
    else if(command.action==Action::SpawnVehicle&&spawnStarted){
-    if(Exists(spawned))ConfirmVehicle(ped);
+    if(Exists(spawned)){if(!ConfirmVehicle(ped)&&now>=spawnDeadline)Finish(false,"Veiculo existe localmente, mas o registro em rede nao foi confirmado. Sem sucesso de sincronizacao.");}
     else if(now>=spawnDeadline)Finish(false,"Veiculo recebeu handle, mas nao apareceu em 2 segundos; sem nova tentativa automatica");
    }
    else if(command.action==Action::Animation){

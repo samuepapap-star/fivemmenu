@@ -31,7 +31,7 @@ inline void Render(int section){
   if(Custom::Button("Parar animacao",ImVec2(-1,33),0))BridgeFeatures::StopAnimation();
  }
  if(section==2){
-  ImGui::TextDisabled("Carro / gerar veiculo");static char model[96]="adder";static bool network=false,enter=true;
+  ImGui::TextDisabled("Carro / gerar veiculo");static char model[96]="adder";static bool network=true,enter=true;
   static const std::vector<MenuBridge::VehicleModel> defaults={{"adder",7},{"zentorno",7},{"t20",7},{"sultan",6},{"blista",0},{"bati",8},{"faggio",8},{"bmx",13}};
   static std::vector<MenuBridge::VehicleModel> registered;static std::uint64_t cachedToken=0;static char search[96]{};
   const auto token=MenuBridge::Connection().CatalogToken();
@@ -55,9 +55,9 @@ inline void Render(int section){
    ImGui::EndCombo();
   }
   ImGui::SetNextItemWidth(360);ImGui::InputText("Nome personalizado",model,sizeof(model));
-  Custom::CheckBox("Solicitar veiculo em rede",&network);Custom::CheckBox("Entrar no veiculo gerado",&enter);
+  Custom::CheckBox("Gerar em rede (solicitar sincronizacao)",&network);Custom::CheckBox("Entrar no veiculo gerado",&enter);
   if(Custom::Button("Gerar veiculo",ImVec2(-1,33),0))BridgeFeatures::Spawn(model,network,enter);
-  ImGui::TextWrapped("Sem rede, o veiculo e local. Em rede, a permanencia e sincronizacao dependem do servidor.");
+  ImGui::TextWrapped(network?"Modo em rede: solicita sincronizacao; visibilidade para outros depende do servidor.":"Modo local: o veiculo aparece somente para voce.");
  }
  Footer();ImGui::PopID();ImGui::EndChild();
 }

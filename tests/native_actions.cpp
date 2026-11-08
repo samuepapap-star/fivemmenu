@@ -8,11 +8,19 @@ using namespace MenuBridge;
 struct Fake:NativeApi{
  int player=1,next=100,sets=0,clones=0,shots=0,enters=0,releases=0,animations=0,modelRequests=0;
  bool loaded=false,inVehicle=false,attached=false,playing=false,validModel=true,denyChange=false;
+ int closest=60,deletes=0;bool occupied=false,deleteDenied=false,networkIdExists=true;std::uint64_t networkId=70;
+ Vec Vector(std::uint64_t hash,const std::vector<std::uint64_t>&)override{assert(hash==N::EntityCoords);return {10,20,30};}
  int repairs=0;bool networked=false,controlled=true,repairDenied=false;int brokenDoors=2;
  bool denyVehicle=false,delayVehicle=false;int vehicleCalls=0,vehicleNetwork=-1,vehicleMission=-1;
  std::unordered_map<int,std::uint32_t> entities{{1,Hash("mp_m_freemode_01")},{2,Hash("s_m_y_cop_01")}};
  std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& a)override{
   auto entity=[&](){return static_cast<int>(a.at(0));};
+  if(hash==N::NetworkId)return networkId;
+  if(hash==N::NetworkIdExists)return networkIdExists;
+  if(hash==N::ClosestVehicle){assert(AsFloat(a.at(3))==15.f&&a.at(5)==71);return static_cast<std::uint64_t>(closest);}
+  if(hash==N::Passengers)return occupied?1u:0u;
+  if(hash==N::SeatFree)return !occupied;
+  if(hash==N::DeleteVehicle){auto p=reinterpret_cast<int*>(a.at(0));deletes++;if(!deleteDenied){entities.erase(*p);*p=0;}return 0;}
   if(hash==N::CurrentVehicle)return inVehicle?50u:0u;
   if(hash==N::Networked)return networked;
   if(hash==N::HasControl)return controlled;
@@ -98,4 +106,14 @@ int main(){
  {Fake api;api.inVehicle=true;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(actions.reply.success&&api.repairs==1&&api.brokenDoors==0);}
  {Fake api;api.inVehicle=true;api.networked=true;api.controlled=false;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success&&api.repairs==0&&api.brokenDoors==2);}
  {Fake api;api.inVehicle=true;api.repairDenied=true;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success&&api.repairs==1&&api.brokenDoors==2);}
+
+ {Fake api;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0);}
+ {Fake api;api.entities[60]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(actions.reply.success&&api.deletes==1&&!api.entities.count(60));}
+ {Fake api;api.entities[50]=Hash("adder");api.closest=50;api.inVehicle=true;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0);}
+ {Fake api;api.entities[60]=Hash("adder");api.occupied=true;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0);}
+ {Fake api;api.entities[60]=Hash("adder");api.networked=true;api.controlled=false;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0);}
+ {Fake api;api.entities[60]=Hash("adder");api.deleteDenied=true;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==1);}
+ {Fake api;api.loaded=true;api.networked=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");c.flags=3;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.vehicleNetwork==1&&api.vehicleCalls==1&&api.enters==1&&std::string(actions.reply.message).find("ID 70")!=std::string::npos);}
+ {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");c.flags=3;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.Pending()&&api.enters==0);actions.Tick(FrameAt(3200),3200,0);assert(!actions.Pending()&&!actions.reply.success&&api.vehicleCalls==1&&api.enters==0);}
+ {Fake api;api.loaded=true;api.networked=true;api.networkId=0;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");c.flags=1;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.Pending());api.networkId=70;api.networkIdExists=false;actions.Tick(FrameAt(1200),1200,0);assert(actions.Pending());api.networkIdExists=true;actions.Tick(FrameAt(1300),1300,0);assert(actions.reply.success&&api.vehicleCalls==1);}
 }
