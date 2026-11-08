@@ -84,15 +84,21 @@ namespace Gui
 			HWND ActiveWindow = GetForegroundWindow( );
 
             // Toggle once per key press, including while the overlay has focus.
-            static bool menuKeyWasDown = false;
-            const bool menuKeyDown = (GetAsyncKeyState(g_Config.General->MenuKey) & 0x8000) != 0;
-            if (menuKeyDown && !menuKeyWasDown &&
+            static unsigned previousMenuKeys = 0;
+            unsigned menuKeys = 0;
+            if (GetAsyncKeyState('P') & 0x8000) menuKeys |= 1u;
+            if (GetAsyncKeyState(VK_INSERT) & 0x8000) menuKeys |= 2u;
+            const int customKey = g_Config.General->MenuKey;
+            if (customKey != 'P' && customKey != VK_INSERT &&
+                (GetAsyncKeyState(customKey) & 0x8000)) menuKeys |= 4u;
+            const bool pressed = (menuKeys & ~previousMenuKeys) != 0;
+            previousMenuKeys = menuKeys;
+            if (pressed &&
                 (ActiveWindow == g_Variables.g_hGameWindow ||
                  ActiveWindow == g_Variables.g_hCheatWindow)) {
                 g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
 
             }
-            menuKeyWasDown = menuKeyDown;
             static bool inputStateInitialized=false,lastMenuOpen=false;
             if(!inputStateInitialized||lastMenuOpen!=g_MenuInfo.IsOpen){
 #ifdef FULLSCREEN_EX
