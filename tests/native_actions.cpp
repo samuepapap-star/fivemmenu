@@ -115,7 +115,7 @@ int main(){
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0);}
  {Fake api;api.entities[60]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(actions.reply.success&&api.deletes==1&&!api.entities.count(60));}
  {Fake api;api.entities[50]=Hash("adder");api.closest=50;api.inVehicle=true;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0);}
- {Fake api;api.entities[60]=Hash("adder");api.occupied=true;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0);}
+ {Fake api;api.entities[60]=Hash("adder");api.occupied=true;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(actions.reply.success&&api.deletes==1&&!api.entities.count(60));}
  {Fake api;api.entities[60]=Hash("adder");api.networked=true;api.controlled=false;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0);}
  {Fake api;api.entities[60]=Hash("adder");api.deleteDenied=true;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==1);}
  {Fake api;api.loaded=true;api.networked=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");c.flags=3;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.vehicleNetwork==1&&api.vehicleCalls==1&&api.enters==1&&std::string(actions.reply.message).find("ID 70")!=std::string::npos);}
@@ -124,5 +124,5 @@ int main(){
 
  {Fake api;api.entities[60]=Hash("police");api.entities[61]=Hash("blista");api.enumerated={60,61};api.positions[60]={14,20,30};api.positions[61]={20,20,30};Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(actions.reply.success&&!api.entities.count(60)&&api.entities.count(61)&&api.findsClosed==1);}
  {Fake api;api.entities[60]=Hash("police");api.positions[60]={26,20,30};Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0&&api.findsClosed==1);}
- {Fake api;api.entities[60]=Hash("police");api.occupied=true;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&std::string(actions.reply.message).find("Ocupados: 1")!=std::string::npos&&api.findsClosed==1);}
+ {Fake api;api.entities[60]=Hash("police");api.occupied=true;api.networked=true;api.controlled=false;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0&&std::string(actions.reply.message).find("Sem controle: 1")!=std::string::npos&&api.findsClosed==1);}
 }
