@@ -16,9 +16,7 @@ local function joaat(name)
     return GetHashKey(name)
 end
 
--- UI (SkinChanger.hpp) usa GetTickCount64 do Windows. Mantemos o mesmo relogio.
 local function systemTickMs()
-    -- kernel32 GetTickCount64 via FFI se disponivel; senao aproximacao estavel.
     local ok, result = pcall(function()
         if not _G.__skin_tick then
             local ffi = require('ffi')
@@ -33,7 +31,6 @@ local function systemTickMs()
     if ok and result and result > 0 then
         return result
     end
-    -- Fallback: epoch ms (ainda passa no filtro now-hb <= 6000 da UI)
     return (os.time() * 1000) + (GetGameTimer() % 1000)
 end
 
@@ -164,6 +161,16 @@ local function clearAppliedComponents(ped, weapon)
     end
 end
 
+local function waitWeaponAsset(hash, timeoutMs)
+    if HasWeaponAssetLoaded(hash) then return true end
+    RequestWeaponAsset(hash, 31, 0)
+    local deadline = GetGameTimer() + (timeoutMs or 2500)
+    while not HasWeaponAssetLoaded(hash) and GetGameTimer() < deadline do
+        Wait(0)
+    end
+    return HasWeaponAssetLoaded(hash)
+end
+
 local function restoreOriginal()
     local ped = PlayerPedId()
     if not DoesEntityExist(ped) then
@@ -184,6 +191,7 @@ local function restoreOriginal()
         if applied.addonWeapon ~= 0 and HasPedGotWeapon(ped, applied.addonWeapon, false) then
             RemoveWeaponFromPed(ped, applied.addonWeapon)
         end
+        waitWeaponAsset(applied.originalWeapon, 1500)
         if not HasPedGotWeapon(ped, applied.originalWeapon, false) then
             GiveWeaponToPed(ped, applied.originalWeapon, ammo, false, true)
         else
@@ -245,7 +253,7 @@ local function applySkin(index)
 
     if mode == 'component' then
         if not skin.componentHash then
-            setStatus('Skin "' .. skin.label .. '" sem componentHash. Preencha config.lua com o nome do COMPONENT_ do pack.')
+            setStatus('Skin "' .. skin.label .. '" sem componentHash. Preencha config.lua.')
             return
         end
         local component = joaat(skin.componentHash)
@@ -254,7 +262,7 @@ local function applySkin(index)
             return
         end
         if not DoesWeaponTakeWeaponComponent(weapon, component) then
-            setStatus('Esta arma nao aceita o component da skin. Equipe a arma base correta (' .. (skin.baseWeapon or '?') .. ').')
+            setStatus('Esta arma nao aceita o component. Equipe ' .. (skin.baseWeapon or '?') .. '.')
             return
         end
 
@@ -273,12 +281,17 @@ local function applySkin(index)
 
     if mode == 'addon' then
         if not skin.weaponHash then
-            setStatus('Skin "' .. skin.label .. '" sem weaponHash. Preencha config.lua com o WEAPON_ do pack streamado.')
+            setStatus('Skin "' .. skin.label .. '" sem weaponHash. Preencha config.lua.')
             return
         end
         local addon = joaat(skin.weaponHash)
         if addon == 0 then
             setStatus('weaponHash invalido em config.lua')
+            return
+        end
+
+        if not waitWeaponAsset(addon, 3000) then
+            setStatus('Modelo nao carregou: ' .. skin.weaponHash .. '. Coloque o pack em stream/ e ensure SkinChangerLocal (ou o resource do pack).')
             return
         end
 
