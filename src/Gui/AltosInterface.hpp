@@ -70,7 +70,6 @@ namespace AltosInterface {
         item(ICON_FA_EARTH_AMERICAS,"Teleportar",g_MenuInfo.Teleports);
         item(ICON_FA_BOMB,"Recursos",g_MenuInfo.Exploits);
         section("Personalização");
-        item(ICON_FA_CROSSHAIRS,"Skin Changer",SkinChanger::page);
         item(ICON_FA_GEAR,"Configurações",g_MenuInfo.Settings);
     }
 }
