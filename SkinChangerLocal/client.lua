@@ -1,6 +1,7 @@
 local cfg = SkinChangerConfig
 local iniPath
 local lastCommand = ''
+local lastStatus = ''
 local applied = {
     index = -1,
     mode = nil,
@@ -140,6 +141,7 @@ local function readIni(section, key)
 end
 
 local function setStatus(msg)
+    lastStatus = msg or ''
     writeIni('renderer', 'status', msg or '')
 end
 
@@ -347,6 +349,36 @@ local function handleCommand(raw)
 
     applySkin(index)
 end
+
+
+-- Compatibilidade opcional com interfaces NUI autorizadas.
+-- A interface atual do Wexize usa o protocolo INI acima, nao NUI.
+-- O componente recebido do navegador nunca e executado diretamente:
+-- somente indices registrados em SkinChangerConfig.skins sao aceitos.
+RegisterNUICallback('applySkin', function(data, cb)
+    local index = data and tonumber(data.index)
+    if not index or index % 1 ~= 0 or index < 0 or index > 27 or not cfg.skins[index] then
+        cb({ status = 'error', message = 'Indice de skin invalido (0 a 27).' })
+        return
+    end
+    local ped = PlayerPedId()
+    if not DoesEntityExist(ped) or currentWeapon(ped) == 0 then
+        cb({ status = 'error', message = 'Equipe uma arma antes de aplicar a skin.' })
+        return
+    end
+    applySkin(index)
+    local success = applied.index == index
+    cb({ status = success and 'success' or 'error', message = lastStatus })
+end)
+
+RegisterNUICallback('restoreSkin', function(_, cb)
+    local hadSkin = applied.mode ~= nil
+    restoreOriginal()
+    cb({
+        status = hadSkin and 'success' or 'info',
+        message = lastStatus,
+    })
+end)
 
 CreateThread(function()
     setStatus('Plugin local ativo. Aguardando comando do Wexize.')
