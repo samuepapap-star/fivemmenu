@@ -72,16 +72,20 @@ inline void Render() {
     ImGui::BeginChild("Skin Changer##local",ImVec2(700,440),true);
     ImGui::TextUnformatted("Skin Changer");
     ImGui::Combo("Categoria", &category, categories, IM_ARRAYSIZE(categories));
-    const bool validSelection = category == 0 || categoryByIndex[selected] == category;
-    if (ImGui::BeginCombo("Modelo", validSelection ? names[selected] : "Selecione uma skin")) {
-        for (int i = 0; i < IM_ARRAYSIZE(names); ++i) {
-            if (category != 0 && categoryByIndex[i] != category) continue;
-            const bool isSelected = selected == i;
-            if (ImGui::Selectable(names[i], isSelected)) selected = i;
-            if (isSelected) ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
+    const char* filteredNames[IM_ARRAYSIZE(names)]{};
+    int filteredIndices[IM_ARRAYSIZE(names)]{};
+    int filteredCount = 0;
+    int filteredSelected = -1;
+    for (int i = 0; i < IM_ARRAYSIZE(names); ++i) {
+        if (category != 0 && categoryByIndex[i] != category) continue;
+        filteredNames[filteredCount] = names[i];
+        filteredIndices[filteredCount] = i;
+        if (selected == i) filteredSelected = filteredCount;
+        ++filteredCount;
     }
+    int comboSelection = filteredSelected >= 0 ? filteredSelected : 0;
+    if (filteredCount > 0 && ImGui::Combo("Modelo", &comboSelection, filteredNames, filteredCount))
+        selected = filteredIndices[comboSelection];
     const bool canApply = category == 0 || categoryByIndex[selected] == category;
     ImGui::BeginDisabled(!online || !canApply);
     bool apply=ImGui::Button("Aplicar na arma equipada");
