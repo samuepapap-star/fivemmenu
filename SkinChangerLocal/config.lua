@@ -4,9 +4,13 @@
 --   "addon"     -> troca local por WEAPON_ add-on e guarda a original
 --   "tint"      -> SetPedWeaponTintIndex
 --
--- Os nomes abaixo seguem convencao dos packs BR (Angel Love / PenhaShop / ZOLP).
--- Se o spawn name do SEU .rpf for diferente, edite so esta tabela.
--- O client tenta o hash; se o modelo nao estiver streamado, o status avisa.
+-- Nomes confirmados diretamente em weapons.meta dos pacotes enviados:
+-- PenhaShop (weaponHash confirmado nos arquivos weapons.meta) indices 11-14 e Glocks indices 15-18.
+-- Angel Love (0-10) contem modelos .ydr/.ytd sem weapons.meta: os hashes
+-- abaixo sao HIPOTESES, nao spawn names confirmados. Modelos de stream
+-- por si so nao registram uma arma add-on.
+-- Diversos (nomes ainda NAO verificados nos .rpf) (19-27) em .rpf ainda requerem inspecao dos metadados internos.
+-- O cliente tenta carregar o hash; falha de asset nao prova nome correto.
 
 SkinChangerConfig = {
     iniRelative = 'SkinChangerLocal\\client.ini',
@@ -14,7 +18,7 @@ SkinChangerConfig = {
     pollMs = 250,
 
     skins = {
-        -- Angel Love (addons com spawn name tipico do pack)
+        -- Angel Love (nomes ainda NAO verificados em metadados)
         [0]  = { label = 'Angel Love / ASSAULTRIFLE ANGEL',   mode = 'addon', baseWeapon = 'WEAPON_ASSAULTRIFLE',   weaponHash = 'WEAPON_ASSAULTRIFLE_ANGEL',   componentHash = nil },
         [1]  = { label = 'Angel Love / CARBINERIFLE ANGEL',   mode = 'addon', baseWeapon = 'WEAPON_CARBINERIFLE',   weaponHash = 'WEAPON_CARBINERIFLE_ANGEL',   componentHash = nil },
         [2]  = { label = 'Angel Love / SPECIALCARBINE ANGEL', mode = 'addon', baseWeapon = 'WEAPON_SPECIALCARBINE', weaponHash = 'WEAPON_SPECIALCARBINE_ANGEL', componentHash = nil },
@@ -33,7 +37,7 @@ SkinChangerConfig = {
         [13] = { label = 'PenhaShop / PL PISTOLA AGUA',       mode = 'addon', baseWeapon = 'WEAPON_PISTOL',         weaponHash = 'WEAPON_PL_PISTOLA_AGUA',       componentHash = nil },
         [14] = { label = 'PenhaShop / PL SMG VERAO PUDDIN',   mode = 'addon', baseWeapon = 'WEAPON_SMG',            weaponHash = 'WEAPON_PL_SMG_VERAO_PUDDIN',   componentHash = nil },
 
-        -- Glock PenhaShop
+        -- Glock PenhaShop (weaponHash confirmado nos arquivos weapons.meta)
         [15] = { label = 'Glock PenhaShop / GLOCK RAJADA ANIME',   mode = 'addon', baseWeapon = 'WEAPON_COMBATPISTOL', weaponHash = 'WEAPON_GLOCK_RAJADA_ANIME',   componentHash = nil },
         [16] = { label = 'Glock PenhaShop / GLOCK RAJADA FADE',    mode = 'addon', baseWeapon = 'WEAPON_COMBATPISTOL', weaponHash = 'WEAPON_GLOCK_RAJADA_FADE',    componentHash = nil },
         [17] = { label = 'Glock PenhaShop / GLOCK RAJADA GRAFITE', mode = 'addon', baseWeapon = 'WEAPON_COMBATPISTOL', weaponHash = 'WEAPON_GLOCK_RAJADA_GRAFITE', componentHash = nil },
