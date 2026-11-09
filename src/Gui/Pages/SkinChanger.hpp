@@ -71,7 +71,15 @@ inline void Render() {
     ImGui::SetCursorPos(ImVec2(184,136));
     ImGui::BeginChild("Skin Changer##local",ImVec2(700,440),true);
     ImGui::TextUnformatted("Skin Changer");
-    ImGui::Combo("Categoria", &category, categories, IM_ARRAYSIZE(categories));
+    // Catalogo e selecao funcionam sem qualquer recurso FiveM ativo.
+    if (ImGui::Combo("Categoria", &category, categories, IM_ARRAYSIZE(categories))) {
+        for (int i = 0; i < IM_ARRAYSIZE(names); ++i) {
+            if (category == 0 || categoryByIndex[i] == category) {
+                selected = i;
+                break;
+            }
+        }
+    }
     const char* filteredNames[IM_ARRAYSIZE(names)]{};
     int filteredIndices[IM_ARRAYSIZE(names)]{};
     int filteredCount = 0;
@@ -87,6 +95,8 @@ inline void Render() {
     if (filteredCount > 0 && ImGui::Combo("Modelo", &comboSelection, filteredNames, filteredCount))
         selected = filteredIndices[comboSelection];
     const bool canApply = category == 0 || categoryByIndex[selected] == category;
+    ImGui::Text("Skin selecionada: %d / 27", selected);
+    ImGui::TextUnformatted("Catalogo disponivel no EXE; aplicacao exige recurso autorizado ativo.");
     ImGui::BeginDisabled(!online || !canApply);
     bool apply=ImGui::Button("Aplicar na arma equipada");
     ImGui::SameLine();
@@ -100,7 +110,11 @@ inline void Render() {
     ImGui::EndDisabled();
     if (!canApply)
         ImGui::TextWrapped("Selecione um modelo desta categoria para aplicar.");
-    if(!online) ImGui::TextWrapped("Plugin local sem resposta. Confira a instalação e se a cidade permite plugins.");
+    if(!online) {
+        ImGui::Separator();
+        ImGui::TextWrapped("Modo catalogo: nenhuma integracao FiveM autorizada respondeu.");
+        ImGui::TextWrapped("Voce pode navegar e selecionar skins, mas Aplicar e Restaurar ficam indisponiveis. O EXE nao injeta modelos no FiveM nem altera FiveM Application Data.");
+    }
     else if(status[0]) ImGui::TextWrapped("%s",status);
     ImGui::EndChild();
 }
