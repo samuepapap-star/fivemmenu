@@ -17,7 +17,7 @@ namespace SkinChangerPage {
         ImGui::SameLine();
         {
             char buf[16];
-            sprintf_s(buf, "0x%" PRIx32, curHash);
+            sprintf_s(buf, "0x%08X", curHash);
             ImGui::TextColored(ImColor(g_Col.SecundaryText), buf);
         }
 
