@@ -29,7 +29,6 @@
 #include <Core/Features/ExternalCameraOptions.hpp>
 
 #include <Security/Api/api.hpp>
-#include <Gui/Pages/SkinChanger.hpp>
 #include <Gui/AltosInterface.hpp>
 
 inline std::mutex DrawMtx;
@@ -174,7 +173,6 @@ void Gui::Rendering( )
             case g_MenuInfo.Cars: Categories::Cars(); break;
             case g_MenuInfo.Players: Categories::Players(); break;
             case g_MenuInfo.Weapons: Categories::Weapons(); break;
-            case SkinChanger::page: SkinChanger::Render(); break;
             case g_MenuInfo.Teleports: Categories::Teleports(); break;
 			case g_MenuInfo.Settings:
 				Categories::Settings();
