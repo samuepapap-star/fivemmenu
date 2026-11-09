@@ -16,28 +16,46 @@ local function joaat(name)
     return GetHashKey(name)
 end
 
+-- UI (SkinChanger.hpp) usa GetTickCount64 do Windows. Mantemos o mesmo relogio.
+local function systemTickMs()
+    -- kernel32 GetTickCount64 via FFI se disponivel; senao aproximacao estavel.
+    local ok, result = pcall(function()
+        if not _G.__skin_tick then
+            local ffi = require('ffi')
+            ffi.cdef[[
+                typedef unsigned long long ULONGLONG;
+                ULONGLONG __stdcall GetTickCount64(void);
+            ]]
+            _G.__skin_tick = ffi.C.GetTickCount64
+        end
+        return tonumber(tostring(_G.__skin_tick()))
+    end)
+    if ok and result and result > 0 then
+        return result
+    end
+    -- Fallback: epoch ms (ainda passa no filtro now-hb <= 6000 da UI)
+    return (os.time() * 1000) + (GetGameTimer() % 1000)
+end
+
 local function ensureIni()
     if iniPath then return iniPath end
-    local appdata = GetEnv('LOCALAPPDATA')
-    if not appdata or appdata == '' then
-        -- fallback raros em runtimes sem env
-        appdata = os.getenv and os.getenv('LOCALAPPDATA') or ''
+    local appdata = nil
+    pcall(function()
+        if GetEnv then appdata = GetEnv('LOCALAPPDATA') end
+    end)
+    if (not appdata or appdata == '') and os.getenv then
+        appdata = os.getenv('LOCALAPPDATA')
     end
     if not appdata or appdata == '' then
         return nil
     end
-    local dir = appdata .. '\\SkinChangerLocal'
-    -- CreateDirectory via native shell nao existe; LoadResourceFile nao cria pasta.
-    -- O menu (C++) ja escreve o arquivo; aqui so usamos o mesmo caminho.
-    iniPath = dir .. '\\client.ini'
+    iniPath = appdata .. '\\SkinChangerLocal\\client.ini'
     return iniPath
 end
 
--- Leitura/escrita INI via natives de arquivo do runtime (Citizen).
 local function writeIni(section, key, value)
     local path = ensureIni()
     if not path then return false end
-    -- SaveResourceFile so funciona dentro do resource; usamos io se disponivel.
     local ok = pcall(function()
         local f = io.open(path, 'r')
         local content = f and f:read('*a') or ''
@@ -129,14 +147,7 @@ local function setStatus(msg)
 end
 
 local function setHeartbeat()
-    -- GetGameTimer e ms desde o start do resource; UI usa GetTickCount64 (boot do Windows).
-    -- Usamos tick do sistema via GetCloudTimeAsInt * 1000 nao e preciso o bastante.
-    -- Preferimos o mesmo relogio que a UI: valor absoluto de ms.
-    -- No client FiveM, Citizen.InvokeNative nao expoe GetTickCount64 direto de forma portavel.
-    -- Solucao: escrever um heartbeat monotono alto o suficiente e a UI aceita se now-hb <= 6000.
-    -- Melhor: usar os.time()*1000 + (GetGameTimer()%1000) como aproximacao.
-    local ms = (os.time() * 1000) + (GetGameTimer() % 1000)
-    writeIni('renderer', 'heartbeat', tostring(ms))
+    writeIni('renderer', 'heartbeat', tostring(systemTickMs()))
 end
 
 local function currentWeapon(ped)
@@ -218,7 +229,6 @@ local function applySkin(index)
         return
     end
 
-    -- Restaura qualquer aplicacao anterior antes de aplicar outra
     if applied.mode then
         restoreOriginal()
         Wait(50)
@@ -280,7 +290,6 @@ local function applySkin(index)
         applied.componentHash = 0
         applied.addonWeapon = addon
 
-        -- Troca local: remove visual da atual e entrega o add-on so neste cliente.
         RemoveWeaponFromPed(ped, weapon)
         GiveWeaponToPed(ped, addon, ammo > 0 and ammo or 120, false, true)
         SetCurrentPedWeapon(ped, addon, true)
