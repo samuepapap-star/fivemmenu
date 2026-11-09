@@ -118,7 +118,8 @@ namespace Core {
 			inline static bool UserNames;
 			inline static ImVec2 UserNamesPos;
 			inline static int UserNamesState = 0;
-			inline static bool Box3D = false;
+			inline static constexpr int DistanceLimit = 5000;
+            inline static bool Box3D = false;
             inline static bool HeadCircle;
             inline static float HeadSize = 3.f;
             inline static int HealthBarWidth = 1;

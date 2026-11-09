@@ -79,7 +79,7 @@ void Core::Features::cEsp::Draw( )
 		if ( !Cfg->ShowLocalPlayer && IsLocalPlayer )
 			continue;
 
-		if (Distance > ImClamp(Cfg->MaxDistance, 0, 500) || (Cfg->HighlightVisible && !Ped->IsVisible()))
+		if (Distance > ImClamp(Cfg->MaxDistance, 0, Cfg->DistanceLimit) || (Cfg->HighlightVisible && !Ped->IsVisible()))
 			continue;
 
 		if ( Cfg->IgnoreNPCs && PedType != 2 && !IsLocalPlayer )

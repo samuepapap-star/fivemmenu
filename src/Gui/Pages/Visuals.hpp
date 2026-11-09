@@ -120,7 +120,7 @@ namespace Visuals {
                             ImGui::SetTooltip("Indícios de voo ou ausência de colisão por 3 segundos. Pode marcar quedas ou paraquedas. Não identifica administradores.");
 						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.ESP->IgnoreNPCs );
 
-						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.ESP->MaxDistance, 0, 500, xorstr( "%dm" ), 0 );
+						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.ESP->MaxDistance, 0, g_Config.ESP->DistanceLimit, xorstr( "%dm" ), 0 );
 					}
 					ImGui::EndChild( );
 				}
