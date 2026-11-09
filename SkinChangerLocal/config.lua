@@ -1,21 +1,12 @@
--- Indices iguais ao combo em src/Gui/Pages/SkinChanger.hpp
--- mode:
---   "component" -> GiveWeaponComponentToPed na arma equipada
---   "addon"     -> troca local por WEAPON_ add-on e guarda a original
---   "tint"      -> SetPedWeaponTintIndex
---
--- Nomes confirmados diretamente em weapons.meta dos pacotes enviados:
--- PenhaShop (weaponHash confirmado nos arquivos weapons.meta) indices 11-14 e Glocks indices 15-18.
--- Angel Love (0-10) contem modelos .ydr/.ytd sem weapons.meta: os hashes
--- abaixo sao HIPOTESES, nao spawn names confirmados. Modelos de stream
--- por si so nao registram uma arma add-on.
--- Diversos (nomes ainda NAO verificados nos .rpf) (19-27) em .rpf ainda requerem inspecao dos metadados internos.
--- O cliente tenta carregar o hash; falha de asset nao prova nome correto.
+-- Indices globais 0-27 preservados do menu.
+-- skins e Config.WeaponCatalog sao apenas referencias historicas, nao autorizacoes.
+-- approved e a lista exclusiva do servidor; consulte README.md.
+-- Somente tint e component sao suportados. Add-ons exigem integracao com
+-- o inventario do servidor e nao sao criados, removidos ou substituidos aqui.
 
 SkinChangerConfig = {
-    iniRelative = 'SkinChangerLocal\\client.ini',
-    heartbeatMs = 2000,
-    pollMs = 250,
+    -- Somente esta tabela, preenchida pelo administrador, autoriza aplicacao.
+    approved = {},
 
     skins = {
         -- Angel Love (nomes ainda NAO verificados em metadados)
