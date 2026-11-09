@@ -2,9 +2,8 @@
 #include "ExternalAimMath.hpp"
 #include <Core/ExtensionSettings.hpp>
 #include <random>
+#include "PlayerBones.hpp"
 
-// External adaptation of the supplied source's mouse and stepped camera modes.
-// SilentAim and TriggerBot keep their existing, independent implementations.
 void Core::Features::cAimbot::SetViewAngles(CPed*, D3DXVECTOR3 target)
 {
     const auto cfg = g_Config.Aimbot;
@@ -15,22 +14,14 @@ void Core::Features::cAimbot::SetViewAngles(CPed*, D3DXVECTOR3 target)
     D3DXVECTOR3 direction = target - origin;
     if (!std::isfinite(direction.x) || !std::isfinite(direction.y) || !std::isfinite(direction.z) ||
         D3DXVec3Length(&direction) < 0.001f) return;
-    const float distance = D3DXVec3Length(&direction);
     D3DXVec3Normalize(&direction, &direction);
-    float sx = static_cast<float>(cfg->SeparateSmooth ? cfg->SmoothHorizontal : cfg->AimbotSpeed);
-    float sy = static_cast<float>(cfg->SeparateSmooth ? cfg->SmoothVertical : cfg->AimbotSpeed);
-    sx = ImClamp(sx, 1.f, 100.f); sy = ImClamp(sy, 1.f, 100.f);
-    if (cfg->LegitMode) { sx *= 3.8f; sy *= 3.8f; }
-    for (const uintptr_t offset : {uintptr_t(0x40), uintptr_t(0x3D0)}) {
-        const auto angles = Mem.Read<D3DXVECTOR3>(camera + offset);
-        D3DXVECTOR3 next(ExternalAimMath::Step(angles.x, direction.x, sx),
-            ExternalAimMath::Step(angles.y, direction.y, sx),
-            ExternalAimMath::Step(angles.z, direction.z, sy));
-        if (ExtraSettings::AimHumanization) {
-            const float scale = ImClamp(distance / 5.f, 0.1f, 1.f);
-            next.x = angles.x + (direction.x - angles.x) * scale / sx;
-            next.y = angles.y + (direction.y - angles.y) * scale / sx;
-            next.z = angles.z + (direction.z - angles.z) * scale / sy;
+    for (uintptr_t offset : {uintptr_t(0x40), uintptr_t(0x3D0)}) {
+        auto current = Mem.Read<D3DXVECTOR3>(camera + offset);
+        auto next = direction;
+        if (cfg->AimbotSpeed > 1) {
+            next = current + (direction - current) / (7.f * ImClamp(cfg->AimbotSpeed, 1, 100));
+            if (D3DXVec3Length(&next) < 0.001f) continue;
+            D3DXVec3Normalize(&next, &next);
         }
         Mem.Write<D3DXVECTOR3>(camera + offset, next);
     }
@@ -38,58 +29,49 @@ void Core::Features::cAimbot::SetViewAngles(CPed*, D3DXVECTOR3 target)
 
 void Core::Features::cAimbot::Start()
 {
+    constexpr unsigned masks[] = {SKEL_Head, SKEL_Pelvis, SKEL_Neck_1, SKEL_R_Clavicle, SKEL_L_Clavicle,
+        SKEL_R_UpperArm, SKEL_L_UpperArm, SKEL_L_Forearm, SKEL_R_Forearm, SKEL_L_Hand, SKEL_R_Hand,
+        SKEL_R_Thigh, SKEL_R_Calf, SKEL_L_Thigh, SKEL_L_Calf, SKEL_R_Foot, SKEL_L_Foot};
+    std::mt19937 random(std::random_device{}());
     while (true) {
-        // Always yield, including when no target exists.
         std::this_thread::sleep_for(std::chrono::milliseconds(4));
         const auto cfg = g_Config.Aimbot;
-        if (!cfg->Enabled || g_MenuInfo.IsOpen || !Core::SDK::Pointers::pLocalPlayer ||
+        auto local = Core::SDK::Pointers::pLocalPlayer;
+        if (!cfg->Enabled || !cfg->KeyBind || g_MenuInfo.IsOpen || !local ||
             GetForegroundWindow() != g_Variables.g_hGameWindow ||
-            (cfg->KeyBind && !(GetAsyncKeyState(cfg->KeyBind) & 0x8000))) continue;
-        CPed* selected = nullptr;
-        D3DXVECTOR3 target;
-        D3DXVECTOR2 screen;
-        float best = FLT_MAX;
+            !(GetAsyncKeyState(cfg->KeyBind) & 0x8000) || (local->InVehicle() && !cfg->InVehicleAim)) continue;
         const auto center = g_Variables.g_vGameWindowCenter;
         const auto size = g_Variables.g_vGameWindowSize;
-        for (const auto& entity : Core::SDK::Game::EntityList) {
-            CPed* ped = entity.Ped;
-            if (!ped || ped == Core::SDK::Pointers::pLocalPlayer || entity.IsFriend ||
-                entity.Health <= (entity.PedType == 2 ? 101.f : 1.f) || entity.Distance > cfg->MaxDistance) continue;
-            if ((cfg->TargetType == 1 && entity.PedType != 2) ||
-                (cfg->TargetType == 2 && entity.PedType == 2)) continue;
-            if (cfg->OnlyVisible && !ped->IsVisible()) continue;
-            auto point = ped->GetBonePosDefault(ExternalAimMath::Bone(cfg->Hitbox));
-            if (cfg->Prediction) {
-                const auto velocity = ped->GetVelocity();
-                if (std::isfinite(velocity.x) && std::isfinite(velocity.y) && std::isfinite(velocity.z))
-                    point += velocity * ExtraSettings::AimLeadSeconds;
+        CPed* selected = nullptr;
+        D3DXVECTOR3 point;
+        float best = static_cast<float>(cfg->FOV);
+        const int chosen = cfg->BoneMode == 2 ? std::uniform_int_distribution<int>(0,16)(random) : ImClamp(cfg->V7Bone,0,16);
+        for (const auto& e : SDK::Game::SnapshotEntities()) {
+            auto ped = e.Ped;
+            if (!ped || ped == local || e.IsFriend || e.Distance > cfg->MaxDistance ||
+                e.Health <= (e.PedType == 2 ? 101.f : 1.f) || (cfg->IgnoreNPCs && e.PedType != 2) ||
+                (cfg->HealthFilter && (e.Health - (e.PedType == 2 ? 100.f : 0.f)) < cfg->HealthThreshold) ||
+                (cfg->SkipVehicles && ped->InVehicle()) || (cfg->OnlyVisible && !ped->IsVisible())) continue;
+            PlayerBones bones;
+            const bool hasBones = (cfg->BoneMode == 1 || chosen != 0) && bones.Open(ped);
+            for (int i = 0; i < 17; ++i) {
+                if (cfg->BoneMode != 1 && i != chosen) continue;
+                D3DXVECTOR3 pos;
+                if (!i) pos = ped->GetBonePosDefault(0);
+                else if (!hasBones || !bones.Position(masks[i], pos)) continue;
+                const auto screen = SDK::Game::WorldToScreen(pos);
+                if (!ExternalAimMath::Inside(screen.x,screen.y,size.x,size.y)) continue;
+                const float radius = std::hypot(screen.x-center.x,screen.y-center.y);
+                if (radius < best) { best = radius; selected = ped; point = pos; }
             }
-            const auto projected = Core::SDK::Game::WorldToScreen(point);
-            if (!ExternalAimMath::Inside(projected.x, projected.y, size.x, size.y)) continue;
-            const float radius = std::hypot(projected.x - center.x, projected.y - center.y);
-            if (radius > cfg->FOV) continue;
-            const float rank = cfg->SelectionMode == 0 ? entity.Distance : radius;
-            if (rank < best) { best = rank; selected = ped; target = point; screen = projected; }
         }
         if (!selected) continue;
-        if (cfg->AimMode == 1) {
-            SetViewAngles(selected, target);
-            if (ExtraSettings::AimHumanization) {
-                static thread_local std::mt19937 generator{std::random_device{}()};
-                std::uniform_int_distribution<int> delay(0, 6);
-                std::this_thread::sleep_for(std::chrono::milliseconds(delay(generator)));
-            }
-            continue;
+        if (cfg->Prediction) point += selected->GetVelocity() * ImClamp(cfg->PredictionTime,0.01f,1.f);
+        const float spread = ImClamp(cfg->RandomAngle,0.f,5.f);
+        if (spread > 0.f) {
+            std::uniform_real_distribution<float> delta(-spread,spread);
+            point += D3DXVECTOR3(delta(random),delta(random),delta(random));
         }
-        float sx = float(cfg->SeparateSmooth ? cfg->SmoothHorizontal : cfg->AimbotSpeed);
-        float sy = float(cfg->SeparateSmooth ? cfg->SmoothVertical : cfg->AimbotSpeed);
-        sx = ImClamp(sx, 1.f, 100.f); sy = ImClamp(sy, 1.f, 100.f);
-        if (cfg->LegitMode) { sx *= 3.8f; sy *= 3.8f; }
-        INPUT input{};
-        input.type = INPUT_MOUSE;
-        input.mi.dx = LONG(std::lround((screen.x - center.x) / (sx + 1.5f)));
-        input.mi.dy = LONG(std::lround((screen.y - center.y) / (sy + 1.5f)));
-        input.mi.dwFlags = MOUSEEVENTF_MOVE;
-        if (input.mi.dx || input.mi.dy) SendInput(1, &input, sizeof(input));
+        SetViewAngles(selected, point);
     }
 }

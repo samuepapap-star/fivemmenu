@@ -66,7 +66,8 @@ namespace Visuals {
 							}
 						}
 
-						Custom::CheckBox("Caixa de cantos", &g_Config.ESP->CornerBox);
+						Custom::CheckBox("Caixa 3D", &g_Config.ESP->Box3D);
+                        Custom::CheckBox("Caixa de cantos", &g_Config.ESP->CornerBox);
                         Custom::CheckBox("ESP estático (limites do modelo)", &g_Config.ESP->StaticESP);
                         ImGui::SliderInt("Largura da caixa", &g_Config.ESP->BoxSize, 0, 30);
                         ImGui::SliderFloat("Opacidade do preenchimento", &g_Config.ESP->FilledBoxCol.Value.w, 0.f, 1.f);

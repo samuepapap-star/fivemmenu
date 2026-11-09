@@ -52,7 +52,7 @@ inline void CheatLogin( )
 void Gui::Rendering( )
 {
     static bool cleanupRegistered=false;
-    if(!cleanupRegistered){std::atexit([](){BridgeFeatures::Stop();Core::Features::WorldClock::Tick(true);Core::Features::ExtraCamera::Stop();Core::Features::Extras::Tick(true);});cleanupRegistered=true;}
+    if(!cleanupRegistered){std::atexit([](){Core::Features::Exploits::TickSwim(true);BridgeFeatures::Stop();Core::Features::WorldClock::Tick(true);Core::Features::ExtraCamera::Stop();Core::Features::Extras::Tick(true);});cleanupRegistered=true;}
 
     static bool diagnosticSession=false;
     if(!diagnosticSession) {
@@ -61,6 +61,9 @@ void Gui::Rendering( )
     }
     Core::Features::CarreraAdditions::TickCollision();
     ClientState::Tick();
+    Core::Features::Exploits::TickWaypoint();
+    Core::Features::Exploits::TickSwim();
+    Core::Features::Exploits::TickPaint();
     Core::Features::Extras::Tick();
     Core::Features::WorldClock::Tick();
     BridgeFeatures::Tick();

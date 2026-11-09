@@ -75,6 +75,9 @@ namespace Local {
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Restaura a vida maxima e 100 de colete. Nao e uma funcao de reviver.");
 
+                        Custom::CheckBox("Velocidade de natação", &Core::Features::Exploits::swimEnabled);
+                        if (Core::Features::Exploits::swimEnabled)
+                            ImGui::SliderInt("Velocidade ao nadar", &Core::Features::Exploits::swimSpeed, 1, 5);
                         Custom::CheckBox("Regenerar vida enquanto vivo", &ExtraSettings::RegenHealth);
                         Custom::CheckBox("Regenerar colete", &ExtraSettings::RegenArmor);
                         if (Custom::Button("Zerar vida do personagem", ImVec2(-1,30),0)) {
@@ -200,7 +203,11 @@ namespace Local {
 
 					ImGui::BeginChild( xorstr( "Outros" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						if (Custom::CheckBox("Blindagem do veiculo", &BridgeFeatures::vehicleArmor) && BridgeFeatures::vehicleArmor) {
+						if (Custom::Button("Cor aleatória do veículo", ImVec2(-1, 30), 0))
+                            Core::Features::Exploits::PaintVehicle();
+                        Custom::CheckBox("Pintura contínua", &Core::Features::Exploits::cyclePaint);
+                        ImGui::TextWrapped("%s",Core::Features::Exploits::paintStatus.c_str());
+                        if (Custom::CheckBox("Blindagem do veiculo", &BridgeFeatures::vehicleArmor) && BridgeFeatures::vehicleArmor) {
                             MenuBridge::Command connect{};
                             connect.action = MenuBridge::Action::Connect;
                             if (!BridgeFeatures::Submit(connect)) BridgeFeatures::vehicleArmor = false;
@@ -360,12 +367,16 @@ namespace Local {
 					{
 						ImGui::BeginGroup( );
 						{
-							auto Location = Locations[ SeletedIndex ];
+							if (SeletedIndex == 0) {
+                                Custom::CheckBox("Teleporte automático ao marcador", &Core::Features::Exploits::autoWaypoint);
+                                ImGui::TextWrapped("%s",Core::Features::Exploits::waypointStatus.c_str());
+                            }
+                            auto Location = Locations[ SeletedIndex ];
 							std::string Loc = xorstr( "Teleportar para " ) + Location.Name;
 							if ( Custom::Button( Loc.c_str( ), ImVec2( ContentSize.x, 32 ), 0 ) ) {
 								if ( SeletedIndex == 0 )
 								{
-									Core::Features::Exploits::TpToWaypoint( );
+									Core::Features::Exploits::TickWaypoint(true);
 								}
 								else {
 									Core::SDK::Pointers::pLocalPlayer->SetPos( Location.Coords );

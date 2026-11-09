@@ -37,6 +37,14 @@ namespace Core {
 			//inline static int SmoothHorizontal = 12;
 			//inline static int SmoothVertical = 12;
 			inline static int AimbotSpeed = 12;
+            inline static bool InVehicleAim = false;
+            inline static bool SkipVehicles = false;
+            inline static bool HealthFilter = false;
+            inline static float HealthThreshold = 0.f;
+            inline static float RandomAngle = 0.f;
+            inline static float PredictionTime = 0.15f;
+            inline static int BoneMode = 0;
+            inline static int V7Bone = 0;
             inline static bool LegitMode = false;
             inline static bool SeparateSmooth = false;
             inline static int SmoothHorizontal = 12;
@@ -110,7 +118,8 @@ namespace Core {
 			inline static bool UserNames;
 			inline static ImVec2 UserNamesPos;
 			inline static int UserNamesState = 0;
-			inline static bool HeadCircle;
+			inline static bool Box3D = false;
+            inline static bool HeadCircle;
             inline static float HeadSize = 3.f;
             inline static int HealthBarWidth = 1;
             inline static int ArmorBarWidth = 1;
@@ -252,6 +261,14 @@ namespace Core {
 				//FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothHorizontal" ) ] = Aimbot->SmoothHorizontal;
 				//FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothVertical" ) ] = Aimbot->SmoothHorizontal;
 				FeaturesCfg[xorstr("Aimbot")][xorstr("AimSpeed")] = Aimbot->AimbotSpeed;
+                FeaturesCfg["Aimbot"]["InVehicleAim"] = Aimbot->InVehicleAim;
+                FeaturesCfg["Aimbot"]["SkipVehicles"] = Aimbot->SkipVehicles;
+                FeaturesCfg["Aimbot"]["HealthFilter"] = Aimbot->HealthFilter;
+                FeaturesCfg["Aimbot"]["HealthThreshold"] = Aimbot->HealthThreshold;
+                FeaturesCfg["Aimbot"]["RandomAngle"] = Aimbot->RandomAngle;
+                FeaturesCfg["Aimbot"]["PredictionTime"] = Aimbot->PredictionTime;
+                FeaturesCfg["Aimbot"]["BoneMode"] = Aimbot->BoneMode;
+                FeaturesCfg["Aimbot"]["V7Bone"] = Aimbot->V7Bone;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "KeyBind" ) ] = Aimbot->KeyBind;
 				FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FovColor" ) ] = ImColToJson( Aimbot->FovColor );
 
@@ -302,6 +319,7 @@ namespace Core {
                 FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
                 FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
                 FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
+                FeaturesCfg["ESP"]["Box3D"] = ESP->Box3D;
                 FeaturesCfg["ESP"]["HeadSize"] = ESP->HeadSize;
             FeaturesCfg["ESP"]["HealthBarWidth"] = ESP->HealthBarWidth;
                 FeaturesCfg["ESP"]["ArmorBarWidth"] = ESP->ArmorBarWidth;
@@ -410,6 +428,14 @@ namespace Core {
 				//Aimbot->SmoothHorizontal = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothHorizontal" ) ];
 				//Aimbot->SmoothVertical = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "SmoothVertical" ) ];
 				Aimbot->AimbotSpeed = FeaturesCfg[xorstr("Aimbot")][xorstr("AimSpeed")];
+                Aimbot->InVehicleAim = FeaturesCfg["Aimbot"].value("InVehicleAim", false);
+                Aimbot->SkipVehicles = FeaturesCfg["Aimbot"].value("SkipVehicles", false);
+                Aimbot->HealthFilter = FeaturesCfg["Aimbot"].value("HealthFilter", false);
+                Aimbot->HealthThreshold = FeaturesCfg["Aimbot"].value("HealthThreshold", 0.f);
+                Aimbot->RandomAngle = FeaturesCfg["Aimbot"].value("RandomAngle", 0.f);
+                Aimbot->PredictionTime = FeaturesCfg["Aimbot"].value("PredictionTime", 0.15f);
+                Aimbot->BoneMode = FeaturesCfg["Aimbot"].value("BoneMode", 0);
+                Aimbot->V7Bone = FeaturesCfg["Aimbot"].value("V7Bone", 0);
 				Aimbot->KeyBind = FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "KeyBind" ) ];
 				Aimbot->FovColor = JsonToImCol( FeaturesCfg[ xorstr( "Aimbot" ) ][ xorstr( "FovColor" ) ] );
 
@@ -459,6 +485,7 @@ namespace Core {
                 ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
                 if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
                 ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);
+                ESP->Box3D = FeaturesCfg["ESP"].value("Box3D", false);
                 ESP->HeadSize = ImClamp(FeaturesCfg["ESP"].value("HeadSize", 3.f), 1.f, 20.f);
             ESP->HealthBarWidth = ImClamp(FeaturesCfg["ESP"].value("HealthBarWidth", 1), 1, 6);
                 ESP->ArmorBarWidth = ImClamp(FeaturesCfg["ESP"].value("ArmorBarWidth", 1), 1, 6);

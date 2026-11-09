@@ -55,28 +55,14 @@ namespace Combat {
 						Custom::CheckBox( xorstr( "Mostrar FOV" ), &g_Config.Aimbot->ShowFov );
                         ImGui::ColorEdit4("Cor do FOV##Aimbot", &g_Config.Aimbot->FovColor.Value.x, ImGuiColorEditFlags_AlphaBar);
                         ImGui::ColorEdit3("Cor do menu", &g_Config.General->MenuAccent.x);
-						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.Aimbot->OnlyVisible );
-						ImGui::Combo("Alvos", &g_Config.Aimbot->TargetType, "Todos\0Somente jogadores\0Somente NPCs\0");
-                        ImGui::Combo("Modo de mira", &g_Config.Aimbot->AimMode, "Mouse\0Câmera\0");
-                        ImGui::Combo("Prioridade", &g_Config.Aimbot->SelectionMode, "Distância\0Proximidade da mira\0");
-                        Custom::CheckBox("Retículo central", &g_Config.Aimbot->Crosshair);
-                        Custom::CheckBox("Alterar FOV da câmera", &g_Config.Aimbot->CameraFovEnabled);
-                        ImGui::SliderFloat("FOV da câmera", &g_Config.Aimbot->CameraFov, 50.f, 160.f, "%.0f");
-                        ImGui::BeginDisabled(!Core::Features::ExternalCameraOptions::RangeBuildSupported());
-                        Custom::CheckBox("Alterar alcance da arma", &g_Config.Aimbot->WeaponRangeEnabled);
-                        ImGui::SliderFloat("Alcance da arma", &g_Config.Aimbot->WeaponRange, 1.f, 1000.f, "%.0f m");
-                        ImGui::EndDisabled();
-                        if (!Core::Features::ExternalCameraOptions::RangeBuildSupported())
-                            ImGui::TextWrapped("Alcance indisponível nesta build: campo não identificado pela source.");
-                        Custom::CheckBox("Antecipar movimento do alvo", &g_Config.Aimbot->Prediction);
-                        if (g_Config.Aimbot->Prediction)
-                            ImGui::SliderFloat("Antecipação do aimbot", &ExtraSettings::AimLeadSeconds, 0.f, 0.3f, "%.2f s");
-                        if (g_Config.Aimbot->AimMode == 1)
-                            Custom::CheckBox("Humanizar movimento da câmera", &ExtraSettings::AimHumanization);
-                        Custom::CheckBox("Modo Legit", &g_Config.Aimbot->LegitMode, true, "Aumenta a suavização da mira.");
-                        Custom::CheckBox("Suavização X/Y separada", &g_Config.Aimbot->SeparateSmooth);
-					}
-					ImGui::EndChild( );
+						Custom::CheckBox("Antecipar movimento", &g_Config.Aimbot->Prediction);
+                        Custom::CheckBox("Mira dentro de veículo", &g_Config.Aimbot->InVehicleAim);
+                        Custom::CheckBox("Somente visíveis", &g_Config.Aimbot->OnlyVisible);
+                        Custom::CheckBox("Ignorar alvos em veículos", &g_Config.Aimbot->SkipVehicles);
+                        Custom::CheckBox("Filtrar por vida", &g_Config.Aimbot->HealthFilter);
+                        Custom::CheckBox("Ignorar NPCs", &g_Config.Aimbot->IgnoreNPCs);
+                    }
+                    ImGui::EndChild( );
 				}
 				ImGui::EndGroup( );
 				ImGui::SameLine( );
@@ -85,22 +71,20 @@ namespace Combat {
 					ImGui::BeginChild( xorstr( "Ajustes" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						ImGui::SliderInt( xorstr( "Campo de visão" ), &g_Config.Aimbot->FOV, 0, 400, xorstr( "%d" ), 0 );
-						ImGui::Combo("Região de mira", &g_Config.Aimbot->Hitbox, "Cabeça\0Tronco\0Perna esquerda\0Perna direita\0Braço direito\0Braço esquerdo\0");
-                        if (g_Config.Aimbot->SeparateSmooth) {
-                            ImGui::SliderInt("Suavização X", &g_Config.Aimbot->SmoothHorizontal, 1, 100);
-                            ImGui::SliderInt("Suavização Y", &g_Config.Aimbot->SmoothVertical, 1, 100);
-                        } else {
-                            ImGui::SliderInt( xorstr( "Suavização" ), &g_Config.Aimbot->AimbotSpeed, 0, 100, xorstr( "%d" ), 0 );
-                        }
-						//ImGui::SliderInt( xorstr( "Suavização vertical" ), &g_Config.Aimbot->SmoothVertical, 0, 100, xorstr( "%d" ), 0 );
-						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.Aimbot->MaxDistance, 0, 1000, xorstr( "%dm" ), 0 );
-						static int KeyMode = 1;
-						ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Aimbot->KeyBind, &KeyMode );
-                        ImGui::TextDisabled("Sem tecla = automático");
-                        if (ImGui::Button("Remover tecla##Aimbot"))
-                            g_Config.Aimbot->KeyBind = 0;
-					}
-					ImGui::EndChild( );
+						ImGui::SliderInt("Suavização", &g_Config.Aimbot->AimbotSpeed, 0, 100);
+                        ImGui::SliderInt("Distância máxima", &g_Config.Aimbot->MaxDistance, 0, 1000, "%d m");
+                        if (g_Config.Aimbot->Prediction)
+                            ImGui::SliderFloat("Tempo de previsão", &g_Config.Aimbot->PredictionTime, 0.01f, 1.f, "%.2f s");
+                        if (g_Config.Aimbot->HealthFilter)
+                            ImGui::SliderFloat("Vida mínima", &g_Config.Aimbot->HealthThreshold, 0.f, 100.f);
+                        ImGui::SliderFloat("Variação aleatória", &g_Config.Aimbot->RandomAngle, 0.f, 5.f);
+                        ImGui::Combo("Seleção de osso", &g_Config.Aimbot->BoneMode, "Fixo\0Mais próximo da mira\0Aleatório\0");
+                        if (!g_Config.Aimbot->BoneMode)
+                            ImGui::Combo("Osso", &g_Config.Aimbot->V7Bone, "Cabeça\0Pelve\0Pescoço\0Clavícula D\0Clavícula E\0Braço D\0Braço E\0Antebraço E\0Antebraço D\0Mão E\0Mão D\0Coxa D\0Panturrilha D\0Coxa E\0Panturrilha E\0Pé D\0Pé E\0");
+                        static int keyMode = 1;
+                        ImGui::Keybind("Tecla", &g_Config.Aimbot->KeyBind, &keyMode);
+                    }
+                    ImGui::EndChild( );
 				}
 				ImGui::EndGroup( );
 

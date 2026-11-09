@@ -1,4 +1,5 @@
 #include "Esp.hpp"
+#include "PlayerBones.hpp"
 #include <Core/Features/ExtraWeaponIcons.hpp>
 #include <Core/ExtensionSettings.hpp>
 #include <chrono>
@@ -9,23 +10,8 @@
 namespace {
 // Each joint is projected once, even when several segments share it.
 void DrawTracelessSkeleton(CPed* ped, ImDrawList* draw, ImColor color, const ImVec2& screen) {
-    if (!g_Offsets.m_FragInst) return;
-    const auto frag = Mem.Read<uintptr_t>(reinterpret_cast<uintptr_t>(ped) + g_Offsets.m_FragInst);
-    if (!frag) return;
-    const auto instance = Mem.Read<uintptr_t>(frag + 0x68);
-    if (!instance) return;
-    const auto skeleton = Mem.Read<uintptr_t>(instance + 0x178);
-    if (!skeleton) return;
-    const auto data = Mem.Read<uintptr_t>(skeleton);
-    const auto transform = Mem.Read<uintptr_t>(skeleton + 0x8);
-    const auto matrices = Mem.Read<uintptr_t>(skeleton + 0x18);
-    if (!data || !transform || !matrices) return;
-    const auto world = Mem.Read<D3DXMATRIX>(transform);
-    const auto count = Mem.Read<unsigned short>(data + 0x5e);
-    const auto hashed = Mem.Read<unsigned short>(data + 0x1a);
-    const auto slots = Mem.Read<unsigned short>(data + 0x18);
-    const auto table = Mem.Read<uintptr_t>(data + 0x10);
-    if (!count || (hashed && (!slots || !table))) return;
+    Core::Features::PlayerBones bones;
+    if (!bones.Open(ped)) return;
     enum Joint { Pelvis, Neck, LeftClavicle, RightClavicle, LeftArm, RightArm,
                  LeftForearm, RightForearm, LeftHand, RightHand, LeftThigh, RightThigh,
                  LeftCalf, RightCalf, LeftFoot, RightFoot, JointCount };
@@ -39,21 +25,8 @@ void DrawTracelessSkeleton(CPed* ped, ImDrawList* draw, ImColor color, const ImV
     ImVec2 points[JointCount]{};
     bool visible[JointCount]{};
     for (int i = 0; i < JointCount; ++i) {
-        unsigned index = masks[i];
-        if (hashed) {
-            index = count;
-            auto node = Mem.Read<uintptr_t>(table + sizeof(uintptr_t) * (masks[i] % slots));
-            for (int depth = 0; node && depth < 3; ++depth) {
-                if (Mem.Read<unsigned>(node) == masks[i]) {
-                    index = Mem.Read<unsigned>(node + 4);
-                    break;
-                }
-                node = Mem.Read<uintptr_t>(node + 8);
-            }
-        }
-        if (index >= count) continue;
-        const auto bone = Core::SDK::Game::GetBonePosInstFrag(skeleton, index, world, matrices);
-        if (bone == D3DXVECTOR3(0,0,0)) continue;
+        D3DXVECTOR3 bone;
+        if (!bones.Position(masks[i], bone)) continue;
         const auto pos = Core::SDK::Game::WorldToScreen(bone);
         visible[i] = ExternalAimMath::Inside(pos.x, pos.y, screen.x, screen.y);
         points[i] = ImVec2(pos.x, pos.y);
@@ -259,7 +232,29 @@ void Core::Features::cEsp::Draw( )
 		const auto color = [&](ImColor normal) -> ImColor { return IsFriend ? Cfg->FriendCol : normal; };
         if (Cfg->SnapLines && !IsLocalPlayer)
             DrawList->AddLine(ImVec2(window.x * 0.5f, window.y), ImVec2(BoxCenter.x, BoxMax.y), color(Cfg->SnapLinesCol), 1.f);
-        if (Cfg->Box) {
+        if (Cfg->Box3D) {
+            const float bottom = (std::min)(Ped->GetBonePosDefault(3).z, Ped->GetBonePosDefault(4).z);
+            const float top = HeadPos.z + 0.2f;
+            const float radius = (top - bottom) * 0.25f;
+            if (radius > 0.f && radius < 2.f) {
+                D3DXVECTOR2 corners[8];
+                bool visible[8];
+                for (int i = 0; i < 8; ++i) {
+                    const D3DXVECTOR3 corner(Entity.Pos.x + ((i & 1) ? radius : -radius),
+                        Entity.Pos.y + ((i & 2) ? radius : -radius), (i & 4) ? top : bottom);
+                    corners[i] = SDK::Game::WorldToScreen(corner);
+                    visible[i] = validScreen(corners[i]);
+                }
+                for (int i = 0; i < 8; ++i) {
+                    for (int axis : {1, 2, 4}) {
+                        const int next = i ^ axis;
+                        if (i < next && visible[i] && visible[next])
+                            DrawList->AddLine(ImVec2(corners[i].x,corners[i].y), ImVec2(corners[next].x,corners[next].y),
+                                              color(Cfg->BoxCol), ExtraSettings::BoxWidth);
+                    }
+                }
+            }
+        } else if (Cfg->Box) {
             if (Cfg->FilledBox) {
                 ImVec4 fill = color(Cfg->FilledBoxCol).Value;
                 fill.w = Cfg->FilledBoxCol.Value.w;
@@ -267,7 +262,7 @@ void Core::Features::cEsp::Draw( )
             }
             DrawList->AddRect(BoxMin, BoxMax, color(Cfg->BoxCol), 0, 0, ExtraSettings::BoxWidth);
         }
-        if (Cfg->CornerBox) {
+        if (Cfg->CornerBox && !Cfg->Box3D) {
             const float length = (std::min)(15.f, (BoxRight - BoxLeft) * 0.5f);
             for (int i = 0; i < 4; ++i) {
                 const float x = i & 1 ? BoxRight : BoxLeft;
