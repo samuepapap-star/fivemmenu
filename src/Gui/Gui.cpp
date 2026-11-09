@@ -11,6 +11,7 @@
 #include <Gui/Pages/World.hpp>
 #include <Gui/Pages/Settings.hpp>
 #include <Gui/Pages/Login.hpp>
+#include <Gui/Pages/SkinChanger.hpp>
 
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Includes/CustomWidgets/Notify.hpp>
@@ -123,6 +124,10 @@ void Gui::Rendering( )
 				{
 					g_MenuInfo.iTabCount = g_MenuInfo.Settings;
 				}
+				if ( Custom::Tab( ICON_FA_SHIRT, xorstr( "Personalize" ), g_MenuInfo.Personalize == g_MenuInfo.iTabCount ) )
+				{
+					g_MenuInfo.iTabCount = g_MenuInfo.Personalize;
+				}
 			}
 			ImGui::PopFont( );
 			ImGui::EndGroup( );
@@ -165,6 +170,9 @@ void Gui::Rendering( )
 				break;
 			case g_MenuInfo.Settings:
 				Settings::Render( );
+				break;
+			case g_MenuInfo.Personalize:
+				SkinChangerPage::Render( );
 				break;
 
 			}

@@ -192,7 +192,8 @@ public:
 		World,
 		Exploits,
 		Settings,
-		Login
+		Login,
+		Personalize
 	};
 
 	bool IsOpen;
