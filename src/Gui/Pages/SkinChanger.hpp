@@ -36,6 +36,19 @@ inline void Render() {
         "ZOLP / GGOLDLP",
         "ZOLP / M249G"};
     static int selected = 0;
+    // Categorias visuais; selected conserva o indice original do plugin.
+    static const char* categories[] = {
+        "Todas", "Glock", "G3", "Pistolas", "Fuzis", "SMGs",
+        "Angel Love", "Especiais"
+    };
+    static int category = 0;
+    static const int categoryByIndex[] = {
+        6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+        2, 4, 3, 5, 1, 1, 1, 1,
+        7, 2, 4, 7, 4, 4, 4, 3, 7
+    };
+    static_assert(IM_ARRAYSIZE(categoryByIndex) == IM_ARRAYSIZE(names),
+                  "Cada skin precisa de uma categoria.");
     static wchar_t file[MAX_PATH]{};
     if (!file[0]) {
         wchar_t base[MAX_PATH]{};
@@ -58,8 +71,19 @@ inline void Render() {
     ImGui::SetCursorPos(ImVec2(184,136));
     ImGui::BeginChild("Skin Changer##local",ImVec2(700,440),true);
     ImGui::TextUnformatted("Skin Changer");
-    ImGui::Combo("Modelo", &selected, names, IM_ARRAYSIZE(names));
-    ImGui::BeginDisabled(!online);
+    ImGui::Combo("Categoria", &category, categories, IM_ARRAYSIZE(categories));
+    const bool validSelection = category == 0 || categoryByIndex[selected] == category;
+    if (ImGui::BeginCombo("Modelo", validSelection ? names[selected] : "Selecione uma skin")) {
+        for (int i = 0; i < IM_ARRAYSIZE(names); ++i) {
+            if (category != 0 && categoryByIndex[i] != category) continue;
+            const bool isSelected = selected == i;
+            if (ImGui::Selectable(names[i], isSelected)) selected = i;
+            if (isSelected) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    const bool canApply = category == 0 || categoryByIndex[selected] == category;
+    ImGui::BeginDisabled(!online || !canApply);
     bool apply=ImGui::Button("Aplicar na arma equipada");
     ImGui::SameLine();
     bool restore=ImGui::Button("Restaurar original");
@@ -70,6 +94,8 @@ inline void Render() {
             strcpy_s(status,"Falha ao enviar a seleção ao plugin.");
     }
     ImGui::EndDisabled();
+    if (!canApply)
+        ImGui::TextWrapped("Selecione um modelo desta categoria para aplicar.");
     if(!online) ImGui::TextWrapped("Plugin local sem resposta. Confira a instalação e se a cidade permite plugins.");
     else if(status[0]) ImGui::TextWrapped("%s",status);
     ImGui::EndChild();
