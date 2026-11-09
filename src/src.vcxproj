@@ -161,6 +161,7 @@
     <ClInclude Include="Core\Config.hpp" />
     <ClInclude Include="Core\Core.hpp" />
     <ClInclude Include="Core\Features\Aimbot.hpp" />
+    <ClInclude Include="Core\Features\SkinChanger.hpp" />
     <ClInclude Include="Core\Features\Esp.hpp" />
     <ClInclude Include="Core\Features\Exploits\Exploits.hpp" />
     <ClInclude Include="Core\Features\Exploits\GiveWeapon.hpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="Gui\Pages\Local.hpp" />
     <ClInclude Include="Gui\Pages\Login.hpp" />
     <ClInclude Include="Gui\Pages\Settings.hpp" />
+    <ClInclude Include="Gui\Pages\SkinChanger.hpp" />
     <ClInclude Include="Gui\Pages\Visuals.hpp" />
     <ClInclude Include="Gui\Pages\World.hpp" />
     <ClInclude Include="Includes\CustomWidgets\Custom.hpp" />
