@@ -32,7 +32,9 @@ inline void Render() {
         "ZOLP / FALGOLDNM",
         "ZOLP / GGOLDLP",
         "ZOLP / M249G"};
+    static_assert(IM_ARRAYSIZE(names) == 28, "O catalogo deve preservar os IDs 0-27.");
     static int selected = 0;
+    static const char* feedback = "Nenhum comando copiado; aplicacao nao confirmada.";
     // Categorias visuais; selected conserva o indice original do plugin.
     static const char* categories[] = {
         "Todas", "Glock", "G3", "Pistolas", "Fuzis", "SMGs",
@@ -79,12 +81,17 @@ inline void Render() {
     std::snprintf(command, sizeof(command), "/skinlocal apply %d", selected);
     ImGui::TextUnformatted(command);
     ImGui::BeginDisabled(!canApply);
-    if (ImGui::Button("Copiar comando Aplicar"))
+    if (ImGui::Button("Copiar comando Aplicar")) {
         ImGui::SetClipboardText(command);
+        feedback = "Comando copiado. Aguarde o resultado no FiveM; nenhuma aplicacao confirmada aqui.";
+    }
     ImGui::EndDisabled();
     ImGui::SameLine();
-    if (ImGui::Button("Copiar comando Restaurar"))
+    if (ImGui::Button("Copiar comando Restaurar")) {
         ImGui::SetClipboardText("/skinlocal restore");
+        feedback = "Comando copiado. Restauracao ainda nao confirmada; consulte o FiveM.";
+    }
+    ImGui::TextWrapped("%s", feedback);
     ImGui::Separator();
     ImGui::TextWrapped("Cole no chat do FiveM. Requer SkinChangerLocal instalado pelo administrador e permissao command.skinlocal.");
     ImGui::TextWrapped("Copiar nao aplica a skin. Entradas sem mapeamento validado pelo administrador sao recusadas. Modelos add-on nao sao convertidos em componentes automaticamente.");

@@ -18,7 +18,7 @@ SkinChangerConfig = {
         [5]  = { label = 'Angel Love / COMBATPISTOL ANGEL',   mode = 'addon', baseWeapon = 'WEAPON_COMBATPISTOL',   weaponHash = 'WEAPON_COMBATPISTOL_ANGEL',   componentHash = nil },
         [6]  = { label = 'Angel Love / PISTOLMK2 ANGEL',      mode = 'addon', baseWeapon = 'WEAPON_PISTOL_MK2',     weaponHash = 'WEAPON_PISTOLMK2_ANGEL',      componentHash = nil },
         [7]  = { label = 'Angel Love / ASSAULTSMG ANGEL',     mode = 'addon', baseWeapon = 'WEAPON_ASSAULTSMG',     weaponHash = 'WEAPON_ASSAULTSMG_ANGEL',     componentHash = nil },
-        [8]  = { label = 'Angel Love / COMPACTSMG ANGEL',     mode = 'addon', baseWeapon = 'WEAPON_COMPACTRIFLE',   weaponHash = 'WEAPON_COMPACTSMG_ANGEL',     componentHash = nil },
+        [8]  = { label = 'Angel Love / COMPACTSMG ANGEL',     mode = 'addon', baseWeapon = nil,                     weaponHash = 'WEAPON_COMPACTSMG_ANGEL',     componentHash = nil },
         [9]  = { label = 'Angel Love / MICROSMG ANGEL',       mode = 'addon', baseWeapon = 'WEAPON_MICROSMG',       weaponHash = 'WEAPON_MICROSMG_ANGEL',       componentHash = nil },
         [10] = { label = 'Angel Love / SMG ANGEL',            mode = 'addon', baseWeapon = 'WEAPON_SMG',            weaponHash = 'WEAPON_SMG_ANGEL',            componentHash = nil },
 
@@ -28,7 +28,7 @@ SkinChangerConfig = {
         [13] = { label = 'PenhaShop / PL PISTOLA AGUA',       mode = 'addon', baseWeapon = 'WEAPON_PISTOL',         weaponHash = 'WEAPON_PL_PISTOLA_AGUA',       componentHash = nil },
         [14] = { label = 'PenhaShop / PL SMG VERAO PUDDIN',   mode = 'addon', baseWeapon = 'WEAPON_SMG',            weaponHash = 'WEAPON_PL_SMG_VERAO_PUDDIN',   componentHash = nil },
 
-        -- Glock PenhaShop (weaponHash confirmado nos arquivos weapons.meta)
+        -- Glock PenhaShop (nomes historicos; exigem validacao nos metadados do servidor)
         [15] = { label = 'Glock PenhaShop / GLOCK RAJADA ANIME',   mode = 'addon', baseWeapon = 'WEAPON_COMBATPISTOL', weaponHash = 'WEAPON_GLOCK_RAJADA_ANIME',   componentHash = nil },
         [16] = { label = 'Glock PenhaShop / GLOCK RAJADA FADE',    mode = 'addon', baseWeapon = 'WEAPON_COMBATPISTOL', weaponHash = 'WEAPON_GLOCK_RAJADA_FADE',    componentHash = nil },
         [17] = { label = 'Glock PenhaShop / GLOCK RAJADA GRAFITE', mode = 'addon', baseWeapon = 'WEAPON_COMBATPISTOL', weaponHash = 'WEAPON_GLOCK_RAJADA_GRAFITE', componentHash = nil },

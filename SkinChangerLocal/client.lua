@@ -10,7 +10,8 @@ local function integer(value)
 end
 
 local function hash(name)
-    if type(name) ~= 'string' or #name == 0 or #name > 100 then return nil end
+    if type(name) ~= 'string' or #name == 0 or #name > 100
+        or not name:match('^[%w_]+$') then return nil end
     return GetHashKey(name)
 end
 
@@ -29,7 +30,10 @@ local function restore()
             return false, 'Tint alterado externamente; nenhuma sobrescrita realizada.'
         end
         SetPedWeaponTintIndex(state.ped, state.weapon, state.original)
-        if GetPedWeaponTintIndex(state.ped, state.weapon) ~= state.original then
+        local actual = GetPedWeaponTintIndex(state.ped, state.weapon)
+        if actual ~= state.original then
+            -- Preserve the observed partial result so a retry remains possible.
+            state.target = actual
             return false, 'Restauracao do tint nao confirmada; tente novamente.'
         end
     else
@@ -63,7 +67,7 @@ local function apply(skin)
     end
     local ped = PlayerPedId()
     local weapon = hash(skin.baseWeapon)
-    if not weapon or not DoesEntityExist(ped) or IsEntityDead(ped)
+    if not weapon or not IsWeaponValid(weapon) or not DoesEntityExist(ped) or IsEntityDead(ped)
         or weapon == GetHashKey('WEAPON_UNARMED')
         or GetSelectedPedWeapon(ped) ~= weapon
         or not HasPedGotWeapon(ped, weapon, false) then
@@ -72,7 +76,8 @@ local function apply(skin)
     local target, components
     if skin.mode == 'tint' then
         target = skin.tintIndex
-        if not integer(target) or target < 0 or target >= GetWeaponTintCount(weapon) then
+        local count = GetWeaponTintCount(weapon)
+        if not integer(count) or count <= 0 or not integer(target) or target < 0 or target >= count then
             return false, 'Tint invalido para esta arma.'
         end
     elseif skin.mode == 'component' then
@@ -83,6 +88,14 @@ local function apply(skin)
             or #skin.componentGroup < 1 or #skin.componentGroup > 64 then
             return false, 'Componente ou grupo de restauracao nao validado.'
         end
+        local length, entries = #skin.componentGroup, 0
+        for key in pairs(skin.componentGroup) do
+            if not integer(key) or key < 1 or key > length then
+                return false, 'Grupo de componentes deve ser uma lista continua.'
+            end
+            entries = entries + 1
+        end
+        if entries ~= length then return false, 'Grupo de componentes incompleto.' end
         components = {}
         local seen, containsTarget = {}, false
         for _, name in ipairs(skin.componentGroup) do
@@ -105,7 +118,7 @@ local function apply(skin)
     -- Sem Wait: captura, mutacao e leitura ocorrem na mesma execucao.
     if skin.mode == 'tint' then
         local original = GetPedWeaponTintIndex(ped, weapon)
-        if original < 0 then return false, 'Nao foi possivel capturar o tint original.' end
+        if not integer(original) or original < 0 or original >= GetWeaponTintCount(weapon) then return false, 'Nao foi possivel capturar o tint original.' end
         SetPedWeaponTintIndex(ped, weapon, target)
         local actual = GetPedWeaponTintIndex(ped, weapon)
         if actual ~= target then

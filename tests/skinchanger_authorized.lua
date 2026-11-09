@@ -8,6 +8,7 @@ function PlayerPedId() return ped end
 function DoesEntityExist(value) return value == ped end
 function IsEntityDead() return false end
 function GetHashKey(name) return names[name] or 999 end
+function IsWeaponValid(weapon) return weapon == 10 or weapon == 20 end
 function GetSelectedPedWeapon() return selected end
 function HasPedGotWeapon(_, weapon) return owned[weapon] == true end
 function GetWeaponTintCount() return 8 end
@@ -112,6 +113,33 @@ run('apply', component)
 assert(components[10][100] and messages[#messages]:match('Erro:'))
 component.componentGroup = { 'COMP_A', 'COMP_B' }
 
+-- Malformed mappings cannot reach a native mutation.
+reset()
+skin.baseWeapon = 'WEAPON_TEST invalid'
+run('apply', skin)
+assert(tint[10] == 2 and messages[#messages]:match('Erro:'))
+skin.baseWeapon = 'WEAPON_TEST'
+component.componentGroup = { [1] = 'COMP_A', [3] = 'COMP_B' }
+run('apply', component)
+assert(components[10][100] and messages[#messages]:match('Erro:'))
+component.componentGroup = { 'COMP_A', 'COMP_B', extra = 'COMP_A' }
+run('apply', component)
+assert(components[10][100] and messages[#messages]:match('Erro:'))
+component.componentGroup = { 'COMP_A', 'COMP_B' }
+reset()
+tint[10] = 99
+run('apply', skin)
+assert(tint[10] == 99 and messages[#messages]:match('Erro:'))
+reset()
+run('apply', skin)
+local normalSetTint = SetPedWeaponTintIndex
+SetPedWeaponTintIndex = function(_, weapon) tint[weapon] = 4 end
+run('restore')
+assert(tint[10] == 4 and messages[#messages]:match('Erro:'))
+SetPedWeaponTintIndex = normalSetTint
+run('restore')
+assert(tint[10] == 2 and messages[#messages]:match('OK:'), 'partial restore must remain retryable')
+
 -- Server authorization and allow-list behavior, independent of client mocks.
 local command, restricted, sent, allowed, now = nil, nil, {}, false, 1000
 function RegisterCommand(name, fn, flag) assert(name == 'skinlocal'); command, restricted = fn, flag end
@@ -148,4 +176,6 @@ assert(next(SkinChangerConfig.approved) == nil, 'unverified catalogue must defau
 local count = 0
 for id in pairs(SkinChangerConfig.skins) do assert(id >= 0 and id <= 27); count = count + 1 end
 assert(count == 28, 'catalogue IDs must be preserved')
+for id = 0, 27 do assert(type(SkinChangerConfig.skins[id]) == 'table') end
+assert(SkinChangerConfig.skins[8].baseWeapon == nil, 'unknown SMG mapping must not guess a rifle')
 print('SkinChanger authorization, failure and restoration tests passed.')
