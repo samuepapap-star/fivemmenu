@@ -61,7 +61,6 @@ void Gui::Rendering( )
     }
     Core::Features::CarreraAdditions::TickCollision();
     ClientState::Tick();
-    Core::Features::Exploits::TickWaypoint();
     Core::Features::Exploits::TickSwim();
     Core::Features::Exploits::TickPaint();
     Core::Features::Extras::Tick();

@@ -367,16 +367,12 @@ namespace Local {
 					{
 						ImGui::BeginGroup( );
 						{
-							if (SeletedIndex == 0) {
-                                Custom::CheckBox("Teleporte automático ao marcador", &Core::Features::Exploits::autoWaypoint);
-                                ImGui::TextWrapped("%s",Core::Features::Exploits::waypointStatus.c_str());
-                            }
                             auto Location = Locations[ SeletedIndex ];
 							std::string Loc = xorstr( "Teleportar para " ) + Location.Name;
 							if ( Custom::Button( Loc.c_str( ), ImVec2( ContentSize.x, 32 ), 0 ) ) {
 								if ( SeletedIndex == 0 )
 								{
-									Core::Features::Exploits::TickWaypoint(true);
+									Core::Features::Exploits::TpToWaypoint( );
 								}
 								else {
 									Core::SDK::Pointers::pLocalPlayer->SetPos( Location.Coords );
