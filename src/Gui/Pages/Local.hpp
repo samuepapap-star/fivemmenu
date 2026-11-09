@@ -307,6 +307,10 @@ namespace Local {
 						if ( Custom::Button( xorstr( "Reparar veículo" ), ImVec2( -1, 33 ), 0 ) )
 						{
 							BridgeFeatures::RepairVehicle( );
+                                const std::string diagnostic = BridgeFeatures::localStatus.empty()
+                                    ? "Reparo solicitado; acompanhe o resultado no status abaixo."
+                                    : BridgeFeatures::localStatus;
+                                NotifyManager::Send(diagnostic, 5000);
                             }
                             if(Custom::Button("Apagar veiculo proximo (15 m)",ImVec2(-1,33),0))BridgeFeatures::DeleteClosestVehicle();
                             ImGui::TextWrapped("Apaga o veiculo elegivel mais proximo, mesmo ocupado. Ignora seu veiculo atual e veiculos sem controle local.");
