@@ -170,8 +170,8 @@ static DWORD StartImplementation(){
  shared=new(view) MenuBridge::Shared{};shared->pid=GetCurrentProcessId();
  auto core=GetModuleHandleW(L"citizen-resources-core.dll"),rage=GetModuleHandleW(L"rage-scripting-five.dll");
  auto scripting=GetModuleHandleW(L"scripting-gta.dll");
- if(!Profile(core,1793965266u,782336u)||!Profile(rage,1793798977u,1720320u)){Failure("Revisao dos componentes CFX nao validada");return 0;}
- if(!Profile(scripting,1793799053u,286720u)){Failure("Revisao do scripting-gta nao validada");return 0;}
+ if(!Profile(core,1793975198u,782336u)||!Profile(rage,1793792424u,1720320u)){Failure("Revisao dos componentes CFX nao validada");return 0;}
+ if(!Profile(scripting,1793792439u,286720u)){Failure("Revisao do scripting-gta nao validada");return 0;}
  auto current=reinterpret_cast<GetManager>(GetProcAddress(core,"?GetCurrent@ResourceManager@fx@@SAPEAV12@_N@Z"));
  resolve=reinterpret_cast<GetHandler>(GetProcAddress(rage,"?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z"));
  resolveCustom=reinterpret_cast<GetCustom>(GetProcAddress(scripting,"?GetNativeHandlerPtr@ScriptEngine@fx@@SAPEAV?$function@$$A6AXAEAVScriptContext@fx@@@Z@std@@_K@Z"));
