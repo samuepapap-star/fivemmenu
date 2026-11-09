@@ -55,3 +55,41 @@ SkinChangerConfig = {
         [27] = { label = 'ZOLP / M249G',          mode = 'addon', baseWeapon = 'WEAPON_COMBATMG',       weaponHash = 'WEAPON_M249G',      componentHash = nil },
     },
 }
+
+-- Catalogo de referencia enviado pelo usuario. Os IDs abaixo sao LOCAIS
+-- a cada categoria e NAO substituem os indices globais 0-27 de skins.
+-- Componentes candidatos: nao confirmados em weaponcomponents.meta;
+-- nao devem ser aplicados automaticamente ate validacao real.
+Config = Config or {}
+Config.WeaponCatalog = {
+    ["Glock"] = {
+        { id = 0, name = "Glock Standard", component = "COMPONENT_GLOCK_VAR_0" },
+        { id = 1, name = "Glock Angel Love", component = "COMPONENT_GLOCK_ANGEL_1" },
+        { id = 2, name = "Glock PenhaShop Gold", component = "COMPONENT_GLOCK_PENHA_2" },
+    },
+    ["G3"] = {
+        { id = 0, name = "G3 Standard", component = "COMPONENT_G3_VAR_0" },
+        { id = 1, name = "G3 Angel Love", component = "COMPONENT_G3_ANGEL_1" },
+        { id = 2, name = "G3 PenhaShop Tactical", component = "COMPONENT_G3_PENHA_2" },
+    },
+    ["Angel Love"] = {
+        { id = 0, name = "Angel Love Base", component = "COMPONENT_ANGEL_BASE_0" },
+        { id = 1, name = "Angel Love Pink", component = "COMPONENT_ANGEL_PINK_1" },
+    },
+    ["Pistolas"] = {
+        { id = 0, name = "Pistol MK2 Standard", component = "COMPONENT_PISTOL_MK2_VAR_0" },
+        { id = 1, name = "Pistol MK2 PenhaShop", component = "COMPONENT_PISTOL_MK2_PENHA_1" },
+    },
+    ["Fuzis"] = {
+        { id = 0, name = "Carbine Rifle Standard", component = "COMPONENT_CARBINERIFLE_VAR_0" },
+        { id = 1, name = "Carbine Rifle Angel Love", component = "COMPONENT_CARBINERIFLE_ANGEL_1" },
+    },
+    ["SMGs"] = {
+        { id = 0, name = "SMG Standard", component = "COMPONENT_SMG_VAR_0" },
+        { id = 1, name = "SMG PenhaShop Camo", component = "COMPONENT_SMG_PENHA_1" },
+    },
+    ["Especiais"] = {
+        { id = 0, name = "Special Carbine Standard", component = "COMPONENT_SPECIALCARBINE_VAR_0" },
+        { id = 1, name = "Special Carbine Gold", component = "COMPONENT_SPECIALCARBINE_GOLD_1" },
+    },
+}
