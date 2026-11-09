@@ -1,4 +1,5 @@
 #pragma once
+#include <Gui/MenuShortcut.hpp>
 #include "Overlay.hpp"
 #include <Includes/ImGui/Files/imgui_freetype.h>
 #include <Includes/CustomWidgets/Notify.hpp>
@@ -6,6 +7,7 @@
 #include <Includes/ImGui/Fonts.hpp>
 #include <Core/Core.hpp>
 #include <Gui/Gui.hpp>
+#include <Gui/MenuScale.hpp>
 #include <dwmapi.h>
 #include <tchar.h>
 #include <thread>
@@ -18,20 +20,6 @@ namespace Gui
 {
 	typedef HWND( WINAPI * CreateWindowInBand )( _In_ DWORD dwExStyle, _In_opt_ ATOM atom, _In_opt_ LPCWSTR lpWindowName, _In_ DWORD dwStyle, _In_ int X, _In_ int Y, _In_ int nWidth, _In_ int nHeight, _In_opt_ HWND hWndParent, _In_opt_ HMENU hMenu, _In_opt_ HINSTANCE hInstance, _In_opt_ LPVOID lpParam, DWORD band );
 
-	inline HHOOK hKeyboardHook;
-
-	inline LRESULT CALLBACK KeyboardCallBack( int nCode, WPARAM wParam, LPARAM lParam )
-	{
-		if ( nCode >= 0 )
-		{
-		//	if ( GetForegroundWindow( ) == g_Variables.g_hCheatWindow )
-			//{
-				KBDLLHOOKSTRUCT * pKeyboard = ( KBDLLHOOKSTRUCT * ) lParam;
-				PostMessage( g_Variables.g_hCheatWindow, wParam, pKeyboard->vkCode, 0 );
-			//}
-		}
-		return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam );
-	}
 
 	void Overlay::Render( )
 	{
@@ -52,7 +40,7 @@ namespace Gui
 #endif // FULLSCREEN_EX		
 		
 		SetLayeredWindowAttributes( g_Variables.g_hCheatWindow, RGB( 0, 0, 0 ), 255, LWA_ALPHA );
-		MARGINS Margin = { g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x,g_Variables.g_vGameWindowSize.y };
+		MARGINS Margin = { -1, -1, -1, -1 };
 		DwmExtendFrameIntoClientArea( g_Variables.g_hCheatWindow, &Margin );
 
 		if ( !CreateDeviceD3D( g_Variables.g_hCheatWindow ) )
@@ -77,9 +65,7 @@ namespace Gui
 		ImGui_ImplWin32_Init( g_Variables.g_hCheatWindow );
 		ImGui_ImplDX11_Init( g_pd3dDevice, g_pd3dDeviceContext );
 
-#ifdef FULLSCREEN_EX
-		hKeyboardHook = SetWindowsHookEx( WH_KEYBOARD_LL, KeyboardCallBack, NULL, 0 );
-#endif // FULLSCREEN_EX
+
 
 		Core::StartThreads( );
 		if ( !Core::ThreadsStarted ) return;
@@ -91,7 +77,7 @@ namespace Gui
 
 		while ( Message.message != WM_QUIT )
 		{
-			if ( PeekMessage( &Message, g_Variables.g_hCheatWindow, 0, 0, PM_REMOVE ) ) {
+			while ( PeekMessage( &Message, g_Variables.g_hCheatWindow, 0, 0, PM_REMOVE ) ) {
 				TranslateMessage( &Message );
 				DispatchMessage( &Message );
 			}
@@ -99,24 +85,41 @@ namespace Gui
 			HWND ActiveWindow = GetForegroundWindow( );
 
             // Toggle once per key press, including while the overlay has focus.
-            static bool menuKeyWasDown = false;
-            const bool menuKeyDown = (GetAsyncKeyState(g_Config.General->MenuKey) & 0x8000) != 0;
-            if (menuKeyDown && !menuKeyWasDown &&
+            static unsigned previousMenuKeys = 0;
+            unsigned menuKeys = 0;
+            const int customKey = g_Config.General->MenuKey;
+            if (customKey > 0 && customKey < 255) {
+                if (GetAsyncKeyState(customKey) & 0x8000) menuKeys |= 4u;
+            } else {
+                if (GetAsyncKeyState('P') & 0x8000) menuKeys |= 1u;
+                if (GetAsyncKeyState(VK_INSERT) & 0x8000) menuKeys |= 2u;
+            }
+            const bool pressed = (menuKeys & ~previousMenuKeys) != 0;
+            previousMenuKeys = menuKeys;
+            const bool editingShortcut = MenuShortcut::Poll(g_Config.General->MenuKey,
+                ActiveWindow == g_Variables.g_hCheatWindow || ActiveWindow == g_Variables.g_hGameWindow);
+            if (!editingShortcut && pressed &&
                 (ActiveWindow == g_Variables.g_hGameWindow ||
                  ActiveWindow == g_Variables.g_hCheatWindow)) {
                 g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
+
+            }
+            static bool inputStateInitialized=false,lastMenuOpen=false;
+            if(!inputStateInitialized||lastMenuOpen!=g_MenuInfo.IsOpen){
 #ifdef FULLSCREEN_EX
-                const LONG openStyle = WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+                const LONG openStyle = WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
 #else
                 const LONG openStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW;
 #endif
                 const LONG closedStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
                 SetWindowLong(g_Variables.g_hCheatWindow, GWL_EXSTYLE,
                     g_MenuInfo.IsOpen ? openStyle : closedStyle);
-                if (!g_MenuInfo.IsOpen && ActiveWindow == g_Variables.g_hCheatWindow)
+                if (!g_MenuInfo.IsOpen && ActiveWindow == g_Variables.g_hCheatWindow) {
                     SetForegroundWindow(g_Variables.g_hGameWindow);
+                }
+                lastMenuOpen=g_MenuInfo.IsOpen;inputStateInitialized=true;
             }
-            menuKeyWasDown = menuKeyDown;
+
 
 			static float BgAlpha = 0.f;
 			BgAlpha = ImLerp( BgAlpha, g_MenuInfo.IsOpen ? 1.f : 0.f, ImGui::GetIO( ).DeltaTime * 8 );
@@ -124,7 +127,9 @@ namespace Gui
 			ImGui_ImplDX11_NewFrame( );
 			ImGui_ImplWin32_NewFrame( );
 			
-			ImGui::NewFrame( );
+			MenuScale::PrepareFrame();
+            ImGui::NewFrame( );
+            MenuScale::BeginFrame();
 			{
 				
 
@@ -135,13 +140,15 @@ namespace Gui
 
 				ImGui::PopStyleVar( );
 			}
-			ImGui::EndFrame( );
+			MenuScale::EndFrame();
+            ImGui::EndFrame( );
 
 			const float ClearColor[ 4 ] = { 0 };
 			g_pd3dDeviceContext->OMSetRenderTargets( 1U, &g_mainRenderTargetView, NULL );
 			g_pd3dDeviceContext->ClearRenderTargetView( g_mainRenderTargetView, ClearColor );
 
 			ImGui::Render( );
+            MenuScale::PrepareDrawData(ImGui::GetDrawData());
 			ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData( ) );
 
 			g_pSwapChain->Present( g_Config.General->VSync, 0U ); //VSync
@@ -155,9 +162,7 @@ namespace Gui
 		DestroyWindow( g_Variables.g_hCheatWindow );
 		UnregisterClassW( wc.lpszClassName, wc.hInstance );
 
-#ifdef FULLSCREEN_EX
-		UnhookWindowsHookEx( hKeyboardHook );
-#endif // FULLSCREEN_EX
+
 		return;
 	}
 
@@ -277,6 +282,7 @@ namespace Gui
 		switch ( msg ) {
 		case WM_SIZE:
 			if ( g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED ) {
+				g_pd3dDeviceContext->OMSetRenderTargets( 0, nullptr, nullptr );
 				Overlay::CleanupRenderTarget( );
 				g_pSwapChain->ResizeBuffers( 0, ( UINT ) LOWORD( lParam ), ( UINT ) HIWORD( lParam ), DXGI_FORMAT_UNKNOWN, 0 );
 				Overlay::CreateRenderTarget( );

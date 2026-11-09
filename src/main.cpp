@@ -4,6 +4,10 @@
 #include <Core/SDK/Memory.hpp>
 #include <Includes/Utils.hpp>
 #include <Core/SDK/SDK.hpp>
+#include <Core/SDK/SupportedBuild.hpp>
+#include <Core/SDK/Build3889Probe.hpp>
+#include <Core/SDK/Build3889Compatibility.hpp>
+#include <Core/SDK/TeleportTrace.hpp>
 #include <Core/Core.hpp>
 #include <Gui/gui.hpp>
 
@@ -22,13 +26,6 @@ using namespace Core;
 
 int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow )
 {
-    SetUnhandledExceptionFilter([](EXCEPTION_POINTERS *info) -> LONG {
-        const DWORD code = info && info->ExceptionRecord ? info->ExceptionRecord->ExceptionCode : 0;
-        CPed::TeleportDiagnostic("CRASH unhandled exception code=" + std::to_string(code));
-        return EXCEPTION_CONTINUE_SEARCH;
-    });
-    CPed::TeleportDiagnostic("SESSION started");
-
 	if ( !Mem.GetMaxPrivileges( GetCurrentProcess( ) ) )
 	{
 		//std::cout << xorstr( "[Error]: Failed GetMaxPrivileges\n" );
@@ -86,7 +83,15 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 		std::string ProcessName = Mem.GetNameByPid( ProcIdFiveM );
 		if ( ProcessName.empty( ) ) { return 0; };
 
-		if ( !Mem.OpenProc( ProcessName.c_str( ) ) ) {
+		const std::string arguments=cmdline?cmdline:"";
+        if (arguments.find("--diagnostico-recursos") != std::string::npos ||
+            (ClientBuild::Detect(ProcessName)==3889 &&
+             arguments.find("--diagnostico-3889") != std::string::npos)) {
+			Build3889Probe::Run(ProcIdFiveM,ClientBuild::Detect(ProcessName));
+			return 0;
+		}
+
+		if ( !Mem.OpenProcByPid(ProcIdFiveM) ) {
 			//std::cout << xorstr( "[Error]: Failed to OpenProc\n" );
 			//std::cin.get( );
 			return 0;
@@ -96,60 +101,31 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 		//std::cout << xorstr( "[PID]: " ) << ProcIdFiveM << std::endl;
 		//std::cout << xorstr( "[ModuleBase]: " ) << std::hex << std::uppercase << Mem.ModBase << std::endl;
 
-		g_Offsets.CurrentBuild = 0;
+        g_Offsets.CurrentBuild = ClientBuild::Detect(ProcessName);
+        AltosDiagnostics::Log("startup process="+ProcessName+" window_pid="+std::to_string(ProcIdFiveM)+
+            " attached_pid="+std::to_string(Mem.ProcId)+" build="+std::to_string(g_Offsets.CurrentBuild));
+        if(!g_Offsets.CurrentBuild) {
+            const std::string error="Esta build do FiveM não tem endereços compatíveis neste projeto. Processo: "+ProcessName+
+                ". Envie o nome deste processo e o registro ALTOS_PODERES_teleporte.log.";
+            MessageBoxA(nullptr,error.c_str(),"Build do FiveM não suportada",MB_ICONINFORMATION);
+            return 0;
+        }
+        if(!Mem.ModBase || !Mem.ModBaseSize) {
+            AltosDiagnostics::Log("startup_failed module_unavailable");
+            MessageBoxA(nullptr,"Não foi possível localizar o módulo do processo do FiveM.","Inicialização",MB_ICONERROR);
+            return 0;
+        }
 
-		if ( ProcessName.find( xorstr( "FiveM_b2060" ) ) != std::string::npos )
-		{
-			g_Offsets.CurrentBuild = 2060;
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b2189" ) ) != std::string::npos )
-		{
-			g_Offsets.CurrentBuild = 2189;
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b2372" ) ) != std::string::npos )
-		{
-			g_Offsets.CurrentBuild = 2372;
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b2545" ) ) != std::string::npos )
-		{
-
-			g_Offsets.CurrentBuild = 2545;
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b2612" ) ) != std::string::npos )
-		{
-
-			g_Offsets.CurrentBuild = 2612;
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b2699" ) ) != std::string::npos )
-		{
-
-			g_Offsets.CurrentBuild = 2699;
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b2802" ) ) != std::string::npos )
-		{
-
-			g_Offsets.CurrentBuild = 2802;
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b2944" ) ) != std::string::npos )
-		{
-
-			g_Offsets.CurrentBuild = 2944;
-
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b3095" ) ) != std::string::npos )
-		{
-
-			g_Offsets.CurrentBuild = 3095;
-		}
-		else if ( ProcessName.find( xorstr( "FiveM_b3258" ) ) != std::string::npos )
-		{
-			g_Offsets.CurrentBuild = 3258;
-		}
-		else {
-			g_Offsets.CurrentBuild = 1604;
-		}
-		
 		std::thread( &AntiCrack::DoProtect ).detach( );
+        if (g_Offsets.CurrentBuild == 3889) {
+            const std::string error = Build3889Compatibility::Validate(Mem.ProcHandle, Mem.ModBase);
+            if (!error.empty()) {
+                AltosDiagnostics::Log("build3889_initialization_failed " + error);
+                MessageBoxA(nullptr, error.c_str(), "Compatibilidade 3889", MB_ICONERROR);
+                return 0;
+            }
+            AltosDiagnostics::Log("build3889_initialized compatibility_report_20261106 waypoint_unavailable");
+        }
 		GetOffsets();
 		Gui::cOverlay.Render( );
 		return 0;
@@ -157,3 +133,5 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 
 	return 0;
 }
+
+

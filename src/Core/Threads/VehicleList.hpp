@@ -19,7 +19,7 @@ namespace Core
             CVehicleList * VehList = nullptr;
             int MaxVehicles;
         public:
-            std::mutex vehicleListMutex;
+            std::mutex& vehicleListMutex=Core::SDK::Game::VehicleMutex;
         public:
             void Update( )
             {

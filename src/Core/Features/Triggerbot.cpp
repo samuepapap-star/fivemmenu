@@ -1,4 +1,5 @@
 #include "Triggerbot.hpp"
+#include <Core/ExtensionSettings.hpp>
 
 void Core::Features::cTriggerbot::Shoot( int delay )
 {
@@ -13,7 +14,7 @@ void Core::Features::cTriggerbot::Start( )
 	while ( true )
 	{
 		
-		if ( g_Config.TriggerBot->Enabled && g_Config.TriggerBot->KeyBind && GetAsyncKeyState(g_Config.TriggerBot->KeyBind) & 0x8000 && GetForegroundWindow() != g_Variables.g_hCheatWindow)
+		if ( g_Config.TriggerBot->Enabled && g_Config.TriggerBot->KeyBind && GetAsyncKeyState(g_Config.TriggerBot->KeyBind) & 0x8000 && GetForegroundWindow() == g_Variables.g_hGameWindow && !g_MenuInfo.IsOpen)
 		{
 			if (!g_Config.TriggerBot->SmartTrigger)
 			{
@@ -22,7 +23,7 @@ void Core::Features::cTriggerbot::Start( )
 				if (!Ped) 
 					continue;
 
-				D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault(0 /*Head*/);
+				D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault(ExtraSettings::TriggerHitbox==1?7:ExtraSettings::TriggerHitbox==2?6:0);
 				D3DXVECTOR2 ScreenHeadPos = Core::SDK::Game::WorldToScreen(HeadPos);
 
 				if (Core::SDK::Game::IsOnScreen(ScreenHeadPos))

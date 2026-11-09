@@ -1,4 +1,9 @@
 #include "Gui.hpp"
+#include <Bridge/Pages.hpp>
+#include <cstdlib>
+#include <Core/Features/ExtraFeatures.hpp>
+#include <Core/Features/ExtraCamera.hpp>
+#include <Core/Features/WorldClock.hpp>
 
 #include <Includes/CustomWidgets/Custom.hpp>
 #include <Includes/CustomWidgets/WaterMarks.hpp>
@@ -11,13 +16,21 @@
 #include <Gui/Pages/World.hpp>
 #include <Gui/Pages/Settings.hpp>
 #include <Gui/Pages/Login.hpp>
-#include <Gui/Pages/SkinChanger.hpp>
+#include <Gui/Pages/Categories.hpp>
 
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Includes/CustomWidgets/Notify.hpp>
 #include <Core/Features/Esp.hpp>
+#include <Core/SDK/ClientState.hpp>
+#include <Gui/AdminList.hpp>
+#include <Core/Features/NoclipVisibility.hpp>
+#include <Core/Features/SelfGodMode.hpp>
+#include <Core/Features/VehicleManipulation.hpp>
+#include <Core/Features/ExternalCameraOptions.hpp>
 
 #include <Security/Api/api.hpp>
+#include <Gui/Pages/SkinChanger.hpp>
+#include <Gui/AltosInterface.hpp>
 
 inline std::mutex DrawMtx;
 
@@ -27,7 +40,7 @@ inline void CheatLogin( )
 	auto Login = g_Api.login( ClipBoard, Utils::GetHWID( ) );
 	if ( Login == xorstr( "success" ) )
 	{
-		g_MenuInfo.MenuSize = { 680, 500 };
+		g_MenuInfo.MenuSize = { 920, 600 };
 		g_MenuInfo.IsLogged = true;
 		Core::GetOffsets( );
 	}
@@ -39,6 +52,32 @@ inline void CheatLogin( )
 
 void Gui::Rendering( )
 {
+    static bool cleanupRegistered=false;
+    if(!cleanupRegistered){std::atexit([](){Core::Features::Exploits::TickSwim(true);BridgeFeatures::Stop();Core::Features::WorldClock::Tick(true);Core::Features::ExtraCamera::Stop();Core::Features::Extras::Tick(true);});cleanupRegistered=true;}
+
+    static bool diagnosticSession=false;
+    if(!diagnosticSession) {
+        AltosDiagnostics::Log("session_started version=client_state_diagnostics");
+        diagnosticSession=true;
+    }
+    Core::Features::CarreraAdditions::TickCollision();
+    ClientState::Tick();
+    Core::Features::Exploits::TickSwim();
+    Core::Features::Exploits::TickPaint();
+    Core::Features::Extras::Tick();
+    Core::Features::WorldClock::Tick();
+    BridgeFeatures::Tick();
+    Core::Features::ExtraCamera::Tick();
+    Core::Features::Extras::DrawRadar();
+    Core::Features::VehicleManipulation::Tick();
+    Core::Features::NoclipVisibility::Tick();
+    Core::Features::SelfGodMode::Tick();
+    AdminList::Draw();
+    Core::Features::Extras::DrawWarnings();
+    Core::Features::ExternalCameraOptions::Tick();
+    g_Col.Base=g_Config.General->MenuAccent;
+    Core::Features::Extras::DrawMenuEffects();
+    g_Col.ButtonHovered=ImVec4(g_Col.Base.x,g_Col.Base.y,g_Col.Base.z,220.f/255.f);
 
 	if ( !g_MenuInfo.IsLogged )
 	{
@@ -75,11 +114,12 @@ void Gui::Rendering( )
 	ImGui::PushFont( g_Variables.m_FontNormal );
 	{
 
-		Custom::DrawBackground( g_MenuInfo.IsLogged );
+		AltosInterface::Background();
+        Core::Features::Extras::DrawBackground();
         // Keep dragging inside the logo/sidebar; combat tabs occupy x >= 176.
         const ImVec2 savedCursor = ImGui::GetCursorPos();
-        ImGui::SetCursorPos(ImVec2(0.f, 0.f));
-        ImGui::InvisibleButton("##MenuDragHandle", ImVec2(160.f, 100.f));
+        ImGui::SetCursorPos(ImVec2(285.f, 0.f));
+        ImGui::InvisibleButton("##MenuDragHandle", ImVec2(g_MenuInfo.MenuSize.x - 340.f, 60.f));
         if (g_MenuInfo.IsOpen && ImGui::IsItemActive() &&
             ImGui::IsMouseDragging(ImGuiMouseButton_Left) && display.x > 0.f && display.y > 0.f) {
             ImVec2 pos = ImGui::GetWindowPos();
@@ -88,50 +128,11 @@ void Gui::Rendering( )
         }
         ImGui::SetCursorPos(savedCursor);
 
-		if ( g_MenuInfo.IsLogged )
-		{
-
-			ImGui::SetCursorPos( ImVec2( 12, 120/*84*/ ) );
-
-			ImGui::BeginGroup( );
-			ImGui::PushFont( g_Variables.m_FontSecundary );
-			{
-				ImGui::TextColored( ImColor( 80, 80, 80 ), xorstr( "Aim Assist" ) );
-				//ImGui::TextColored( ImColor( 80, 80, 80 ), std::to_string( ImGui::GetIO().Framerate ).c_str() );
-				if ( Custom::Tab( ICON_FA_PERSON_RIFLE, xorstr( "Combat" ), g_MenuInfo.Combat == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Combat;
-				}
-				ImGui::TextColored( ImColor( 80, 80, 80 ), xorstr( "Game" ) );
-				if ( Custom::Tab( ICON_FA_BINOCULARS, xorstr( "Visuals" ), g_MenuInfo.Visuals == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Visuals;
-				}
-				if ( Custom::Tab( ICON_FA_USER, xorstr( "Local" ), g_MenuInfo.Local == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Local;
-				}
-				if ( Custom::Tab( ICON_FA_GLOBE, xorstr( "World" ), g_MenuInfo.World == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.World;
-				}
-				if ( Custom::Tab( ICON_FA_BARS, xorstr( "Exploits" ), g_MenuInfo.Exploits == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Exploits;
-				}
-				ImGui::TextColored( ImColor( 80, 80, 80 ), xorstr( "Others" ) );
-				if ( Custom::Tab( ICON_FA_GEAR, xorstr( "Settings" ), g_MenuInfo.Settings == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Settings;
-				}
-				if ( Custom::Tab( ICON_FA_SHIRT, xorstr( "Personalize" ), g_MenuInfo.Personalize == g_MenuInfo.iTabCount ) )
-				{
-					g_MenuInfo.iTabCount = g_MenuInfo.Personalize;
-				}
-			}
-			ImGui::PopFont( );
-			ImGui::EndGroup( );
-		}
+        if (g_MenuInfo.IsLogged) {
+            ImGui::PushID("SidebarNavigation");
+            AltosInterface::Navigation();
+            ImGui::PopID();
+        }
 
 		g_MenuInfo.TabAlpha = ImClamp( g_MenuInfo.TabAlpha + ( 5.f * ImGui::GetIO( ).DeltaTime * ( g_MenuInfo.iTabCount == g_MenuInfo.iCurrentPage ? 1.f : -1.f ) ), 0.f, 1.f );
 
@@ -145,12 +146,14 @@ void Gui::Rendering( )
 		{
 
 
-			ImGui::SetCursorPos( ImVec2( 176, 16 ) );
+			ImGui::SetCursorPos( ImVec2( 176, 76 ) );
 			ImGui::BeginGroup( );
 
 
 
-			switch ( g_MenuInfo.iCurrentPage )
+			ImGui::PushID("PageContent");
+            ImGui::PushID(g_MenuInfo.iCurrentPage);
+            switch ( g_MenuInfo.iCurrentPage )
 			{
 
 			case g_MenuInfo.Combat:
@@ -160,24 +163,28 @@ void Gui::Rendering( )
 				Visuals::Render( );
 				break;
 			case g_MenuInfo.Local:
-				Local::Render( );
+				Categories::Personagem();
 				break;
 			case g_MenuInfo.World:
 				World::Render( );
 				break;
 			case g_MenuInfo.Exploits:
-				Exploits::Render( );
+				Exploits::Render(1);
 				break;
+            case g_MenuInfo.Cars: Categories::Cars(); break;
+            case g_MenuInfo.Players: Categories::Players(); break;
+            case g_MenuInfo.Weapons: Categories::Weapons(); break;
+            case SkinChanger::page: SkinChanger::Render(); break;
+            case g_MenuInfo.Teleports: Categories::Teleports(); break;
 			case g_MenuInfo.Settings:
-				Settings::Render( );
-				break;
-			case g_MenuInfo.Personalize:
-				SkinChangerPage::Render( );
+				Categories::Settings();
 				break;
 
 			}
 
-			ImGui::EndGroup( );
+			ImGui::PopID();
+            ImGui::PopID();
+            ImGui::EndGroup( );
 
 
 			HWND ActiveWindow = GetForegroundWindow( );
@@ -193,11 +200,11 @@ void Gui::Rendering( )
 					{
 						g_Config.Player->EnableGodMode = !g_Config.Player->EnableGodMode;
 
-						Core::SDK::Pointers::pLocalPlayer->SetGodMode( g_Config.Player->EnableGodMode );
+						Core::Features::SelfGodMode::Tick();
 
 						std::thread( [ & ] ( )
 							{
-								NotifyManager::Send( xorstr( "GodMode has been " ) + ( std::string ) ( g_Config.Player->EnableGodMode ? xorstr( "enabled!" ) : xorstr( "disabled!" ) ), 2000 );
+								NotifyManager::Send( xorstr( "Invencibilidade " ) + ( std::string ) ( g_Config.Player->EnableGodMode ? xorstr( "ativado!" ) : xorstr( "desativado!" ) ), 2000 );
 							}
 						).detach( );
 
@@ -211,7 +218,7 @@ void Gui::Rendering( )
 
 						std::thread( [ & ] ( )
 							{
-								NotifyManager::Send( xorstr( "NoClip has been " ) + ( std::string ) ( g_Config.Player->NoClipEnabled ? xorstr( "enabled!" ) : xorstr( "disabled!" ) ), 2000 );
+								NotifyManager::Send( xorstr( "Voo livre " ) + ( std::string ) ( g_Config.Player->NoClipEnabled ? xorstr( "ativado!" ) : xorstr( "desativado!" ) ), 2000 );
 							}
 						).detach( );
 					}
@@ -263,17 +270,7 @@ void Gui::Rendering( )
 
 					ImGui::PopFont( );
 				}
-				else {
-
-					if ( ImGui::GetStyle( ).Alpha >= 0.9f )
-					{
-						g_MenuInfo.IsOpen = false;
-						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT );
-					}
-
-				}
-
-			}
+}
 		}
 		else {
 
@@ -281,7 +278,7 @@ void Gui::Rendering( )
 
 
 			ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( ImColor( 80, 80, 80 ) ) ); {
-				Custom::TextCentered( xorstr( "Thank you for choosing us" ), 1 );
+				Custom::TextCentered( xorstr( "Obrigado por escolher ALTOS PODERES" ), 1 );
 			}
 			ImGui::PopStyleColor( );
 
@@ -291,15 +288,15 @@ void Gui::Rendering( )
 
 			ImGui::PushStyleColor( ImGuiCol_Text, ImVec4( ImColor( 163, 163, 163 ) ) ); {
 
-				const char * text = xorstr( "Please copy your discord id to continue to  Wexize" );
+				const char * text = xorstr( "Copie seu ID do Discord para continuar no ALTOS PODERES" );
 				ImVec2 textSize = ImGui::CalcTextSize( text );
 				float posX = ( g_MenuInfo.MenuSize.x - textSize.x ) * 0.5f;
 
 				ImGui::SetCursorPosX( posX );
 
-				ImGui::Text( xorstr( "Please copy your discord id to continue to" ) );
+				ImGui::Text( xorstr( "Copie seu ID do Discord para continuar no" ) );
 				ImGui::SameLine( );
-				ImGui::TextColored( g_Col.Base, xorstr( "Wexize" ) );
+				ImGui::TextColored( g_Col.Base, xorstr( "ALTOS PODERES" ) );
 			}
 			ImGui::PopStyleColor( );
 
@@ -310,16 +307,24 @@ void Gui::Rendering( )
 			ImGui::SetCursorPosX( ( ( g_MenuInfo.MenuSize.x - 240 ) * 0.5f ) );
 
 
-			if ( Custom::Button( xorstr( "Ready" ), { 240, 28 }, 0 ) )
+			if ( Custom::Button( xorstr( "Continuar" ), { 240, 28 }, 0 ) )
 			{
 				std::thread { CheatLogin }.detach( );
 			}
 
 			ImGui::SetCursorPosX( ( ( g_MenuInfo.MenuSize.x - 240 ) * 0.5f ) );
 
-			if ( Custom::Button( xorstr( "Exit" ), { 240, 28 }, 0 ) )
+			if ( Custom::Button( xorstr( "Sair" ), { 240, 28 }, 0 ) )
 			{
-				ExitProcess( 0 );
+				Core::Features::NoclipVisibility::Tick(true);
+                Core::Features::SelfGodMode::Tick(true);
+                Core::Features::ExternalCameraOptions::Tick(true);
+                Core::Features::VehicleManipulation::Tick(true);
+                Core::Features::ExtraCamera::Tick(true);
+                BridgeFeatures::Stop();
+                Core::Features::WorldClock::Tick(true);
+                Core::Features::Extras::Tick(true);
+                ExitProcess( 0 );
 			}
 
 
@@ -332,4 +337,33 @@ void Gui::Rendering( )
     if (menuHidden)
         ImGui::PopClipRect();
 	ImGui::End( );
+    if (g_Config.General->BindManager) {
+        ImGui::SetNextWindowBgAlpha(0.8f);
+        ImGui::Begin("Teclas ativas", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+        auto row = [](const char* label, bool enabled, int key) {
+            if (!enabled) return;
+            if (!key) ImGui::Text("%s: automático", label);
+            else {
+                char text[64] = {};
+                if (key <= VK_XBUTTON2) {
+                    const char* mouse = key == VK_LBUTTON ? "Mouse 1" : key == VK_RBUTTON ? "Mouse 2" :
+                        key == VK_MBUTTON ? "Mouse 3" : key == VK_XBUTTON1 ? "Mouse 4" : key == VK_XBUTTON2 ? "Mouse 5" : "Key";
+                    strcpy_s(text, mouse);
+                } else {
+                    const UINT scan = MapVirtualKeyA(key, MAPVK_VK_TO_VSC);
+                    GetKeyNameTextA(static_cast<LONG>(scan << 16), text, sizeof(text));
+                }
+                ImGui::Text("%s: %s %s", label, text, (GetAsyncKeyState(key) & 0x8000) ? "[pressionada]" : "");
+            }
+        };
+        row("Mira assistida", g_Config.Aimbot->Enabled, g_Config.Aimbot->KeyBind);
+        row("Mira silenciosa", g_Config.SilentAim->Enabled, g_Config.SilentAim->KeyBind);
+        row("Tiro automático", g_Config.TriggerBot->Enabled, g_Config.TriggerBot->KeyBind);
+        row("Invencibilidade", g_Config.Player->EnableGodMode, g_Config.Player->GodModeKey);
+        row("Voo livre", g_Config.Player->NoClipEnabled, g_Config.Player->NoClipKey);
+        ImGui::End();
+    }
 }
+
+
+
