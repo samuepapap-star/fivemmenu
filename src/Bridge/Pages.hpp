@@ -19,17 +19,6 @@ inline void Render(int section){
   if(Custom::Button("Restaurar personagem original",ImVec2(-1,33),0))BridgeFeatures::Restore();
   ImGui::TextWrapped("A aparencia original e guardada antes da primeira troca. Saia do veiculo. A troca desativa God, NoClip e camera livre.");
  }
- if(section==1){
-  ImGui::TextDisabled("Personagem / animacoes");
-  static char dictionary[96]="missminuteman_1ig_2",animation[96]="handsup_base";static bool loop=true;
-  static int selectedAnimation=0;
-  const char* dictionaries[]={"missminuteman_1ig_2","anim@mp_player_intcelebrationmale@thumbs_up","anim@mp_player_intcelebrationmale@salute","anim@mp_player_intcelebrationmale@face_palm","amb@world_human_hang_out_street@male_c@idle_a"};
-  const char* clips[]={"handsup_base","thumbs_up","salute","face_palm","idle_a"};
-  if(ImGui::Combo("Escolher animacao",&selectedAnimation,"Maos ao alto\0Positivo\0Continencia\0Mao no rosto\0Esperar\0")){MenuBridge::Copy(dictionary,sizeof(dictionary),dictionaries[selectedAnimation]);MenuBridge::Copy(animation,sizeof(animation),clips[selectedAnimation]);}
-  ImGui::InputText("Dicionario",dictionary,sizeof(dictionary));ImGui::InputText("Animacao",animation,sizeof(animation));Custom::CheckBox("Repetir",&loop);
-  if(Custom::Button("Reproduzir animacao",ImVec2(-1,33),0))BridgeFeatures::Animate(dictionary,animation,loop);
-  if(Custom::Button("Parar animacao",ImVec2(-1,33),0))BridgeFeatures::StopAnimation();
- }
  if(section==2){
   ImGui::TextDisabled("Carro / gerar veiculo");static char model[96]="adder";static bool network=true,enter=true;
   static const std::vector<MenuBridge::VehicleModel> defaults={{"adder",7},{"zentorno",7},{"t20",7},{"sultan",6},{"blista",0},{"bati",8},{"faggio",8},{"bmx",13}};
