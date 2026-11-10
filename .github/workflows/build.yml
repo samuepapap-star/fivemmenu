@@ -2,7 +2,7 @@ name: Build Wexize EXE
 
 on:
   push:
-    branches: [ main, feature/shark-integration, feature/source-additions ]
+    branches: [ main, feature/shark-integration, feature/source-additions, codex/build-3889-bridge ]
   workflow_dispatch:
 
 jobs:
@@ -66,6 +66,14 @@ jobs:
           if errorlevel 1 exit /b 1
           model_catalog.exe
           if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\bridge_build_policy.cpp /Fe:bridge_build_policy.exe
+          if errorlevel 1 exit /b 1
+          bridge_build_policy.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\native_waypoint.cpp /Fe:native_waypoint.exe
+          if errorlevel 1 exit /b 1
+          native_waypoint.exe
+          if errorlevel 1 exit /b 1
           if not exist x64\Release mkdir x64\Release
           lib /nologo /machine:x64 /def:native\cfx\rage-scripting-five.def /out:native\cfx\rage-scripting-five.lib
           if errorlevel 1 exit /b 1
@@ -81,24 +89,12 @@ jobs:
           echo "DXSDK_DIR=C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\" >> $env:GITHUB_ENV
         shell: pwsh
 
-      - name: Cria api.hpp bypass
-        run: |
-          $path = "src\Security\Api"
-          if (!(Test-Path $path)) { New-Item -ItemType Directory -Path $path -Force }
-          $file = "$path\api.hpp"
-          if (!(Test-Path $file)) {
-            @"
-          #pragma once
-          #include <string>
-          struct Api {
-              std::string login(const std::string& key, const std::string& hwid) {
-                  return "success";
-              }
-          };
-          inline Api g_Api;
-          "@ | Out-File -FilePath $file -Encoding utf8
-          }
+      - name: Verifica fonte de autenticacao
         shell: pwsh
+        run: |
+          if (!(Test-Path -LiteralPath "src/Security/Api/api.hpp")) {
+            throw "Fonte de autenticacao ausente; compilacao interrompida."
+          }
 
       - name: Compila Release x64
         run: |
@@ -116,6 +112,24 @@ jobs:
           }
         shell: pwsh
 
+      - name: Registra versao e hashes
+        shell: pwsh
+        run: |
+          $files = @("x64/Release/Wexize Revamp.exe", "x64/Release/FiveMMenuBridge.dll")
+          $hashes = @{}
+          foreach ($file in $files) {
+            if (!(Test-Path -LiteralPath $file)) { throw "Artefato ausente: $file" }
+            $hashes[[IO.Path]::GetFileName($file)] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+          }
+          @{
+            commit = "${{ github.sha }}"
+            run = "${{ github.run_id }}"
+            bridge_protocol = 7
+            bridge_builds = @(3258, 3889)
+            in_game_validation = "pending"
+            sha256 = $hashes
+          } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath "x64/Release/build-info.json" -Encoding utf8
+
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
@@ -123,5 +137,7 @@ jobs:
           path: |
             x64/Release/*.exe
             x64/Release/FiveMMenuBridge.dll
+            x64/Release/build-info.json
+            docs/ponte-3889.md
             SkinChangerLocal/**
           if-no-files-found: error

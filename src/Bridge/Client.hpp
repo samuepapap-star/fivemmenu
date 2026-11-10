@@ -147,6 +147,7 @@ public:
  }
  bool Busy(){std::lock_guard<std::mutex> lock(mutex);return working;}
  std::string Status(){std::lock_guard<std::mutex> lock(mutex);return status;}
+ int RuntimeBuild(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->runtimeBuild):0;}
  int RpgState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->rpgState):0;}
  int CameraState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->cameraState):0;}
  std::uint64_t CatalogToken(){std::lock_guard<std::mutex> lock(mutex);return shared?(static_cast<std::uint64_t>(pid)<<32)|static_cast<std::uint32_t>(State(shared->catalogSequence)):0;}

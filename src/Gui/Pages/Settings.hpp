@@ -1,5 +1,6 @@
 #pragma once
 #include <Gui/MenuShortcut.hpp>
+#include <Bridge/Features.hpp>
 #include <Gui/MenuScale.hpp>
 #include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/SelfGodMode.hpp>
@@ -77,6 +78,7 @@ namespace Settings {
 
 
                         ClientState::Render();
+                        BridgeFeatures::Status();
 
 						if ( Custom::Button( xorstr( "Encerrar" ), ImVec2( -1, 30 ), 0 ) ) 
 						{

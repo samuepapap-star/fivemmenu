@@ -376,13 +376,15 @@ namespace Local {
 							if ( Custom::Button( Loc.c_str( ), ImVec2( ContentSize.x, 32 ), 0 ) ) {
 								if ( SeletedIndex == 0 )
 								{
-									Core::Features::Exploits::TpToWaypoint( );
+									if (MenuBridge::BuildPolicy::Supported(g_Offsets.CurrentBuild)) BridgeFeatures::TeleportWaypoint();
+                                    else Core::Features::Exploits::TpToWaypoint( );
 								}
 								else {
 									Core::SDK::Pointers::pLocalPlayer->SetPos( Location.Coords );
 								}
 							}
 						}
+                            if (SeletedIndex == 0 && MenuBridge::BuildPolicy::Supported(g_Offsets.CurrentBuild)) BridgeFeatures::Status();
 						ImGui::EndGroup( );
 
 					}

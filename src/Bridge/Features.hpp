@@ -1,5 +1,6 @@
 #pragma once
 #include <Bridge/Client.hpp>
+#include <Bridge/BuildPolicy.hpp>
 #include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/NoclipVisibility.hpp>
@@ -26,12 +27,13 @@ inline void PrepareModel(){
  Core::Features::Extras::Tick(true);Core::Features::CarreraAdditions::TickCollision();
 }
 inline bool Submit(MenuBridge::Command command,bool modelChange=false){
- if(g_Offsets.CurrentBuild!=3258){localStatus="A ponte desta entrega foi validada apenas para a build 3258";return false;}
+ if(!MenuBridge::BuildPolicy::Supported(g_Offsets.CurrentBuild)){localStatus="Ponte disponivel para 3258 e 3889; build atual nao suportada";return false;}
  if(MenuBridge::Connection().Busy()){localStatus="Aguarde a acao em andamento";return false;}
  auto p=Core::Features::Extras::Player();if(!p){localStatus="Personagem indisponivel";return false;}
  if(modelChange&&p->InVehicle()){localStatus="Saia do veiculo antes de trocar o personagem";return false;}
  if(modelChange)PrepareModel();
- localStatus.clear();return MenuBridge::Connection().Submit(command);
+ localStatus.clear();const bool submitted=MenuBridge::Connection().Submit(command);
+ if(!submitted)localStatus=MenuBridge::Connection().Status();return submitted;
 }
 inline void Model(const char* model){MenuBridge::Command c{};c.action=MenuBridge::Action::Model;MenuBridge::Copy(c.text,sizeof(c.text),model);Submit(c,true);}
 inline void Restore(){MenuBridge::Command c{};c.action=MenuBridge::Action::Restore;Submit(c,true);}
@@ -39,6 +41,10 @@ inline void Clone(int serverId){MenuBridge::Command c{};c.action=MenuBridge::Act
 inline void Spawn(const char* model,bool network,bool enter){MenuBridge::Command c{};c.action=MenuBridge::Action::SpawnVehicle;c.flags=(network?1u:0u)|(enter?2u:0u);MenuBridge::Copy(c.text,sizeof(c.text),model);Submit(c);}
 inline void TransferVehicles(int serverId,bool rain){MenuBridge::Command c{};c.action=MenuBridge::Action::TransferVehicles;c.targetServerId=static_cast<std::uint64_t>(serverId);c.flags=rain?1u:0u;Submit(c);}
 inline void DeleteClosestVehicle(){MenuBridge::Command c{};c.action=MenuBridge::Action::DeleteClosestVehicle;Submit(c);}
+inline void TeleportWaypoint(){
+ if(cameraRequested||MenuBridge::Connection().CameraState()||g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){localStatus="Desative camera livre, NoClip e sem colisao antes de teleportar";return;}
+ MenuBridge::Command c{};c.action=MenuBridge::Action::TeleportWaypoint;Submit(c);
+}
 inline void RepairVehicle(){MenuBridge::Command c{};c.action=MenuBridge::Action::RepairVehicle;Submit(c);}
 inline void LoadVehicleCatalog(){MenuBridge::Command c{};c.action=MenuBridge::Action::VehicleCatalog;Submit(c);}
 inline void Animate(const char* dictionary,const char* animation,bool loop){MenuBridge::Command c{};c.action=MenuBridge::Action::Animation;c.flags=loop?1u:0u;MenuBridge::Copy(c.text,sizeof(c.text),dictionary);MenuBridge::Copy(c.text2,sizeof(c.text2),animation);Submit(c);}
@@ -54,7 +60,7 @@ inline void Observe(int serverId){
  Core::Features::ExtraCamera::Stop();silentRpg=false;if(Submit(c)){cameraRequested=true;cameraRequestedAt=GetTickCount64();}
 }
 inline void Tick(){
- MenuBridge::Frame f{};f.heartbeat=GetTickCount64();
+ MenuBridge::Frame f{};f.heartbeat=GetTickCount64();f.gameBuild=g_Offsets.CurrentBuild;
  if(cameraRequested&&((GetForegroundWindow()==g_Variables.g_hGameWindow&&(GetAsyncKeyState(VK_ESCAPE)&0x8000))||(!MenuBridge::Connection().Busy()&&MenuBridge::Connection().CameraState()==0&&f.heartbeat-cameraRequestedAt>1000)))cameraRequested=false;
  auto p=Core::Features::Extras::Player();float health=0;D3DXVECTOR3 pos{},direction{};
  if(g_MenuInfo.IsLogged&&p&&Core::Features::Extras::Read((uintptr_t)p+0x280,health)&&std::isfinite(health)&&health>0&&
@@ -92,6 +98,8 @@ inline void Tick(){
 }
 inline void Stop(){vehicleArmor=false;silentRpg=false;cameraRequested=false;MenuBridge::Connection().Stop();}
 inline void Status(){
+ const auto runtime=MenuBridge::Connection().RuntimeBuild();
+ if(runtime)ImGui::TextDisabled("Ponte: build %d confirmada pelo runtime | protocolo %u",runtime,MenuBridge::version);
  const auto text=localStatus.empty()?MenuBridge::Connection().Status():localStatus;ImGui::TextWrapped("%s",text.c_str());
  if(silentRpg){const auto state=MenuBridge::Connection().RpgState();ImGui::TextDisabled(state==2?"RPG pronto; botao esquerdo dispara no alvo dentro do FOV":state==1?"Carregando o RPG":"RPG aguardando conexao/alvo e menu fechado");}
 }

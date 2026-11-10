@@ -10,6 +10,9 @@
 #include "cfx/component.h"
 #include "cfx/event.h"
 #include "NativeActions.hpp"
+#include "NativeWaypoint.hpp"
+#include "../src/Bridge/BuildPolicy.hpp"
+#include "../src/Core/SDK/SupportedBuild.hpp"
 #include "NativeDispatch.hpp"
 #include "VehicleArmor.hpp"
 #include "cfx/ScriptThread.hpp"
@@ -29,6 +32,7 @@ using Handler=void(*)(Context*);using GetHandler=Handler(*)(std::uint64_t);using
 Shared* shared=nullptr;HANDLE mapping=nullptr;std::atomic<bool> initialized{false};ManagerView* manager=nullptr;
 using GetCustom=CfxHandler*(*)(std::uint64_t);
 GetHandler resolve=nullptr;GetCustom resolveCustom=nullptr;bool nativeFault=false;
+std::uint32_t executableBuild=0;
 using CreateScript=void(*)(GtaThread*);using ResetScript=int(*)(GtaThread*,std::uint32_t,void*,std::uint32_t);using ActiveScript=void*(*)();
 CreateScript createScript=nullptr;ResetScript resetScript=nullptr;ActiveScript activeScript=nullptr;
 GtaThread* ownedThread=nullptr;std::uint64_t registeredAt=0,lastScriptTick=0;
@@ -55,7 +59,7 @@ class Api final:public NativeApi{
 public:
  void Clear(){handlers.clear();}
  std::array<std::uint64_t,4> Invoke(std::uint64_t hash,const std::vector<std::uint64_t>& input){
-  const bool cleanup=hash==CameraN::RenderScriptCams||hash==CameraN::DoesCamExist||hash==CameraN::DestroyCam||hash==CameraN::ClearFocus||hash==Hash("END_FIND_VEHICLE");
+  const bool cleanup=hash==CameraN::RenderScriptCams||hash==CameraN::DoesCamExist||hash==CameraN::DestroyCam||hash==CameraN::ClearFocus||hash==Hash("END_FIND_VEHICLE")||hash==WaypointN::SceneStop;
   if((nativeFault&&!cleanup)||input.size()>32)throw std::runtime_error("Execucao de natives indisponivel");
   auto it=handlers.find(hash);auto handler=it==handlers.end()?SelectNative(hash,[](std::uint64_t h){return SafeResolve(resolve,h);},[](std::uint64_t h){return SafeCustom(resolveCustom,h);}):it->second;
   if(!handler)throw std::runtime_error(MissingNative(hash));
@@ -74,7 +78,7 @@ public:
   return ParseModelCatalog(bytes.data(),bytes.size());
  }
 };
-Api api;VehicleArmor armor(api);Actions actions(api);NativeCamera cameraActions(api);NativeVehicleTransfer vehicleTransfer(api);
+Api api;VehicleArmor armor(api);Actions actions(api);NativeCamera cameraActions(api);NativeVehicleTransfer vehicleTransfer(api);NativeWaypoint waypoint(api);
 void Publish(const Reply& reply){shared->reply=reply;MemoryBarrier();Store(shared->commandState,Done);}
 void Failure(const char* text){Copy(shared->error,sizeof(shared->error),text);MemoryBarrier();Store(shared->service,-1);}
 void WriteCatalog(const std::vector<std::string>& models,const std::vector<std::uint8_t>& classes={}){
@@ -88,17 +92,37 @@ void OnReset(){
  if(!shared)return;
  const auto state=ReadState(shared->commandState);
  if(state==Busy||state==Ready){Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),"Sessao reiniciada; acao cancelada");Publish(r);}
- armor.Reset();actions.Reset();vehicleTransfer.Reset();cameraActions.Reset();api.Clear();WriteCatalog({});Store(shared->rpgState,0);Store(shared->cameraState,0);
+ armor.Reset();actions.Reset();vehicleTransfer.Reset();waypoint.Reset();Store(shared->runtimeBuild,0);cameraActions.Reset();api.Clear();WriteCatalog({});Store(shared->rpgState,0);Store(shared->cameraState,0);
 }
 void Tick(){
  if(!shared||ReadState(shared->service)!=1)return;
  try{
   Frame frame{};if(!FrameSnapshot(frame))frame={};const auto now=GetTickCount64();
+  // Run the build query on the owned script thread before any mutating native.
+  // The executable, client and runtime must agree; a filename alone is not validation.
+  if(Fresh(frame,now)){
+   auto runtime=ReadState(shared->runtimeBuild);
+   if(!runtime){
+    const auto actual=api.Call(Hash("GET_GAME_BUILD_NUMBER"),{});
+    if(!BuildPolicy::Matches(executableBuild,frame.gameBuild,actual)){
+     Failure("Build do executavel, menu e runtime divergem ou nao sao suportadas");return;
+    }
+    runtime=static_cast<std::int32_t>(actual);Store(shared->runtimeBuild,runtime);
+   }
+   if(!BuildPolicy::Matches(executableBuild,frame.gameBuild,static_cast<std::uint64_t>(runtime))){
+    Failure("Build do menu mudou durante a sessao; reinicie o FiveM");return;
+   }
+  }else if(!ReadState(shared->runtimeBuild))return;
   armor.Tick(Fresh(frame,now) && frame.vehicleArmor, now);
-  if(!Fresh(frame,now)&&!actions.Pending()&&!vehicleTransfer.Pending()&&actions.rpgState==0&&!cameraActions.Active())return;
-  if(!actions.Pending()&&!vehicleTransfer.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
+  if(!Fresh(frame,now)&&!actions.Pending()&&!vehicleTransfer.Pending()&&!waypoint.Pending()&&actions.rpgState==0&&!cameraActions.Active())return;
+  if(!actions.Pending()&&!vehicleTransfer.Pending()&&!waypoint.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
    Command command=shared->command;MemoryBarrier();
    if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
+   else if(!Valid(command)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Pedido invalido");Publish(r);}
+   else if(command.action==Action::TeleportWaypoint){
+    if(cameraActions.Active()){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Desative a camera antes de teleportar");Publish(r);}
+    else waypoint.Submit(command,frame,now);
+   }
    else if(command.action==Action::StartCamera||command.action==Action::StopCamera||command.action==Action::ObservePlayer)Publish(cameraActions.Submit(command,frame,now));
    else if(command.action==Action::TransferVehicles)vehicleTransfer.Submit(command,frame,now);
    else if(command.action==Action::VehicleCatalog){
@@ -117,12 +141,15 @@ void Tick(){
   actions.Tick(frame,now,static_cast<std::uint64_t>(InterlockedCompareExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),0,0)));
   cameraActions.Tick(frame,now);Store(shared->cameraState,cameraActions.State());
   vehicleTransfer.Tick(frame,now,static_cast<std::uint64_t>(InterlockedCompareExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),0,0)));
+  waypoint.Tick(frame,now,static_cast<std::uint64_t>(InterlockedCompareExchange64(reinterpret_cast<volatile LONG64*>(&shared->cancelId),0,0)));
+  if(waypoint.hasReply){Publish(waypoint.reply);waypoint.hasReply=false;}
   if(vehicleTransfer.hasReply){Publish(vehicleTransfer.reply);vehicleTransfer.hasReply=false;}
   Store(shared->rpgState,actions.rpgState);
   if(actions.hasReply){Publish(actions.reply);actions.hasReply=false;}
  }catch(const std::exception& error){
   try{cameraActions.Stop();}catch(...){}Store(shared->cameraState,0);
   vehicleTransfer.Reset();
+  try{waypoint.Abort(error.what());waypoint.hasReply=false;}catch(...){Failure("Falha ao encerrar carregamento do teleporte");}
   Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),error.what());Publish(r);
   if(nativeFault){Failure(error.what());Store(shared->rpgState,0);}else{
    // Drop the operation before accepting another request; never report an exception as success.
@@ -168,6 +195,17 @@ static DWORD StartImplementation(){
  auto view=MapViewOfFile(mapping,FILE_MAP_ALL_ACCESS,0,0,sizeof(MenuBridge::Shared));
  if(!view){CloseHandle(mapping);mapping=nullptr;initialized=false;return 0;}
  shared=new(view) MenuBridge::Shared{};shared->pid=GetCurrentProcessId();
+ char executable[MAX_PATH]{};
+ const auto length=GetModuleFileNameA(nullptr,executable,MAX_PATH);
+ if(!length||length>=MAX_PATH){Failure("Nome do executavel indisponivel");return 0;}
+ const std::string path(executable);
+ executableBuild=static_cast<std::uint32_t>(ClientBuild::Detect(path.substr(path.find_last_of("\\\\/")+1)));
+ if(!BuildPolicy::Supported(executableBuild)){Failure("Executavel nao suportado: ponte requer 3258 ou 3889");return 0;}
+ if(executableBuild==3889&&
+    !Profile(GetModuleHandleW(nullptr),BuildPolicy::image3889First,BuildPolicy::image3889Size)&&
+    !Profile(GetModuleHandleW(nullptr),BuildPolicy::image3889Second,BuildPolicy::image3889Size)){
+  Failure("Revisao do executavel 3889 nao validada; execute o diagnostico");return 0;
+ }
  auto core=GetModuleHandleW(L"citizen-resources-core.dll"),rage=GetModuleHandleW(L"rage-scripting-five.dll");
  auto scripting=GetModuleHandleW(L"scripting-gta.dll");
  if(!Profile(core,1793975198u,782336u)||!Profile(rage,1793792424u,1720320u)){Failure("Revisao dos componentes CFX nao validada");return 0;}
