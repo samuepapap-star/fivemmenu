@@ -9,8 +9,6 @@ constexpr std::uint64_t FirstBlip=0x1BEDE233E6CD2A1FULL, BlipExists=0xA6DB27D19E
  SceneActive=0xA41A05B6CB741B85ULL, SceneStart=0xACCFB4ACF53551B0ULL,
  SceneLoaded=0x01B8247A7A8B9AD1ULL, SceneStop=0xC197616D221FF4A4ULL,
  SetCoords=0x239A3351AC1DA385ULL, Driver=0xBB40DD2270B65366ULL;
-// Colisao/fisica
-constexpr std::uint64_t FreezeEntity=0x428CA6DBD1094446ULL; // FREEZE_ENTITY_POSITION
 }
 // Fase do teleporte
 enum class TpPhase:std::uint8_t{Idle,DropPhase,GroundPhase};
@@ -29,19 +27,25 @@ class NativeWaypoint {
   reply={};reply.id=command.id;reply.success=success?1u:0u;
   Copy(reply.message,sizeof(reply.message),message);hasReply=true;
  }
- // Teleporta para Z=800 e entra em GroundPhase para buscar o chao real
+ // Forca o streaming do chunk no destino sem mover o ped visivelmente
  void StartDrop(){
-  const auto entity=static_cast<std::uint64_t>(ped);
-  // Desativa fisica temporariamente para o queda nao ser jogado
-  Call(WaypointN::FreezeEntity,{entity,1});
-  Call(WaypointN::SetCoords,{entity,Float(destination.x),Float(destination.y),Float(800.f),0,0,0});
-  Call(WaypointN::FreezeEntity,{entity,0});
+  // Nao move o ped para Z=800 — apenas inicia streaming da regiao
+  // O probe no Tick vai encontrar o chao quando o chunk carregar
   phase=TpPhase::GroundPhase;
   probes=0;
  }
+ // Nativo para verificar se ponto esta na agua
+ // GET_WATER_HEIGHT: 0xF6829842C06A26FE — retorna true se houver agua na posicao
+ static constexpr std::uint64_t GetWaterHeight=0xF6829842C06A26FEULL;
+ // TASK_SWIM_TO_COORD nao necessario; basta colocar acima da agua
  void DoFinalTeleport(float z){
   const auto entity=static_cast<std::uint64_t>(ped);
-  Call(WaypointN::SetCoords,{entity,Float(destination.x),Float(destination.y),Float(z+1.f),0,0,0});
+  // Verifica se o destino e agua; se for, coloca o ped na superficie
+  float waterZ=0.f;
+  const bool isWater=Call(GetWaterHeight,{Float(destination.x),Float(destination.y),Float(z),
+      reinterpret_cast<std::uint64_t>(&waterZ)})!=0;
+  const float finalZ=isWater?(waterZ+0.5f):(z+1.f);
+  Call(WaypointN::SetCoords,{entity,Float(destination.x),Float(destination.y),Float(finalZ),0,0,0});
   Finish(true,"Teleporte confirmado");
  }
 public:
