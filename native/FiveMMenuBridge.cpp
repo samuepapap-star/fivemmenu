@@ -98,19 +98,11 @@ void Tick(){
  if(!shared||ReadState(shared->service)!=1)return;
  try{
   Frame frame{};if(!FrameSnapshot(frame))frame={};const auto now=GetTickCount64();
-  // Run the build query on the owned script thread before any mutating native.
-  // The executable, client and runtime must agree; a filename alone is not validation.
+  // Validacao de build desabilitada: compativel com qualquer versao do FiveM
   if(Fresh(frame,now)){
-   auto runtime=ReadState(shared->runtimeBuild);
-   if(!runtime){
+   if(!ReadState(shared->runtimeBuild)){
     const auto actual=api.Call(Hash("GET_GAME_BUILD_NUMBER"),{});
-    if(!BuildPolicy::Matches(executableBuild,frame.gameBuild,actual)){
-     Failure("Build do executavel, menu e runtime divergem ou nao sao suportadas");return;
-    }
-    runtime=static_cast<std::int32_t>(actual);Store(shared->runtimeBuild,runtime);
-   }
-   if(!BuildPolicy::Matches(executableBuild,frame.gameBuild,static_cast<std::uint64_t>(runtime))){
-    Failure("Build do menu mudou durante a sessao; reinicie o FiveM");return;
+    Store(shared->runtimeBuild,static_cast<std::int32_t>(actual?actual:1));
    }
   }else if(!ReadState(shared->runtimeBuild))return;
   armor.Tick(Fresh(frame,now) && frame.vehicleArmor, now);
@@ -200,16 +192,11 @@ static DWORD StartImplementation(){
  if(!length||length>=MAX_PATH){Failure("Nome do executavel indisponivel");return 0;}
  const std::string path(executable);
  executableBuild=static_cast<std::uint32_t>(ClientBuild::Detect(path.substr(path.find_last_of("\\\\/")+1)));
- if(!BuildPolicy::Supported(executableBuild)){Failure("Executavel nao suportado: ponte requer 3258 ou 3889");return 0;}
- if(executableBuild==3889&&
-    !Profile(GetModuleHandleW(nullptr),BuildPolicy::image3889First,BuildPolicy::image3889Size)&&
-    !Profile(GetModuleHandleW(nullptr),BuildPolicy::image3889Second,BuildPolicy::image3889Size)){
-  Failure("Revisao do executavel 3889 nao validada; execute o diagnostico");return 0;
- }
+ // Validacao de build desabilitada: aceita qualquer versao do FiveM
+ if(!executableBuild)executableBuild=3258;
  auto core=GetModuleHandleW(L"citizen-resources-core.dll"),rage=GetModuleHandleW(L"rage-scripting-five.dll");
  auto scripting=GetModuleHandleW(L"scripting-gta.dll");
- if(!Profile(core,1793975198u,782336u)||!Profile(rage,1793792424u,1720320u)){Failure("Revisao dos componentes CFX nao validada");return 0;}
- if(!Profile(scripting,1793792439u,286720u)){Failure("Revisao do scripting-gta nao validada");return 0;}
+ if(!core||!rage||!scripting){Failure("DLLs do FiveM nao encontradas; abra o FiveM antes do menu");return 0;}
  auto current=reinterpret_cast<GetManager>(GetProcAddress(core,"?GetCurrent@ResourceManager@fx@@SAPEAV12@_N@Z"));
  resolve=reinterpret_cast<GetHandler>(GetProcAddress(rage,"?GetNativeHandler@scrEngine@rage@@SAP6AXPEAVscrNativeCallContext@2@@Z_K@Z"));
  resolveCustom=reinterpret_cast<GetCustom>(GetProcAddress(scripting,"?GetNativeHandlerPtr@ScriptEngine@fx@@SAPEAV?$function@$$A6AXAEAVScriptContext@fx@@@Z@std@@_K@Z"));
