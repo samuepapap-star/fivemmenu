@@ -13,7 +13,7 @@ struct Fake:NativeApi{
  std::unordered_map<int,Vec> positions;
  Vec Vector(std::uint64_t hash,const std::vector<std::uint64_t>& args)override{assert(hash==N::EntityCoords);const int id=static_cast<int>(args.at(0));const auto it=positions.find(id);return it==positions.end()?Vec{10,20,30}:it->second;}
  float engineHealth=500.f,bodyHealth=500.f;
- int repairs=0;bool networked=false,controlled=true,repairDenied=false;int brokenDoors=2;
+ int repairs=0;bool networked=false,controlled=true,repairDenied=false,vanishOnRepair=false;int brokenDoors=2;
  bool denyVehicle=false,delayVehicle=false;int vehicleCalls=0,vehicleNetwork=-1,vehicleMission=-1;
  std::unordered_map<int,std::uint32_t> entities{{1,Hash("mp_m_freemode_01")},{2,Hash("s_m_y_cop_01")}};
  std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& a)override{
@@ -34,7 +34,7 @@ struct Fake:NativeApi{
   if(hash==N::GetBodyHealth)return Float(bodyHealth);
   if(hash==N::EngineHealth){if(!repairDenied)engineHealth=AsFloat(a.at(1));return 0;}
   if(hash==N::BodyHealth){if(!repairDenied)bodyHealth=AsFloat(a.at(1));return 0;}
-  if(hash==N::FixVehicle){repairs++;if(!repairDenied)brokenDoors=0;return 0;}
+  if(hash==N::FixVehicle){repairs++;if(vanishOnRepair)entities.erase(entity());if(!repairDenied)brokenDoors=0;return 0;}
   if(hash==N::DoorDamaged)return a.at(1)<static_cast<std::uint64_t>(brokenDoors);
   if(hash==N::PlayerPed)return static_cast<std::uint64_t>(player);
   if(hash==N::PlayerId)return 0;
@@ -132,5 +132,8 @@ int main(){
  {Fake api;api.entities[60]=Hash("police");api.occupied=true;api.networked=true;api.controlled=false;Actions actions(api);actions.Submit(Cmd(Action::DeleteClosestVehicle),1000);assert(!actions.reply.success&&api.deletes==0&&std::string(actions.reply.message).find("Sem controle: 1")!=std::string::npos&&api.findsClosed==1);}
  {Fake api;api.inVehicle=true;api.repairDenied=true;api.brokenDoors=0;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success&&api.repairs==1);}
  {Fake api;api.inVehicle=true;api.repairDenied=true;api.brokenDoors=0;api.engineHealth=std::numeric_limits<float>::quiet_NaN();api.bodyHealth=1000.f;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success);}
+
+ {Fake api;api.inVehicle=true;api.vanishOnRepair=true;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success&&api.repairs==1);}
+ {Fake api;api.inVehicle=true;api.repairDenied=true;api.brokenDoors=0;api.engineHealth=100000.f;api.bodyHealth=1000.f;api.entities[50]=Hash("adder");Actions actions(api);actions.Submit(Cmd(Action::RepairVehicle),1000);assert(!actions.reply.success);}
 
 }

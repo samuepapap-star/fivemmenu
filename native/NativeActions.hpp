@@ -132,9 +132,11 @@ public:
     // Health alone does not restore detached doors; use the full repair native.
     Call(N::EngineHealth,{vehicle,Float(1000.f)});Call(N::FixVehicle,{vehicle});Call(N::FixDeformation,{vehicle});
     Call(N::BodyHealth,{vehicle,Float(1000.f)});Call(N::Undriveable,{vehicle,0});
+    if(!Call(N::EntityExists,{vehicle})||Call(N::CurrentVehicle,{static_cast<std::uint64_t>(ped),0})!=vehicle||
+       (Call(N::Networked,{vehicle})&&!Call(N::HasControl,{vehicle}))){Finish(false,"Veiculo ou controle mudou durante o reparo; sem confirmacao");return;}
     int damaged=0;for(std::uint64_t door=0;door<8;door++)if(Call(N::DoorDamaged,{vehicle,door}))damaged++;
     const float engine=AsFloat(Call(N::GetEngineHealth,{vehicle})),body=AsFloat(Call(N::GetBodyHealth,{vehicle}));
-    const bool confirmed=std::isfinite(engine)&&std::isfinite(body)&&engine>=999.f&&body>=999.f&&damaged==0;
+    const bool confirmed=std::isfinite(engine)&&std::isfinite(body)&&engine>=999.f&&engine<=1000.f&&body>=999.f&&body<=1000.f&&damaged==0;
     Finish(confirmed,confirmed?"Reparo confirmado localmente: motor, carroceria e portas":"O jogo nao confirmou o reparo completo; nenhuma nova tentativa");return;
    }
    case Action::Connect:Finish(true,"Ponte pronta");return;
