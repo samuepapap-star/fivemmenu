@@ -28,6 +28,8 @@ class VehicleArmor {
                 if (!Read(state.id, flags)) return false;
                 std::copy_n(state.original.begin(), 3, flags.begin());
                 Write(state.id, flags);
+                // Remove invencibilidade ao trocar/sair do veiculo
+                api.Call(0x3E46A2A9522BB2D0ULL, {state.id, 0}); // SET_VEHICLE_INVINCIBLE false
             }
             state = {};
         }
@@ -52,6 +54,8 @@ public:
         const bool active = Protect(vehicle, car);
         Protect(player, active ? ped : 0);
         if (!active) return;
+        // Invencivel: evita fumaca e dano visual
+        api.Call(0x3E46A2A9522BB2D0ULL, {car, 1}); // SET_VEHICLE_INVINCIBLE
         for (std::uint64_t window = 0; window < 8; ++window) {
             if (!api.Call(0x46E571A0E20D01F1ULL, {car, window}))
                 api.Call(0x772282EBEB95E682ULL, {car, window});
