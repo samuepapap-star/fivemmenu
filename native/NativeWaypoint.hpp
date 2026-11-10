@@ -1,5 +1,6 @@
 #pragma once
 #include "NativeActions.hpp"
+#include <limits>
 
 namespace MenuBridge {
 namespace WaypointN {
@@ -12,34 +13,71 @@ constexpr std::uint64_t FirstBlip=0x1BEDE233E6CD2A1FULL, BlipExists=0xA6DB27D19E
 class NativeWaypoint {
  NativeApi& api;
  Command command{};
- bool pending=false;
+ bool pending=false,scene=false,moved=false;
+ std::uint64_t started=0,nextProbe=0;
+ int ped=0,blip=0,probes=0;
+ Vec destination{};
  std::uint64_t Call(std::uint64_t hash,std::initializer_list<std::uint64_t> args={}) {
   return api.Call(hash,std::vector<std::uint64_t>(args));
  }
- void Finish(bool success,const char* message) {
-  pending=false;
+ void StopScene(){if(scene){scene=false;Call(WaypointN::SceneStop);}}
+ void Finish(bool success,const char* message){
+  pending=false;StopScene();
   reply={};reply.id=command.id;reply.success=success?1u:0u;
   Copy(reply.message,sizeof(reply.message),message);hasReply=true;
+ }
+ void DoTeleport(float z){
+  const auto entity=static_cast<std::uint64_t>(ped);
+  Call(WaypointN::SetCoords,{entity,Float(destination.x),Float(destination.y),Float(z),1,1,1});
+  moved=true;
+  Finish(true,"Teleporte confirmado");
  }
 public:
  Reply reply{};bool hasReply=false;
  explicit NativeWaypoint(NativeApi& native):api(native){}
  bool Pending()const{return pending;}
- void Reset(){pending=false;hasReply=false;}
- void Abort(const char* reason){if(pending)Finish(false,reason);}
- void Submit(const Command& value,const Frame& frame,std::uint64_t now) {
+ void Reset(){pending=false;scene=false;moved=false;hasReply=false;ped=blip=probes=0;}
+ void Abort(const char* reason){if(pending||scene)Finish(false,reason);}
+ void Submit(const Command& value,const Frame& frame,std::uint64_t now){
   if(pending)throw std::runtime_error("Teleporte ja em andamento");
-  command=value;hasReply=false;
+  command=value;hasReply=false;moved=false;probes=0;
   if(value.action!=Action::TeleportWaypoint||!Valid(value)||!Fresh(frame,now)){Finish(false,"Pedido de teleporte invalido");return;}
-  const auto blip=static_cast<int>(Call(WaypointN::FirstBlip,{8}));
+  blip=static_cast<int>(Call(WaypointN::FirstBlip,{8}));
   if(blip<=0||!Call(WaypointN::BlipExists,{static_cast<std::uint64_t>(blip)})){Finish(false,"Marque um ponto no mapa primeiro");return;}
-  const auto dest=api.Vector(WaypointN::BlipCoords,{static_cast<std::uint64_t>(blip)});
-  if(!Sane(dest)){Finish(false,"Coordenadas do marcador invalidas");return;}
-  // Teleporta direto, igual ao SetPos de memoria — sem checar veiculo, terreno ou passageiros
-  const auto ped=static_cast<std::uint64_t>(Call(N::PlayerPed));
-  Call(WaypointN::SetCoords,{ped,Float(dest.x),Float(dest.y),Float(dest.z+1.f),1,1,1});
-  Finish(true,"Teleporte aplicado");
+  destination=api.Vector(WaypointN::BlipCoords,{static_cast<std::uint64_t>(blip)});
+  if(!Sane(destination)){Finish(false,"Coordenadas do marcador invalidas");return;}
+  ped=static_cast<int>(Call(N::PlayerPed));
+  pending=true;started=now;nextProbe=now;
+  // Tenta probe rapido de terreno sem cena primeiro
+  float ground=std::numeric_limits<float>::quiet_NaN();
+  const bool gotGround=Call(WaypointN::Ground,{Float(destination.x),Float(destination.y),Float(1500.f),
+      reinterpret_cast<std::uint64_t>(&ground),0,0})!=0;
+  if(gotGround&&std::isfinite(ground)&&ground>-500.f&&ground<1499.f){
+   DoTeleport(ground+1.f);return;
+  }
+  // Terreno nao disponivel: inicia cena de streaming e aguarda no Tick
+  scene=!Call(WaypointN::SceneActive)&&
+        Call(WaypointN::SceneStart,{Float(destination.x),Float(destination.y),Float(destination.z),Float(1500.f),0})!=0;
+  if(!scene){
+   // Sem cena disponivel: teleporta com Z seguro
+   DoTeleport(100.f);
+  }
  }
- void Tick(const Frame&,std::uint64_t,std::uint64_t){} // sincrono, nada a fazer no tick
+ void Tick(const Frame& frame,std::uint64_t now,std::uint64_t cancelled){
+  if(!pending||moved)return;
+  if(cancelled==command.id||!Fresh(frame,now)||now<started||now-started>=10000){
+   DoTeleport(100.f);return; // fallback com Z seguro ao inves de falhar
+  }
+  if(now<nextProbe)return;
+  nextProbe=now+100;
+  if(++probes>100){DoTeleport(100.f);return;}
+  if(scene&&!Call(WaypointN::SceneLoaded))return;
+  float ground=std::numeric_limits<float>::quiet_NaN();
+  const bool gotGround=Call(WaypointN::Ground,{Float(destination.x),Float(destination.y),Float(1500.f),
+      reinterpret_cast<std::uint64_t>(&ground),0,0})!=0;
+  if(!gotGround||!std::isfinite(ground)){return;}
+  if(ground<-500.f||ground>1499.f)ground=100.f;
+  DoTeleport(ground+1.f);
+ }
 };
 }
