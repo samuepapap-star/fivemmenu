@@ -77,8 +77,8 @@ public:
  }
  void Tick(const Frame& frame,std::uint64_t now,std::uint64_t cancelled) {
   if(!pending)return;
-  if(cancelled==command.id||!Fresh(frame,now)||now<started||now-started>=5000){
-   Finish(false,moved?"Teleporte sem confirmacao; nenhuma nova tentativa":"Teleporte cancelado ou terreno indisponivel");return;
+  if(cancelled==command.id||!Fresh(frame,now)||now<started||now-started>=15000){
+   Finish(false,moved?"Teleporte sem confirmacao; nenhuma nova tentativa":"Terreno nao carregou; marque um ponto e tente novamente");return;
   }
   if(Call(N::PlayerPed)!=static_cast<std::uint64_t>(ped)||CurrentEntity(ped)!=entity||!Controlled()){
    Finish(false,"Personagem, veiculo ou controle mudou; teleporte interrompido");return;
@@ -93,7 +93,7 @@ public:
   if(!SameWaypoint()){Finish(false,"Marcador alterado ou removido; teleporte cancelado");return;}
   if(now<nextProbe)return;
   nextProbe=now+100;
-  if(++probes>50){Finish(false,"Limite de consultas ao terreno atingido");return;}
+  if(++probes>150){Finish(false,"Limite de consultas ao terreno atingido");return;}
   if(!Call(WaypointN::SceneLoaded))return;
   float ground=std::numeric_limits<float>::quiet_NaN();
   if(!Call(WaypointN::Ground,{Float(destination.x),Float(destination.y),Float(1500.f),
