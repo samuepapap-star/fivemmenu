@@ -111,6 +111,17 @@ void Tick(){
    Command command=shared->command;MemoryBarrier();
    if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
    else if(!Valid(command)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Pedido invalido");Publish(r);}
+   else if(command.action==Action::WeaponSkin){
+    // Aplica skin de arma local: muda tint da arma atual do ped
+    // Visivel apenas para o proprio jogador, sem sincronizacao em rede
+    const auto ped=api.Call(Hash("GET_PLAYER_PED"),{});
+    const auto weapon=api.Call(Hash("GET_SELECTED_PED_WEAPON"),{static_cast<std::uint64_t>(ped)});
+    const auto tint=static_cast<std::uint64_t>(command.flags); // flags = indice do tint (0-7)
+    // SET_PED_WEAPON_TINT_INDEX
+    api.Call(0x50969B9B89ED5738ULL,{static_cast<std::uint64_t>(ped),weapon,tint});
+    Reply r{};r.id=command.id;r.success=1u;
+    Copy(r.message,sizeof(r.message),"Skin aplicada (somente voce ve)");Publish(r);
+   }
    else if(command.action==Action::TeleportWaypoint){
     if(cameraActions.Active()){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Desative a camera antes de teleportar");Publish(r);}
     else waypoint.Submit(command,frame,now);

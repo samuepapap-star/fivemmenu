@@ -10,12 +10,12 @@ inline void Tab(const char* name, int value, int& current, bool sameLine) {
 inline void Cars() {
     Tab("Geral",0,carTab,false); Tab("Lista",1,carTab,true);
     Tab("ESP",2,carTab,true); Tab("Enviar ao jogador",3,carTab,true);
-    Tab("Extras",4,carTab,true);Tab("Gerar",5,carTab,true);
+    Tab("Extras",4,carTab,true);
     if (carTab == 0) Local::Render(Local::iSubTabCount == 4 ? 4 : 1);
     else if (carTab == 1) World::Render(1);
     else if (carTab == 2) Visuals::Render(1);
     else if(carTab==3) World::Render(0,1);
-    else if(carTab==4)ExtraPages::Render(1);else BridgePages::Render(2);
+    else ExtraPages::Render(1);
 }
 inline void Players() {
     Tab("ESP",0,playerTab,false); Tab("Radar e extras",1,playerTab,true);
