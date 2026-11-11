@@ -14,7 +14,7 @@ constexpr std::uint64_t ScreenFadeIn =0xD4E8E24955024033ULL;
 // REQUEST_COLLISION_AT_COORD — forca o engine a carregar colisao na area
 constexpr std::uint64_t RequestCollision=0x07503F7948F491A7ULL;
 // LOAD_ALL_OBJECTS_NOW — forca carregamento imediato
-constexpr std::uint64_t LoadObjects=0x4448EB75B4904BDB ULL;
+constexpr std::uint64_t LoadObjects=0x4448EB75B4904BDBULL;
 }
 class NativeWaypoint {
  NativeApi& api;
