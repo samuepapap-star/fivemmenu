@@ -174,7 +174,7 @@ public:
      const float heading=AsFloat(Call(N::Heading,{static_cast<std::uint64_t>(ped)}));
      spawned=static_cast<int>(Call(N::CreateVehicle,{model,Float(f.position.x+f.forward.x*5),Float(f.position.y+f.forward.y*5),Float(f.position.z+0.3f),Float(heading),(command.flags&1u)?1u:0u,1,0}));
      if(spawned<=0)Finish(false,std::string("CREATE_VEHICLE retornou 0 para ")+command.text+((command.flags&1u)?" (rede). Teste desmarcando a opcao em rede; a sessao pode recusar entidades.":" (local). O jogo nao criou a entidade."));
-     else{spawnStarted=true;spawnDeadline=now+2000;if(Exists(spawned))ConfirmVehicle(ped);}
+     else{spawnStarted=true;spawnDeadline=now+8000;if(Exists(spawned))ConfirmVehicle(ped);}
     }else if(Call(N::InVehicle,{static_cast<std::uint64_t>(ped),0})||Call(N::Attached,{static_cast<std::uint64_t>(ped)})){
      Finish(false,"Troca de modelo cancelada: personagem entrou em veiculo ou foi vinculado");
     }else{
