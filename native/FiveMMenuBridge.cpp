@@ -112,15 +112,29 @@ void Tick(){
    if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
    else if(!Valid(command)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Pedido invalido");Publish(r);}
    else if(command.action==Action::WeaponSkin){
-    // Aplica skin de arma local: muda tint da arma atual do ped
-    // Visivel apenas para o proprio jogador, sem sincronizacao em rede
-    const auto ped=api.Call(Hash("GET_PLAYER_PED"),{});
-    const auto weapon=api.Call(Hash("GET_SELECTED_PED_WEAPON"),{static_cast<std::uint64_t>(ped)});
-    const auto tint=static_cast<std::uint64_t>(command.flags); // flags = indice do tint (0-7)
-    // SET_PED_WEAPON_TINT_INDEX
-    api.Call(0x50969B9B89ED5738ULL,{static_cast<std::uint64_t>(ped),weapon,tint});
-    Reply r{};r.id=command.id;r.success=1u;
-    Copy(r.message,sizeof(r.message),"Skin aplicada (somente voce ve)");Publish(r);
+    // GTA client natives use their documented 64-bit IDs, not name hashes.
+    constexpr std::uint64_t playerPedId=0xD80958FC74E988A6ULL;
+    constexpr std::uint64_t selectedWeapon=0x0A6DB4965674D243ULL;
+    constexpr std::uint64_t tintCount=0x5DCF6C5CAB2E9BF7ULL;
+    constexpr std::uint64_t setTint=0x50969B9B89ED5738ULL;
+    constexpr std::uint64_t getTint=0x2B9EEDC07BD06B9FULL;
+    Reply r{};r.id=command.id;
+    const auto ped=api.Call(playerPedId,{});
+    if(!ped)throw std::runtime_error("Personagem indisponivel");
+    const auto weapon=static_cast<std::uint32_t>(api.Call(selectedWeapon,{ped}));
+    if(!weapon||weapon==Hash("WEAPON_UNARMED"))throw std::runtime_error("Equipe uma arma antes de aplicar a cor");
+    const auto count=static_cast<std::int32_t>(api.Call(tintCount,{weapon}));
+    if(command.flags>7u||count<=0||command.flags>=static_cast<std::uint32_t>(count))
+     throw std::runtime_error("Esta arma nao suporta a cor selecionada");
+    api.Call(setTint,{ped,weapon,command.flags});
+    const auto applied=static_cast<std::uint32_t>(api.Call(getTint,{ped,weapon}));
+    const auto current=static_cast<std::uint32_t>(api.Call(selectedWeapon,{ped}));
+    r.success=current==weapon&&applied==command.flags?1u:0u;
+    r.value=applied;
+    Copy(r.message,sizeof(r.message),r.success?
+     "Cor confirmada pelo jogo. A aparencia depende do modelo da arma.":
+     "O jogo nao confirmou a cor; a arma mudou ou a aplicacao nao foi mantida.");
+    Publish(r);
    }
    else if(command.action==Action::TeleportWaypoint){
     if(cameraActions.Active()){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Desative a camera antes de teleportar");Publish(r);}
