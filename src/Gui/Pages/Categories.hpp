@@ -1,5 +1,6 @@
 #pragma once
 #include <Gui/Pages/Extras.hpp>
+#include <Gui/Pages/SkinChanger.hpp>
 #include <Bridge/Pages.hpp>
 namespace Categories {
 inline int carTab = 0, playerTab = 0, weaponTab = 0, teleportTab = 0, selfTab=0, configTab=0;
@@ -22,8 +23,8 @@ inline void Players() {
     if (playerTab == 0) Visuals::Render(0); else ExtraPages::Render(3);
 }
 inline void Weapons() {
-    Tab("Ajustes",0,weaponTab,false); Tab("Catálogo",1,weaponTab,true); Tab("Extras",2,weaponTab,true);
-    if (weaponTab == 0) Local::Render(3); else if(weaponTab==1) Exploits::Render(0); else ExtraPages::Render(2);
+    Tab("Ajustes",0,weaponTab,false); Tab("Catálogo",1,weaponTab,true); Tab("Extras",2,weaponTab,true); Tab("Skin",3,weaponTab,true);
+    if (weaponTab == 0) Local::Render(3); else if(weaponTab==1) Exploits::Render(0); else if(weaponTab==2) ExtraPages::Render(2); else SkinChanger::Render();
 }
 inline void Teleports() {
     Tab("Destinos",0,teleportTab,false); Tab("Jogadores",1,teleportTab,true); Tab("Posicao salva",2,teleportTab,true);
