@@ -21,9 +21,33 @@ inline void Players() {
     Tab("ESP",0,playerTab,false); Tab("Radar e extras",1,playerTab,true);
     if (playerTab == 0) Visuals::Render(0); else ExtraPages::Render(3);
 }
+inline void WeaponSkinchanger() {
+    ImGui::SetCursorPos(ImVec2(184,136));
+    ImGui::BeginChild("Skinchanger##Weapons",ImVec2(704,440),false,0);
+    ImGui::TextDisabled("Armas / Skinchanger");
+    ImGui::TextWrapped("Equipe a arma que deseja personalizar antes de aplicar.");
+    static int tint = 0;
+    ImGui::SetNextItemWidth(320);
+    ImGui::Combo("Cor da arma", &tint, "Preto (0)\0Verde (1)\0Dourado (2)\0Rosa (3)\0Exercito (4)\0Policia (5)\0Laranja (6)\0Platina (7)\0");
+    ImGui::TextWrapped("Cores nativas de 0 a 7. A disponibilidade e a aparencia dependem da arma; modelos e texturas personalizados nao sao carregados aqui.");
+    const bool busy = MenuBridge::Connection().Busy();
+    if (!busy) {
+        if (Custom::Button("Aplicar na arma equipada",ImVec2(320,33),0))
+            BridgeFeatures::ApplyWeaponSkin(tint);
+        if (Custom::Button("Aplicar cor padrao (0)",ImVec2(320,33),0)) {
+            tint = 0;
+            BridgeFeatures::ApplyWeaponSkin(tint);
+        }
+    } else {
+        ImGui::TextDisabled("Aguarde a acao em andamento.");
+    }
+    ImGui::Separator();
+    BridgePages::Footer();
+    ImGui::EndChild();
+}
 inline void Weapons() {
-    Tab("Ajustes",0,weaponTab,false); Tab("Catálogo",1,weaponTab,true); Tab("Extras",2,weaponTab,true);
-    if (weaponTab == 0) Local::Render(3); else if(weaponTab==1) Exploits::Render(0); else ExtraPages::Render(2);
+    Tab("Ajustes",0,weaponTab,false); Tab("Catálogo",1,weaponTab,true); Tab("Extras",2,weaponTab,true); Tab("Skinchanger",3,weaponTab,true);
+    if (weaponTab == 0) Local::Render(3); else if(weaponTab==1) Exploits::Render(0); else if(weaponTab==2) ExtraPages::Render(2); else WeaponSkinchanger();
 }
 inline void Teleports() {
     Tab("Destinos",0,teleportTab,false); Tab("Jogadores",1,teleportTab,true); Tab("Posicao salva",2,teleportTab,true);
