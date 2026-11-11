@@ -2,7 +2,7 @@ name: Build Wexize EXE
 
 on:
   push:
-    branches: [ main, feature/shark-integration, feature/source-additions, codex/build-3889-bridge ]
+    branches: [ main, feature/shark-integration, feature/source-additions, codex/build-3889-bridge, codex/weapons-skinchanger-tab ]
   workflow_dispatch:
 
 jobs:
