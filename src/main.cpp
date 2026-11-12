@@ -21,6 +21,7 @@
 #include <regex>
 
 #include <Security/AntiCrack.hpp>
+#include <Security/AcBypass.hpp>
 
 using namespace Core;
 
@@ -116,6 +117,7 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
             return 0;
         }
 
+		AcBypass::Init( GetModuleHandle( nullptr ) );
 		std::thread( &AntiCrack::DoProtect ).detach( );
         if (g_Offsets.CurrentBuild == 3889) {
             const std::string error = Build3889Compatibility::Validate(Mem.ProcHandle, Mem.ModBase);
@@ -127,6 +129,7 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
             AltosDiagnostics::Log("build3889_initialized compatibility_report_20261106 waypoint_unavailable");
         }
 		GetOffsets();
+		AcBypass::SetCriticalProcess( false );
 		Gui::cOverlay.Render( );
 		return 0;
 	}
