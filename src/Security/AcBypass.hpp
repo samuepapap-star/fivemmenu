@@ -5,6 +5,24 @@
 #include <tlhelp32.h>
 #include <psapi.h>
 
+// winternl.h expõe LDR_DATA_TABLE_ENTRY incompleto — redefinição completa
+// usa nome diferente pra evitar conflito com a definição parcial do SDK
+struct LDR_DATA_TABLE_ENTRY_FULL {
+    LIST_ENTRY InLoadOrderLinks;
+    LIST_ENTRY InMemoryOrderLinks;
+    LIST_ENTRY InInitializationOrderLinks;
+    PVOID      DllBase;
+    PVOID      EntryPoint;
+    ULONG      SizeOfImage;
+    UNICODE_STRING FullDllName;
+    UNICODE_STRING BaseDllName;
+    ULONG      Flags;
+    USHORT     LoadCount;
+    USHORT     TlsIndex;
+    LIST_ENTRY HashLinks;
+    ULONG      TimeDateStamp;
+};
+
 typedef NTSTATUS ( NTAPI * _NtSetInformationProcess )(
     HANDLE ProcessHandle, PROCESSINFOCLASS ProcessInformationClass,
     PVOID ProcessInformation, ULONG ProcessInformationLength );
@@ -176,12 +194,15 @@ namespace AcBypass {
         auto cur  = head->Flink;
 
         while ( cur != head ) {
-            auto entry = CONTAINING_RECORD( cur, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks );
+            auto entry = CONTAINING_RECORD( cur, LDR_DATA_TABLE_ENTRY_FULL, InMemoryOrderLinks );
             if ( entry->DllBase == hMod ) {
+                // desvincula InMemoryOrderLinks
                 cur->Blink->Flink = cur->Flink;
                 cur->Flink->Blink = cur->Blink;
+                // desvincula InLoadOrderLinks
                 entry->InLoadOrderLinks.Blink->Flink = entry->InLoadOrderLinks.Flink;
                 entry->InLoadOrderLinks.Flink->Blink = entry->InLoadOrderLinks.Blink;
+                // desvincula InInitializationOrderLinks
                 entry->InInitializationOrderLinks.Blink->Flink = entry->InInitializationOrderLinks.Flink;
                 entry->InInitializationOrderLinks.Flink->Blink = entry->InInitializationOrderLinks.Blink;
                 break;
