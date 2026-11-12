@@ -127,7 +127,9 @@ namespace AcBypass {
 
         DWORD old;
         VirtualProtect( trampoline, sizeof trampoline, PAGE_EXECUTE_READWRITE, &old );
-        g_OrigNtQSI = reinterpret_cast<_NtQuerySystemInformation>( trampoline );
+        // cast via void* pra evitar C2440 em MSVC (array → fn ptr)
+        g_OrigNtQSI = reinterpret_cast<_NtQuerySystemInformation>(
+            reinterpret_cast<void *>( trampoline ) );
 
         // patch: FF 25 00000000 <addr64>
         BYTE patch[ 14 ] = { 0xFF, 0x25, 0x00, 0x00, 0x00, 0x00 };
