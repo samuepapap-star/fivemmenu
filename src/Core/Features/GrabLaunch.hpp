@@ -2,9 +2,15 @@
 #include <Core/Features/CarreraAdditions.hpp>
 #include <Core/Threads/VehicleList.hpp>
 #include <Bridge/Features.hpp>
-#include <Security/AcBypass.hpp>
 #include <atomic>
 #include <cmath>
+
+// Offsets locais — espelham off:: de AcBypass.hpp sem re-incluir o header
+// (re-incluir causaria LNK2005 por funcoes nao-inline duplicadas)
+namespace GrabLaunchOff {
+    constexpr uintptr_t kVehPos      = 0x30;   // off::kVehPos
+    constexpr uintptr_t kVehVelocity = 0x7E4;  // off::kVehVelocity
+}
 
 // GrabLaunch — Agarrar & Arremessar veiculo
 // Aproxime-se do veiculo, clique "Agarrar Veiculo", depois "Arremessar!"
@@ -125,7 +131,7 @@ namespace GrabLaunch {
                 fwd.y * k_LaunchSpeed,
                 k_LaunchSpeed * k_UpBias
             );
-            Write(g_HeldVeh + static_cast<uintptr_t>(off::kVehVelocity), velocity);
+            Write(g_HeldVeh + GrabLaunchOff::kVehVelocity, velocity);
         }
 
         BridgeFeatures::StopAnimation();
@@ -151,16 +157,16 @@ namespace GrabLaunch {
         const D3DXVECTOR3 holdPos(pedPos.x, pedPos.y, pedPos.z + k_HoldHeight);
 
         // Posicao visual
-        Write(g_HeldVeh + static_cast<uintptr_t>(0x90), holdPos);
+        Write(g_HeldVeh + static_cast<uintptr_t>(0x90u), holdPos);
 
         // Posicao de navegacao
         uintptr_t nav = 0;
-        if (Read(g_HeldVeh + static_cast<uintptr_t>(off::kVehPos), nav) && nav)
+        if (Read(g_HeldVeh + GrabLaunchOff::kVehPos, nav) && nav)
             Write(nav + static_cast<uintptr_t>(0x50), holdPos);
 
         // Zerar velocidade
         const D3DXVECTOR3 zero(0.f, 0.f, 0.f);
-        Write(g_HeldVeh + static_cast<uintptr_t>(off::kVehVelocity), zero);
+        Write(g_HeldVeh + GrabLaunchOff::kVehVelocity, zero);
     }
 
     // -------------------------------------------------------------------------
