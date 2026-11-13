@@ -10,6 +10,7 @@
 #include "cfx/component.h"
 #include "cfx/event.h"
 #include "NativeActions.hpp"
+#include "NativePlayerNames.hpp"
 #include "NativeWaypoint.hpp"
 #include "../src/Bridge/BuildPolicy.hpp"
 #include "../src/Core/SDK/SupportedBuild.hpp"
@@ -69,6 +70,11 @@ public:
   if(!SafeHandler(&handler,&context,&fault)){nativeFault=true;throw std::runtime_error(FailedNative(hash,fault));}return result;
  }
  std::uint64_t Call(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{return Invoke(hash,input)[0];}
+ std::string String(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{
+  const auto address=Call(hash,input);if(!address)return {};std::string text;
+  for(std::size_t i=0;i<127;i++){char ch=0;if(!SafeCopyCatalog(&ch,reinterpret_cast<const void*>(address+i),1))return {};if(!ch)break;text.push_back(ch);}
+  return text;
+ }
  Vec Vector(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{return DecodeNativeVector(Invoke(hash,input));}
  std::vector<std::string> Strings(std::uint64_t hash,const std::vector<std::uint64_t>& input)override{
   auto result=Invoke(hash,input);const auto size=static_cast<std::size_t>(result[1]);
@@ -88,11 +94,18 @@ void WriteCatalog(const std::vector<std::string>& models,const std::vector<std::
  shared->catalogCount=static_cast<std::uint32_t>(count);MemoryBarrier();
  InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->catalogSequence));
 }
+void WritePlayerNames(const std::vector<PlayerNickname>& names){
+ InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->namesSequence));MemoryBarrier();
+ const auto count=(std::min)(names.size(),playerNicknameMax);
+ for(std::size_t i=0;i<count;i++)shared->names[i]=names[i];
+ shared->namesCount=static_cast<std::uint32_t>(count);shared->namesUpdated=GetTickCount64();
+ MemoryBarrier();InterlockedIncrement(reinterpret_cast<volatile LONG*>(&shared->namesSequence));
+}
 void OnReset(){
  if(!shared)return;
  const auto state=ReadState(shared->commandState);
  if(state==Busy||state==Ready){Reply r{};r.id=shared->command.id;Copy(r.message,sizeof(r.message),"Sessao reiniciada; acao cancelada");Publish(r);}
- armor.Reset();actions.Reset();vehicleTransfer.Reset();waypoint.Reset();Store(shared->runtimeBuild,0);cameraActions.Reset();api.Clear();WriteCatalog({});Store(shared->rpgState,0);Store(shared->cameraState,0);
+ WritePlayerNames({});armor.Reset();actions.Reset();vehicleTransfer.Reset();waypoint.Reset();Store(shared->runtimeBuild,0);cameraActions.Reset();api.Clear();WriteCatalog({});Store(shared->rpgState,0);Store(shared->cameraState,0);
 }
 void Tick(){
  if(!shared||ReadState(shared->service)!=1)return;
@@ -111,6 +124,12 @@ void Tick(){
    Command command=shared->command;MemoryBarrier();
    if(!Fresh(frame,now)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Carregue o personagem e mantenha o menu conectado");Publish(r);}
    else if(!Valid(command)){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Pedido invalido");Publish(r);}
+   else if(command.action==Action::PlayerNames){
+    WritePlayerNames({});
+    const auto names=ReadPlayerNicknames(api);WritePlayerNames(names);
+    Reply r{};r.id=command.id;r.success=1;r.value=static_cast<std::uint32_t>(names.size());
+    Copy(r.message,sizeof(r.message),"Nicknames consultados pelo cliente: "+std::to_string(names.size()));Publish(r);
+   }
    else if(command.action==Action::WeaponSkin){
     // Aplica skin de arma local: muda tint da arma atual do ped
     // Visivel apenas para o proprio jogador, sem sincronizacao em rede

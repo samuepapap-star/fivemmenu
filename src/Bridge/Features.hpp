@@ -96,6 +96,11 @@ inline void Tick(){
  }
  if(silentRpg)g_Config.SilentAim->Enabled=false;
  MenuBridge::Connection().Tick(Core::Mem.ProcId,Core::Mem.ProcHandle,f);
+ static std::uint64_t lastNamesRequest=0;
+ if(g_Config.ESP->Enabled&&g_Config.ESP->UserNames&&f.valid&&f.heartbeat-lastNamesRequest>=3000&&!MenuBridge::Connection().Busy()){
+  lastNamesRequest=f.heartbeat;MenuBridge::Command request{};request.action=MenuBridge::Action::PlayerNames;Submit(request);
+ }
+
 }
 inline void Stop(){vehicleArmor=false;silentRpg=false;cameraRequested=false;MenuBridge::Connection().Stop();}
 inline void Status(){

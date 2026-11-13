@@ -58,7 +58,7 @@ namespace Visuals {
                         if (Custom::CheckBox("ESP Name", &g_Config.ESP->UserNames) && g_Config.ESP->UserNames)
                             g_Config.ESP->Enabled = true;
                         if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Mostra o nome e o ID acima dos jogadores. Se o servidor nao fornecer o nome, mostra o ID. Respeita os filtros e a distancia maxima do ESP.");
+                            ImGui::SetTooltip("Consulta o nickname pelo cliente FiveM, sem depender da lista publica. Requer a ponte atualizada. Se o cliente nao receber o nick, mostra o ID.");
 						if ( Custom::CheckBox( xorstr( "Caixa" ), &g_Config.ESP->Box ) ) {
 							if ( !g_Config.ESP->Box ) {
 								g_Config.ESP->FilledBox = false;

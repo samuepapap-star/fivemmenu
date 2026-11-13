@@ -147,6 +147,21 @@ public:
  }
  bool Busy(){std::lock_guard<std::mutex> lock(mutex);return working;}
  std::string Status(){std::lock_guard<std::mutex> lock(mutex);return status;}
+ std::string Nickname(int serverId){
+  std::lock_guard<std::mutex> lock(mutex);if(!shared||State(shared->service)!=1||serverId<=0)return {};
+  for(int retry=0;retry<3;retry++){
+   const auto before=State(shared->namesSequence);if(before&1)continue;MemoryBarrier();
+   const auto updated=shared->namesUpdated;const auto now=GetTickCount64();
+   if(!updated||updated>now||now-updated>10000||shared->namesCount>playerNicknameMax)return {};
+   std::string result;
+   for(std::size_t i=0;i<shared->namesCount;i++){
+    const auto entry=shared->names[i];if(entry.serverId!=static_cast<std::uint32_t>(serverId))continue;
+    const auto end=static_cast<const char*>(std::memchr(entry.name,0,sizeof(entry.name)));
+    if(end)result.assign(entry.name,static_cast<std::size_t>(end-entry.name));break;
+   }
+   MemoryBarrier();if(before==State(shared->namesSequence))return result;
+  }return {};
+ }
  int RuntimeBuild(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->runtimeBuild):0;}
  int RpgState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->rpgState):0;}
  int CameraState(){std::lock_guard<std::mutex> lock(mutex);return shared?State(shared->cameraState):0;}

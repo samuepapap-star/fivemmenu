@@ -8,6 +8,7 @@ inline Vec DecodeNativeVector(const std::array<std::uint64_t,4>& values){return 
 struct NativeApi {
  virtual ~NativeApi()=default;
  virtual std::uint64_t Call(std::uint64_t,const std::vector<std::uint64_t>&)=0;
+ virtual std::string String(std::uint64_t,const std::vector<std::uint64_t>&){throw std::runtime_error("Retorno textual nao implementado");}
  virtual Vec Vector(std::uint64_t,const std::vector<std::uint64_t>&){throw std::runtime_error("Retorno vetorial nao implementado");}
  virtual std::vector<std::string> Strings(std::uint64_t,const std::vector<std::uint64_t>&){throw std::runtime_error("Catalogo nao implementado");}
 };

@@ -25,7 +25,7 @@ int main() {
  assert(ClientBuild::Detect("FiveM_b3258_GameProcess.exe")==3258);
  assert(ClientBuild::Detect("FiveM_b3889_GTAProcess.exe.bak")==0);
  assert(ClientBuild::Detect("FiveM_b38890_GTAProcess.exe")==0);
- static_assert(version==7,"EXE and DLL require protocol 7");
+ static_assert(version==8,"EXE and DLL require protocol 8");
  Command command{};command.id=1;command.action=Action::TeleportWaypoint;
  assert(Valid(command));command.id=0;assert(!Valid(command));
  command.id=1;command.action=static_cast<Action>(999);assert(!Valid(command));

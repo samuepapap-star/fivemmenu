@@ -1,6 +1,7 @@
 #pragma once
 #include <Includes/Includes.hpp>
 #include <Core/SDK/SDK.hpp>
+#include <Bridge/Client.hpp>
 #include <Core/SDK/ServerDiscovery.hpp>
 #include <fstream>
 #include <filesystem>
@@ -131,9 +132,12 @@ class cUpdateNames {
     }
 public:
     SDK::Game::NetworkInfo Lookup(int id) {
+        const auto nickname=MenuBridge::Connection().Nickname(id);
         std::lock_guard<std::mutex> lock(namesMutex);
         const auto it=networkMap.find(id);
-        return it==networkMap.end()?SDK::Game::NetworkInfo{}:it->second;
+        auto info=it==networkMap.end()?SDK::Game::NetworkInfo{}:it->second;
+        if(!nickname.empty())info.UserName=nickname;
+        return info;
     }
     std::string Status() {std::lock_guard<std::mutex> lock(namesMutex);return status;}
     void Update() {

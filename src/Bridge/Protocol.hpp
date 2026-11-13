@@ -6,9 +6,9 @@
 #include <string>
 
 namespace MenuBridge {
-inline constexpr std::uint32_t magic=0x464d4231, version=7;
+inline constexpr std::uint32_t magic=0x464d4231, version=8;
 inline constexpr std::size_t catalogMax=8192,catalogNameBytes=96;
-enum class Action:std::uint32_t { Model=1, Restore, CloneAppearance, SpawnVehicle, Animation, StopAnimation, StopAll, Connect, StartCamera, StopCamera, ObservePlayer, TransferVehicles, VehicleCatalog, RepairVehicle, DeleteClosestVehicle, TeleportWaypoint, WeaponSkin };
+enum class Action:std::uint32_t { Model=1, Restore, CloneAppearance, SpawnVehicle, Animation, StopAnimation, StopAll, Connect, StartCamera, StopCamera, ObservePlayer, TransferVehicles, VehicleCatalog, RepairVehicle, DeleteClosestVehicle, TeleportWaypoint, WeaponSkin, PlayerNames };
 enum State:std::int32_t { Idle=0, Ready=1, Busy=2, Done=3 };
 enum CameraMove:std::uint32_t { Forward=1,Backward=2,Left=4,Right=8,Up=16,Down=32,Fast=64 };
 struct VehicleModel {std::string name;int vehicleClass=-1;};
@@ -23,11 +23,15 @@ struct Frame {
  std::uint32_t camera=0,cameraMoves=0;float cameraSpeed=10.f;std::uint32_t gameBuild=0;
 };
 struct Reply {std::uint64_t id=0;std::uint32_t success=0,value=0;char message[240]{};};
+struct PlayerNickname { std::uint32_t serverId=0; char name[128]{}; };
+inline constexpr std::size_t playerNicknameMax=256;
 struct alignas(8) Shared {
  std::uint32_t signature=magic,protocol=version,pid=0,size=sizeof(Shared);
  std::int32_t service=0,commandState=Idle,frameSequence=0,rpgState=0,cameraState=0;
  std::uint32_t clientPid=0;std::int32_t runtimeBuild=0;
  std::uint64_t cancelId=0;
+ std::int32_t namesSequence=0;std::uint32_t namesCount=0;std::uint64_t namesUpdated=0;
+ PlayerNickname names[playerNicknameMax]{};
  Frame frame{};Command command{};Reply reply{};char error[240]{};
  std::int32_t catalogSequence=0;std::uint32_t catalogCount=0;char catalogNames[catalogMax][catalogNameBytes]{};std::uint8_t catalogClasses[catalogMax]{};
 };
@@ -48,7 +52,7 @@ inline bool Valid(const Command& c){
  case Action::Animation:return Text(c.text,sizeof(c.text))&&Text(c.text2,sizeof(c.text2));
  case Action::CloneAppearance:case Action::ObservePlayer:case Action::TransferVehicles:return c.targetServerId>0&&c.targetServerId<=0x7fffffffULL;
  case Action::Restore:case Action::StopAnimation:case Action::StopAll:case Action::Connect:case Action::StartCamera:case Action::StopCamera:case Action::VehicleCatalog:case Action::RepairVehicle:case Action::DeleteClosestVehicle:case Action::TeleportWaypoint:return true;
- case Action::WeaponSkin:return true; // flags=skinIndex
+ case Action::PlayerNames:case Action::WeaponSkin:return true; // flags=skinIndex
  default:return false;
  }
 }
