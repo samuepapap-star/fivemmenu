@@ -3,6 +3,7 @@
 #include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
 #include <Core/Features/VehicleManipulation.hpp>
+#include <Core/Features/ESP.hpp>
 #include <Includes/includes.hpp>
 #include <windows.h>
 #include <iostream>
@@ -154,6 +155,12 @@ namespace World {
 							//if ( Custom::Button( xorstr( "Observar" ), ImVec2( -1, 30 ), 0 ) ) 
 							//{
 							//}
+                            if(actionMode==2){
+                                const uintptr_t selPedAddr=reinterpret_cast<uintptr_t>(SelectedPed.Ped);
+                                bool espNameOn=Core::Features::EspName::IsPinned(selPedAddr);
+                                if(Custom::CheckBox("ESP Nome",& espNameOn))
+                                    Core::Features::EspName::Toggle(selPedAddr);
+                            }
                             if(actionMode==2&&Custom::Button("Puxar jogador",ImVec2(-1,30),0))NotifyManager::Send(Core::Features::Extras::PullPlayer(reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             if(actionMode==2&&Custom::Button("Observar jogador",ImVec2(-1,30),0))
                                 BridgeFeatures::Observe(SelectedPed.Id);

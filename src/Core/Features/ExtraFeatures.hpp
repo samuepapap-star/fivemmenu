@@ -47,44 +47,46 @@ inline Override<float> weaponY,weaponZ,reload,shotInterval,traction,suspension,l
 inline Bits frameFlags,aimFlags,modelFlags;
 inline Bits passiveFriendlyLock, passiveFriendlyDamage;
 // Entra no veiculo selecionado como motorista (P1) localmente.
-// Escreve o ped local no slot de driver do veiculo e o veiculo no offset
-// m_LastVehicle do ped, seta a flag InVehicle e teleporta pro assento.
+// Ordem critica: teleportar ANTES de setar InVehicle, pois SetPos usa InVehicle()
+// para decidir se move o ped ou o veiculo. Se InVehicle=true, SetPos move o veiculo.
 inline const char* EnterVehicleAsDriver(CVehicle* veh){
  if(!veh)return "Veiculo invalido";
  CPed* p=Player();
  if(!p)return "Player indisponivel";
  uintptr_t pedAddr=reinterpret_cast<uintptr_t>(p);
  uintptr_t vehAddr=reinterpret_cast<uintptr_t>(veh);
- // 1) Verificar se ja ha motorista — se sim, reportar mas continuar
- // 2) Escrever o ped no slot de driver do veiculo
- if(!Write(vehAddr+g_Offsets.m_VehicleDriver,(uintptr_t)p))return "Falha ao escrever driver no veiculo";
- // 3) Escrever o veiculo no offset m_LastVehicle do ped
- if(!Write(pedAddr+g_Offsets.m_LastVehicle,(uintptr_t)veh))return "Falha ao escrever veiculo no ped";
- // 4) Setar flag InVehicle no ped
- p->SetConfigFlag(ePedConfigFlag::InVehicle,true);
- // 5) Teleportar o ped para a posicao do assento do motorista
- //    O assento P1 fica aprox. na posicao do veiculo (+0x90) ligeiramente deslocado
+ // 1) Garantir que o ped esta a pe (InVehicle=false) para que SetPos mova o ped
+ p->SetConfigFlag(ePedConfigFlag::InVehicle,false);
+ // 2) Ler posicao do veiculo para teleportar o ped ao assento
  D3DXVECTOR3 vehPos{};
  if(!Read(vehAddr+0x90,vehPos)||!Sane(vehPos))return "Posicao do veiculo indisponivel";
- // Sem offset adicional — o jogo ajusta o ped ao entrar
  vehPos.z+=0.5f;
+ // 3) Teleportar o ped (a pe) para dentro do veiculo
  if(!p->SetPos(vehPos))return "Falha ao teleportar para o assento";
- // 6) Zerar velocidade do ped
+ // 4) Agora escrever o veiculo no m_LastVehicle do ped
+ Write(pedAddr+g_Offsets.m_LastVehicle,(uintptr_t)veh);
+ // 5) Escrever o ped no slot de driver do veiculo
+ Write(vehAddr+g_Offsets.m_VehicleDriver,(uintptr_t)p);
+ // 6) Setar InVehicle=true no ped
+ p->SetConfigFlag(ePedConfigFlag::InVehicle,true);
+ // 7) Zerar velocidade
  D3DXVECTOR3 zero{0,0,0};
  Write(pedAddr+0x320,zero);
  return "Entrando no P1 localmente";
 }
 // Ejecta o motorista (P1) de um CVehicle* selecionado na lista de carros.
+// Ordem critica: limpar InVehicle e m_LastVehicle ANTES de SetPos,
+// pois SetPos move o VEICULO se InVehicle=true (via LipeTeleport::Entity).
 inline const char* EjectDriverFromVehicle(CVehicle* veh){
  if(!veh)return "Veiculo invalido";
  CPed* driver=veh->GetDriver();
  if(!driver)return "Nenhum motorista no P1";
  uintptr_t driverAddr=reinterpret_cast<uintptr_t>(driver);
- // Ler posicao do veiculo (+0x90 visual pos)
  uintptr_t vehAddr=reinterpret_cast<uintptr_t>(veh);
+ // Ler posicao do veiculo antes de mexer nos flags
  D3DXVECTOR3 vehPos{};
  if(!Read(vehAddr+0x90,vehPos)||!Sane(vehPos))return "Posicao do veiculo indisponivel";
- // Usar coluna direita da matriz de rotacao (+0x60) para offset lateral
+ // Calcular posicao de ejecao lateral
  D3DXVECTOR3 rightVec{1,0,0};
  Read(vehAddr+0x60,rightVec);
  float len=std::hypot(rightVec.x,rightVec.y);
@@ -93,47 +95,51 @@ inline const char* EjectDriverFromVehicle(CVehicle* veh){
  D3DXVECTOR3 ejectPos=vehPos+rightVec*4.f;
  ejectPos.z=vehPos.z+1.f;
  if(!Sane(ejectPos))return "Posicao de ejecao invalida";
+ // Limpar InVehicle ANTES do SetPos — senao LipeTeleport move o veiculo
+ driver->SetConfigFlag(ePedConfigFlag::InVehicle,false);
+ // Limpar ponteiro do veiculo no driver e do driver no veiculo
+ uintptr_t zero_ptr=0;
+ Write(driverAddr+g_Offsets.m_LastVehicle,zero_ptr);
+ Write(vehAddr+g_Offsets.m_VehicleDriver,zero_ptr);
+ // Agora SetPos move o ped (a pe)
  if(!driver->SetPos(ejectPos))return "Falha ao mover motorista";
- D3DXVECTOR3 zero{0,0,0};
- Write(driverAddr+0x320,zero);
- return "Motorista ejetado do P1 localmente";
+ D3DXVECTOR3 zeroVel{0,0,0};
+ Write(driverAddr+0x320,zeroVel);
+ return "Motorista ejetado do P1";
 }
 // Ejecta o alvo do assento de motorista (P1) do veiculo em que esta.
-// Funciona apenas localmente — reposiciona o ped fora do carro com velocidade zerada.
+// Mesma logica de EjectDriverFromVehicle: limpar InVehicle antes do SetPos.
 inline const char* EjectFromVehicle(uintptr_t target){
  auto p=Player();if(!p||target==(uintptr_t)p)return "Alvo indisponivel";
- // Verificar se o alvo esta na lista de players
  bool listed=false;
  for(const auto&e:SDK::Game::SnapshotEntities())if((uintptr_t)e.Ped==target&&e.PedType==2){listed=true;break;}
  if(!listed)return "Alvo nao encontrado na lista";
  CPed* targetPed=reinterpret_cast<CPed*>(target);
- // Verificar se o alvo esta dentro de um veiculo
  if(!targetPed->InVehicle())return "Alvo nao esta em um veiculo";
  CVehicle* veh=targetPed->GetLastVehicle();
  if(!veh)return "Veiculo do alvo indisponivel";
- // Verificar se o alvo e o motorista (P1) — compara ponteiro
  CPed* driver=veh->GetDriver();
  if(!driver||reinterpret_cast<uintptr_t>(driver)!=target)return "Alvo nao esta no banco do motorista";
- // Ler posicao atual do veiculo para jogar o ped do lado
- D3DXVECTOR3 vehPos{};
  uintptr_t vehAddr=reinterpret_cast<uintptr_t>(veh);
+ D3DXVECTOR3 vehPos{};
  if(!Read(vehAddr+0x90,vehPos)||!Sane(vehPos))return "Posicao do veiculo indisponivel";
- // Deslocar 4m para o lado direito do veiculo usando a coluna direita da matriz de rotacao
  D3DXVECTOR3 rightVec{1,0,0};
- Read(vehAddr+0x60,rightVec); // coluna X da rot matrix = direita
+ Read(vehAddr+0x60,rightVec);
  float len=std::hypot(rightVec.x,rightVec.y);
  if(len>0.1f){rightVec.x/=len;rightVec.y/=len;rightVec.z=0;}
  else{rightVec={1,0,0};}
- // Posicao de ejecao: ao lado + 1m acima para evitar clipar no chao
  D3DXVECTOR3 ejectPos=vehPos+rightVec*4.f;
  ejectPos.z=vehPos.z+1.f;
  if(!Sane(ejectPos))return "Posicao de ejecao invalida";
- // Teleportar o ped para fora
+ // Limpar InVehicle ANTES do SetPos — senao LipeTeleport move o veiculo
+ targetPed->SetConfigFlag(ePedConfigFlag::InVehicle,false);
+ uintptr_t zero_ptr=0;
+ Write(target+g_Offsets.m_LastVehicle,zero_ptr);
+ Write(vehAddr+g_Offsets.m_VehicleDriver,zero_ptr);
  if(!targetPed->SetPos(ejectPos))return "Falha ao mover o alvo";
- // Zerar velocidade do ped para evitar que ele voe
- D3DXVECTOR3 zero{0,0,0};
- Write(target+0x320,zero);
- return "Motorista ejetado do veiculo localmente";
+ D3DXVECTOR3 zeroVel{0,0,0};
+ Write(target+0x320,zeroVel);
+ return "Motorista ejetado do veiculo";
 }
 inline const char* PullPlayer(uintptr_t target){
  auto p=Player();if(!p||target==(uintptr_t)p)return "Alvo indisponivel";

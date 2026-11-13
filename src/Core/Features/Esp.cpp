@@ -1,4 +1,4 @@
-#include "Esp.hpp"
+#include "ESP.hpp"
 #include "PlayerBones.hpp"
 #include <Core/Features/ExtraWeaponIcons.hpp>
 #include <Core/ExtensionSettings.hpp>
@@ -305,8 +305,24 @@ void Core::Features::cEsp::Draw( )
             DrawList->AddText(extraFont, extraTextSize, ImVec2(pos.x + 1.f, pos.y + 1.f), ImColor(0.f,0.f,0.f,ink.Value.w), text.c_str());
             DrawList->AddText(extraFont, extraTextSize, pos, ink, text.c_str());
         };
-        if (Cfg->UserNames)
-            label(PedType == 2 ? std::to_string(Entity.Id) : "NPC", BoxMin.y - extraTextSize - 2.f, color(Cfg->UserNamesCol));
+        {
+            const uintptr_t pedAddr = reinterpret_cast<uintptr_t>(Ped);
+            const bool globalNames = Cfg->UserNames;
+            const bool pinned = PedType == 2 && Core::Features::EspName::IsPinned(pedAddr);
+            if (globalNames || pinned) {
+                std::string nameLabel;
+                if (PedType == 2) {
+                    const std::string& uname = Entity.NetworkInfo.UserName;
+                    nameLabel = (uname.empty() ? ("Jogador #" + std::to_string(Entity.Id)) : uname)
+                                + " [" + std::to_string(Entity.Id) + "]";
+                } else {
+                    nameLabel = "NPC";
+                }
+                // Peds pinados individualmente aparecem em amarelo, global usa cor configurada
+                const ImColor nameColor = pinned ? ImColor(255,220,50,255) : color(Cfg->UserNamesCol);
+                label(nameLabel, BoxMin.y - extraTextSize - 2.f, nameColor);
+            }
+        }
         float y = BoxMax.y + 2.f;
         if (Cfg->WeaponName && !Entity.WeaponName.empty()) {
             label(Entity.WeaponName, y, Cfg->WeaponNameCol);
