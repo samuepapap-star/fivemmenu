@@ -46,6 +46,43 @@ inline Override<float> cameraDistance;
 inline Override<float> weaponY,weaponZ,reload,shotInterval,traction,suspension,lift,gravity,driftMinimum,driftLoss;
 inline Bits frameFlags,aimFlags,modelFlags;
 inline Bits passiveFriendlyLock, passiveFriendlyDamage;
+// Ejecta o alvo do assento de motorista (P1) do veiculo em que esta.
+// Funciona apenas localmente — reposiciona o ped fora do carro com velocidade zerada.
+inline const char* EjectFromVehicle(uintptr_t target){
+ auto p=Player();if(!p||target==(uintptr_t)p)return "Alvo indisponivel";
+ // Verificar se o alvo esta na lista de players
+ bool listed=false;
+ for(const auto&e:SDK::Game::SnapshotEntities())if((uintptr_t)e.Ped==target&&e.PedType==2){listed=true;break;}
+ if(!listed)return "Alvo nao encontrado na lista";
+ CPed* targetPed=reinterpret_cast<CPed*>(target);
+ // Verificar se o alvo esta dentro de um veiculo
+ if(!targetPed->InVehicle())return "Alvo nao esta em um veiculo";
+ CVehicle* veh=targetPed->GetLastVehicle();
+ if(!veh)return "Veiculo do alvo indisponivel";
+ // Verificar se o alvo e o motorista (P1) — compara ponteiro
+ CPed* driver=veh->GetDriver();
+ if(!driver||reinterpret_cast<uintptr_t>(driver)!=target)return "Alvo nao esta no banco do motorista";
+ // Ler posicao atual do veiculo para jogar o ped do lado
+ D3DXVECTOR3 vehPos{};
+ uintptr_t vehAddr=reinterpret_cast<uintptr_t>(veh);
+ if(!Read(vehAddr+0x90,vehPos)||!Sane(vehPos))return "Posicao do veiculo indisponivel";
+ // Deslocar 4m para o lado direito do veiculo usando a coluna direita da matriz de rotacao
+ D3DXVECTOR3 rightVec{1,0,0};
+ Read(vehAddr+0x60,rightVec); // coluna X da rot matrix = direita
+ float len=std::hypot(rightVec.x,rightVec.y);
+ if(len>0.1f){rightVec.x/=len;rightVec.y/=len;rightVec.z=0;}
+ else{rightVec={1,0,0};}
+ // Posicao de ejecao: ao lado + 1m acima para evitar clipar no chao
+ D3DXVECTOR3 ejectPos=vehPos+rightVec*4.f;
+ ejectPos.z=vehPos.z+1.f;
+ if(!Sane(ejectPos))return "Posicao de ejecao invalida";
+ // Teleportar o ped para fora
+ if(!targetPed->SetPos(ejectPos))return "Falha ao mover o alvo";
+ // Zerar velocidade do ped para evitar que ele voe
+ D3DXVECTOR3 zero{0,0,0};
+ Write(target+0x320,zero);
+ return "Motorista ejetado do veiculo localmente";
+}
 inline const char* PullPlayer(uintptr_t target){
  auto p=Player();if(!p||target==(uintptr_t)p)return "Alvo indisponivel";
  bool listed=false;{for(const auto&e:SDK::Game::SnapshotEntities())if((uintptr_t)e.Ped==target&&e.PedType==2){listed=true;break;}}
