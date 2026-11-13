@@ -46,6 +46,34 @@ inline Override<float> cameraDistance;
 inline Override<float> weaponY,weaponZ,reload,shotInterval,traction,suspension,lift,gravity,driftMinimum,driftLoss;
 inline Bits frameFlags,aimFlags,modelFlags;
 inline Bits passiveFriendlyLock, passiveFriendlyDamage;
+// Entra no veiculo selecionado como motorista (P1) localmente.
+// Escreve o ped local no slot de driver do veiculo e o veiculo no offset
+// m_LastVehicle do ped, seta a flag InVehicle e teleporta pro assento.
+inline const char* EnterVehicleAsDriver(CVehicle* veh){
+ if(!veh)return "Veiculo invalido";
+ CPed* p=Player();
+ if(!p)return "Player indisponivel";
+ uintptr_t pedAddr=reinterpret_cast<uintptr_t>(p);
+ uintptr_t vehAddr=reinterpret_cast<uintptr_t>(veh);
+ // 1) Verificar se ja ha motorista — se sim, reportar mas continuar
+ // 2) Escrever o ped no slot de driver do veiculo
+ if(!Write(vehAddr+g_Offsets.m_VehicleDriver,(uintptr_t)p))return "Falha ao escrever driver no veiculo";
+ // 3) Escrever o veiculo no offset m_LastVehicle do ped
+ if(!Write(pedAddr+g_Offsets.m_LastVehicle,(uintptr_t)veh))return "Falha ao escrever veiculo no ped";
+ // 4) Setar flag InVehicle no ped
+ p->SetConfigFlag(ePedConfigFlag::InVehicle,true);
+ // 5) Teleportar o ped para a posicao do assento do motorista
+ //    O assento P1 fica aprox. na posicao do veiculo (+0x90) ligeiramente deslocado
+ D3DXVECTOR3 vehPos{};
+ if(!Read(vehAddr+0x90,vehPos)||!Sane(vehPos))return "Posicao do veiculo indisponivel";
+ // Sem offset adicional — o jogo ajusta o ped ao entrar
+ vehPos.z+=0.5f;
+ if(!p->SetPos(vehPos))return "Falha ao teleportar para o assento";
+ // 6) Zerar velocidade do ped
+ D3DXVECTOR3 zero{0,0,0};
+ Write(pedAddr+0x320,zero);
+ return "Entrando no P1 localmente";
+}
 // Ejecta o motorista (P1) de um CVehicle* selecionado na lista de carros.
 inline const char* EjectDriverFromVehicle(CVehicle* veh){
  if(!veh)return "Veiculo invalido";

@@ -285,6 +285,8 @@ namespace World {
                                 NotifyManager::Send(Core::Features::VehicleManipulation::Pull(reinterpret_cast<uintptr_t>(Veh)),4000);
                             if (actionMode == 0 && Custom::Button("Agarrar carro", ImVec2(-1,30), 0))
                                 Core::Features::VehicleManipulation::Grab(reinterpret_cast<uintptr_t>(Veh));
+                            if (actionMode == 0 && Custom::Button("Entrar como P1", ImVec2(-1,30), 0))
+                                NotifyManager::Send(Core::Features::Extras::EnterVehicleAsDriver(Veh),4000);
                             if (actionMode == 0 && Custom::Button("Ejetar motorista (P1)", ImVec2(-1,30), 0))
                                 NotifyManager::Send(Core::Features::Extras::EjectDriverFromVehicle(Veh),4000);
                             if (actionMode == 0 && Core::Features::VehicleManipulation::held) {
