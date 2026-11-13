@@ -47,31 +47,28 @@ inline Override<float> weaponY,weaponZ,reload,shotInterval,traction,suspension,l
 inline Bits frameFlags,aimFlags,modelFlags;
 inline Bits passiveFriendlyLock, passiveFriendlyDamage;
 // Entra no veiculo selecionado como motorista (P1) localmente.
-// Ordem critica: teleportar ANTES de setar InVehicle, pois SetPos usa InVehicle()
-// para decidir se move o ped ou o veiculo. Se InVehicle=true, SetPos move o veiculo.
+// Estrategia: mover o VEICULO ate o ped (nao o ped ate o veiculo).
+// Com InVehicle=true, LipeTeleport::Entity retorna o veiculo, entao
+// SetPos(pedPos) move o veiculo ate onde o ped esta — sem snap-to-ground no ped.
 inline const char* EnterVehicleAsDriver(CVehicle* veh){
  if(!veh)return "Veiculo invalido";
  CPed* p=Player();
  if(!p)return "Player indisponivel";
  uintptr_t pedAddr=reinterpret_cast<uintptr_t>(p);
  uintptr_t vehAddr=reinterpret_cast<uintptr_t>(veh);
- // 1) Garantir que o ped esta a pe (InVehicle=false) para que SetPos mova o ped
- p->SetConfigFlag(ePedConfigFlag::InVehicle,false);
- // 2) Ler posicao do veiculo para teleportar o ped ao assento
- D3DXVECTOR3 vehPos{};
- if(!Read(vehAddr+0x90,vehPos)||!Sane(vehPos))return "Posicao do veiculo indisponivel";
- vehPos.z+=0.5f;
- // 3) Teleportar o ped (a pe) para dentro do veiculo
- if(!p->SetPos(vehPos))return "Falha ao teleportar para o assento";
- // 4) Agora escrever o veiculo no m_LastVehicle do ped
+ // 1) Ler posicao ATUAL do ped (veiculo vai vir ate aqui)
+ D3DXVECTOR3 pedPos{};
+ if(!Read(pedAddr+0x90,pedPos)||!Sane(pedPos))return "Posicao do ped indisponivel";
+ // 2) Registrar ptrs e setar InVehicle=true ANTES do SetPos
  Write(pedAddr+g_Offsets.m_LastVehicle,(uintptr_t)veh);
- // 5) Escrever o ped no slot de driver do veiculo
  Write(vehAddr+g_Offsets.m_VehicleDriver,(uintptr_t)p);
- // 6) Setar InVehicle=true no ped
  p->SetConfigFlag(ePedConfigFlag::InVehicle,true);
- // 7) Zerar velocidade
+ // 3) Com InVehicle=true, SetPos move o VEICULO ate o ped (ped nao se move, sem snap)
+ pedPos.z+=0.5f;
+ if(!p->SetPos(pedPos))return "Falha ao mover veiculo ate o ped";
+ // 4) Zerar velocidade do veiculo
  D3DXVECTOR3 zero{0,0,0};
- Write(pedAddr+0x320,zero);
+ Write(vehAddr+0x320,zero);
  return "Entrando no P1 localmente";
 }
 // Ejecta o motorista (P1) de um CVehicle* selecionado na lista de carros.

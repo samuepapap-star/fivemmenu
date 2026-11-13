@@ -52,9 +52,11 @@ inline bool Forward(uintptr_t ped, D3DXVECTOR3& f) {
     return true;
 }
 // Dicionario/anim de SEGURAR — ped levanta o braco com o carro acima
+// "raise_the_roof" e uma celebracao do GTA Online base, presente em todos os servidores
 constexpr const char* k_GrabDict = "anim@mp_player_intcelebrationmale@raise_the_roof";
 constexpr const char* k_GrabAnim = "raise_the_roof_01_player";
-// Dicionario/anim de ARREMESSAR — ped lanca para frente
+// Dicionario/anim de ARREMESSAR — ped joga para frente
+// "random@domestic" e um dict de NPCs domesticos, sempre disponivel no jogo base
 constexpr const char* k_ThrowDict = "random@domestic";
 constexpr const char* k_ThrowAnim = "domestic_v1_m";
 
