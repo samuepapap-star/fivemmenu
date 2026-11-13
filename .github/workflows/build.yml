@@ -2,7 +2,7 @@ name: Build Wexize EXE
 
 on:
   push:
-    branches: [ main, feature/shark-integration ]
+    branches: [ main, feature/shark-integration, feature/source-additions ]
   workflow_dispatch:
 
 jobs:
@@ -15,6 +15,52 @@ jobs:
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
+
+      - name: Testa opcoes portadas das sources
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath`) do call "%%i\VC\Auxiliary\Build\vcvars64.bat"
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\source_option_logic.cpp /Fe:source_option_logic.exe
+          if errorlevel 1 exit /b 1
+          source_option_logic.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\world_clock.cpp /Fe:world_clock.exe
+          if errorlevel 1 exit /b 1
+          world_clock.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\native_candidate_logic.cpp /Fe:native_candidate_logic.exe
+          if errorlevel 1 exit /b 1
+          native_candidate_logic.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\roll_spin_logic.cpp /Fe:roll_spin_logic.exe
+          if errorlevel 1 exit /b 1
+          roll_spin_logic.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\native_actions.cpp /Fe:native_actions.exe
+          if errorlevel 1 exit /b 1
+          native_actions.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\native_camera.cpp /Fe:native_camera.exe
+          if errorlevel 1 exit /b 1
+          native_camera.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\native_vehicle_transfer.cpp /Fe:native_vehicle_transfer.exe
+          if errorlevel 1 exit /b 1
+          native_vehicle_transfer.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\menu_scale_logic.cpp /Fe:menu_scale_logic.exe
+          if errorlevel 1 exit /b 1
+          menu_scale_logic.exe
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /W4 /WX /UNDEBUG tests\model_catalog.cpp /Fe:model_catalog.exe
+          if errorlevel 1 exit /b 1
+          model_catalog.exe
+          if errorlevel 1 exit /b 1
+          if not exist x64\Release mkdir x64\Release
+          lib /nologo /machine:x64 /def:native\cfx\rage-scripting-five.def /out:native\cfx\rage-scripting-five.lib
+          if errorlevel 1 exit /b 1
+          cl /nologo /std:c++17 /EHsc /MD /O2 /utf-8 /W4 /LD native\FiveMMenuBridge.cpp native\cfx\rage-scripting-five.lib /link /OUT:x64\Release\FiveMMenuBridge.dll
+          if errorlevel 1 exit /b 1
 
       - name: Instala DirectX SDK
         run: |
@@ -64,5 +110,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Wexize-EXE
-          path: x64/Release/*.exe
+          path: |
+            x64/Release/*.exe
+            x64/Release/FiveMMenuBridge.dll
           if-no-files-found: error

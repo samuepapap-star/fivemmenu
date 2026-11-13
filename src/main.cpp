@@ -83,9 +83,11 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 		std::string ProcessName = Mem.GetNameByPid( ProcIdFiveM );
 		if ( ProcessName.empty( ) ) { return 0; };
 
-		if (ClientBuild::Detect(ProcessName) == 3889 &&
-            std::string(cmdline ? cmdline : "").find("--diagnostico-3889") != std::string::npos) {
-			Build3889Probe::Run(ProcIdFiveM);
+		const std::string arguments=cmdline?cmdline:"";
+        if (arguments.find("--diagnostico-recursos") != std::string::npos ||
+            (ClientBuild::Detect(ProcessName)==3889 &&
+             arguments.find("--diagnostico-3889") != std::string::npos)) {
+			Build3889Probe::Run(ProcIdFiveM,ClientBuild::Detect(ProcessName));
 			return 0;
 		}
 

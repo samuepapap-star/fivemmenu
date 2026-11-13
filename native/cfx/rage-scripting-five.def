@@ -1,0 +1,11 @@
+LIBRARY rage-scripting-five.dll
+EXPORTS
+ ??0CfxThread@@QEAA@XZ
+ ??1CfxThread@@UEAA@XZ
+ ??_7CfxThread@@6B@
+ ?Reset@CfxThread@@UEAAXXZ
+ ?Kill@CfxThread@@UEAAXXZ
+ ?GetThread@CfxThread@@QEAAPEAVGtaThread@@XZ
+ ?AttachScriptHandler@CfxThread@@QEAAXXZ
+ ?DetachScriptHandler@CfxThread@@QEAAXXZ
+

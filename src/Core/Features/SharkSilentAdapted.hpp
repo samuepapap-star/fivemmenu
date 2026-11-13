@@ -6,6 +6,7 @@
 #include <Core/SDK/TeleportTrace.hpp>
 #include "SharkSilentPatch.hpp"
 #include <atomic>
+#include "SourceOptionLogic.hpp"
 #include <chrono>
 
 namespace Core { namespace Features {
@@ -118,6 +119,15 @@ public:
         if(!enabled){Restore();return;}
         auto local=SDK::Pointers::pLocalPlayer;
         if(!local){Restore();Status(1);return;}
+        float weaponRange=0.f;
+        bool rangeRead=false;
+        if(ExtraSettings::SilentAutoDistance&&SourceOptionLogic::KnownWeaponRangeLayout(g_Offsets.CurrentBuild)) {
+            auto manager=local->GetWeaponManager();
+            auto weapon=manager?manager->GetWeaponInfo():nullptr;
+            if(weapon)rangeRead=Read((uintptr_t)weapon+0x28C,&weaponRange,sizeof(weaponRange));
+        }
+        const int maxDistance=SourceOptionLogic::DistanceLimit(cfg->MaxDistance,
+            ExtraSettings::SilentAutoDistance,rangeRead,weaponRange);
         D3DXVECTOR3 target{};
         float closest=1.f;
         bool found=false;
@@ -125,7 +135,7 @@ public:
         auto extraTargets=SDK::Game::SnapshotEntities();
         for(const auto& entity:extraTargets) {
             if(!entity.Ped || entity.Ped==local || entity.IsFriend || entity.Health<=101.f ||
-                entity.Distance>cfg->MaxDistance || (cfg->IgnoreNPCs && entity.PedType!=2) ||
+                entity.Distance>maxDistance || (cfg->IgnoreNPCs && entity.PedType!=2) ||
                 (cfg->OnlyVisible && !entity.Ped->IsVisible()))continue;
             if(ExtraSettings::SilentForceDriver){
                 if(!entity.Ped->InVehicle())continue;

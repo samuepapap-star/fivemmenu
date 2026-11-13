@@ -1,4 +1,5 @@
 #pragma once
+#include <Bridge/Features.hpp>
 #include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
 #include <Core/Features/VehicleManipulation.hpp>
@@ -139,66 +140,36 @@ namespace World {
 
 							ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 14, 8 ) );
 							bool Friend = SelectedPed.IsFriend;
-							if (actionMode == 0 && Custom::CheckBox( xorstr( "Amigo" ), &Friend ) )
+							if ((actionMode == 0 || actionMode == 2) && Custom::CheckBox( xorstr( "Amigo" ), &Friend ) )
 							{
 								Core::SDK::Game::FriendMap[ SelectedPed.Ped ] = Friend;
 							}
 
 							ImGui::Spacing( );
 
-							if (actionMode == 2 && Custom::Button( xorstr( "Teleportar" ), ImVec2( -1, 30 ), 0 ) )
+							if (actionMode == 2 && Custom::Button( xorstr( "Ir ate o jogador" ), ImVec2( -1, 30 ), 0 ) )
 							{
 								Core::SDK::Pointers::pLocalPlayer->SetPos( SelectedPed.Pos );
 							}
 							//if ( Custom::Button( xorstr( "Observar" ), ImVec2( -1, 30 ), 0 ) ) 
 							//{
 							//}
-                            if(actionMode==0&&Custom::Button("Puxar jogador",ImVec2(-1,30),0))NotifyManager::Send(Core::Features::Extras::PullPlayer(reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
-                            if(actionMode==0&&Custom::Button("Observar jogador",ImVec2(-1,30),0)) {
-                                Core::Features::ExtraCamera::Start(reinterpret_cast<uintptr_t>(SelectedPed.Ped));
-                                NotifyManager::Send(Core::Features::ExtraCamera::status,4000);
+                            if(actionMode==2&&Custom::Button("Puxar jogador",ImVec2(-1,30),0))NotifyManager::Send(Core::Features::Extras::PullPlayer(reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
+                            if(actionMode==2&&Custom::Button("Observar jogador",ImVec2(-1,30),0))
+                                BridgeFeatures::Observe(SelectedPed.Id);
+                            if(actionMode==2&&Custom::Button("Clonar aparencia",ImVec2(-1,30),0))
+                                BridgeFeatures::Clone(SelectedPed.Id);
+                            if(actionMode==2&&MenuBridge::Connection().CameraState()==2&&Custom::Button("Parar observacao",ImVec2(-1,30),0))
+                                BridgeFeatures::ToggleCamera();
+                            if(actionMode==2)BridgeFeatures::Status();
+                            if(actionMode==1&&Custom::Button("Chuva de carros",ImVec2(-1,30),0))
+                                BridgeFeatures::TransferVehicles(SelectedPed.Id,true);
+                            if(actionMode==1&&Custom::Button("Enviar veiculos ao jogador",ImVec2(-1,30),0))
+                                BridgeFeatures::TransferVehicles(SelectedPed.Id,false);
+                            if(actionMode==1){
+                                ImGui::TextWrapped("Usa ate 10 veiculos vazios proximos que a sessao permite controlar.");
+                                BridgeFeatures::Status();
                             }
-                            if(actionMode==0&&Core::Features::ExtraCamera::target&&Custom::Button("Parar observacao",ImVec2(-1,30),0))Core::Features::ExtraCamera::Stop();
-                            if(actionMode == 0 && Custom::Button("Copiar roupa",ImVec2(-1,30),0)) {
-                                NotifyManager::Send(Core::Features::CarreraAdditions::CopyClothes(
-                                    reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
-                            }
-                            if(actionMode==1&&Custom::Button("Chuva de carros",ImVec2(-1,30),0)){
-                                const auto result=Core::Features::CarreraAdditions::VehiclesToPlayer(reinterpret_cast<uintptr_t>(SelectedPed.Ped),true);
-                                NotifyManager::Send(result.c_str(),4000);
-                            }
-                            if(actionMode == 1 && Custom::Button("Enviar veículos ao jogador",ImVec2(-1,30),0,true,
-                                "Leva veículos carregados a até 200 m de você até o jogador selecionado.")) {
-                                NotifyManager::Send(Core::Features::CarreraAdditions::VehiclesToPlayer(
-                                    reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
-                            }
-							if (actionMode == 0 && Custom::Button( xorstr( "Copiar Discord" ), ImVec2( -1, 30 ), 0 ) )
-							{
-								std::string PlayerDiscord = SelectedPed.NetworkInfo.DiscordId;
-								if ( PlayerDiscord.empty( ) )
-								{
-									std::thread( [ ] ( ) { NotifyManager::Send( xorstr( "ID do Discord não encontrado." ), 4000 ); } ).detach( );
-								}
-								else
-								{
-									std::thread( [ ] ( ) { NotifyManager::Send( xorstr( "ID do Discord copiado!" ), 4000 ); } ).detach( );
-									Utils::PasteClipboard( PlayerDiscord.c_str( ) );
-								}
-							}
-							if (actionMode == 0 && Custom::Button( xorstr( "Copiar Steam" ), ImVec2( -1, 30 ), 0 ) )
-							{
-								std::string PlayerSteam = SelectedPed.NetworkInfo.SteamId;
-								if ( PlayerSteam.empty( ) )
-								{
-									std::thread( [ ] ( ) { NotifyManager::Send( xorstr( "ID da Steam não encontrado." ), 4000 ); } ).detach( );
-								}
-								else
-								{
-									std::thread( [ ] ( ) { NotifyManager::Send( xorstr( "ID da Steam copiado!" ), 4000 ); } ).detach( );
-									Utils::PasteClipboard( PlayerSteam.c_str( ) );
-								}
-							}
-
 							ImGui::PopStyleVar( );
 						}
 					}

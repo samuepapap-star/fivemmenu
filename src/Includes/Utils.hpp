@@ -122,29 +122,13 @@ namespace Utils {
 	}
 
 	inline std::pair<ImVec2, ImVec2> GetWindowPosAndSize( HWND window ) {
-		RECT rect;
-		if ( GetWindowRect( window, &rect ) ) {
-			int x = rect.left;
-			int y = rect.top;
-
-			int width = rect.right - rect.left;
-			int height = rect.bottom - rect.top;
-
-			DWORD dwStyle = GetWindowLongPtr( window, GWL_STYLE );
-			if ( dwStyle & WS_BORDER ) {
-				x += 8; 
-				y += 32;
-				width -= 16;
-				height -= 39;
-			}
-
-			ImVec2 position { ( float ) x, ( float ) y };
-			ImVec2 size { ( float ) width, ( float ) height };
-			return std::make_pair( position, size );
-		}
-		else {
-			return std::make_pair( ImVec2 { 0, 0 }, ImVec2 { 0, 0 } );
-		}
+        RECT client{};
+        POINT origin{};
+        if (!GetClientRect(window, &client) || !ClientToScreen(window, &origin))
+            return {ImVec2{}, ImVec2{}};
+        return {ImVec2(static_cast<float>(origin.x), static_cast<float>(origin.y)),
+                ImVec2(static_cast<float>(client.right - client.left),
+                       static_cast<float>(client.bottom - client.top))};
 	}
 
 	inline  std::string GetClipboard( ) {

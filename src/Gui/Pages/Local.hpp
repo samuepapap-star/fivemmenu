@@ -1,4 +1,6 @@
 #pragma once
+#include <Bridge/Features.hpp>
+#include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/SelfGodMode.hpp>
 #include <Includes/includes.hpp>
 #include <windows.h>
@@ -72,6 +74,20 @@ namespace Local {
                         }
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Restaura a vida maxima e 100 de colete. Nao e uma funcao de reviver.");
+
+                        Custom::CheckBox("Velocidade de natação", &Core::Features::Exploits::swimEnabled);
+                        if (Core::Features::Exploits::swimEnabled)
+                            ImGui::SliderInt("Velocidade ao nadar", &Core::Features::Exploits::swimSpeed, 1, 5);
+                        Custom::CheckBox("Regenerar vida enquanto vivo", &ExtraSettings::RegenHealth);
+                        Custom::CheckBox("Regenerar colete", &ExtraSettings::RegenArmor);
+                        if (Custom::Button("Zerar vida do personagem", ImVec2(-1,30),0)) {
+                            auto ped=Core::Features::Extras::Player();if(ped)ped->SetHealth(0.f);
+                        }
+                        static float extraMaximumHealth=200.f;
+                        ImGui::SliderFloat("Vida maxima",&extraMaximumHealth,100.f,1000.f,"%.0f");
+                        if(Custom::Button("Aplicar vida maxima",ImVec2(-1,30),0))
+                            Core::Features::Extras::SetMaximumHealth(extraMaximumHealth);
+
 
 						if ( Custom::CheckBoxCfg( xorstr( "God em si mesmo" ), &g_Config.Player->EnableGodMode, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->GodModeKey, &KeyMode ); }, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
@@ -187,7 +203,17 @@ namespace Local {
 
 					ImGui::BeginChild( xorstr( "Outros" ), ImVec2( 340, 440 ), false, 0 );
 					{
-						if ( Custom::CheckBox( xorstr( "Invencibilidade" ), &g_Config.Player->VehicleGodMode ) )
+						if (Custom::Button("Cor aleatória do veículo", ImVec2(-1, 30), 0))
+                            Core::Features::Exploits::PaintVehicle();
+                        Custom::CheckBox("Pintura contínua", &Core::Features::Exploits::cyclePaint);
+                        ImGui::TextWrapped("%s",Core::Features::Exploits::paintStatus.c_str());
+                        if (Custom::CheckBox("Blindagem do veiculo", &BridgeFeatures::vehicleArmor) && BridgeFeatures::vehicleArmor) {
+                            MenuBridge::Command connect{};
+                            connect.action = MenuBridge::Action::Connect;
+                            if (!BridgeFeatures::Submit(connect)) BridgeFeatures::vehicleArmor = false;
+                        }
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Protege voce e o carro contra tiros, fogo e explosoes. Repara os vidros.");
+                        if ( Custom::CheckBox( xorstr( "Invencibilidade" ), &g_Config.Player->VehicleGodMode ) )
 						{
 							if ( !InVehicle )
 							{
@@ -280,8 +306,12 @@ namespace Local {
 
 						if ( Custom::Button( xorstr( "Reparar veículo" ), ImVec2( -1, 33 ), 0 ) )
 						{
-							CurrentVehicle->Fix( );
-						}
+							BridgeFeatures::RepairVehicle( );
+                            }
+                            if(Custom::Button("Apagar veiculo proximo (15 m)",ImVec2(-1,33),0))BridgeFeatures::DeleteClosestVehicle();
+                            ImGui::TextWrapped("Apaga o veiculo elegivel mais proximo, mesmo ocupado. Ignora seu veiculo atual e veiculos sem controle local.");
+                            BridgeFeatures::Status();
+
                         ImGui::BeginDisabled(!InVehicle || !CurrentVehicle || g_Config.Player->VehicleGodMode);
                         if (Custom::Button("Destruir veículo atual", ImVec2(-1,33), 0)) {
                             const std::string result = Core::Features::CarreraAdditions::DestroyCurrentVehicle();
@@ -337,7 +367,7 @@ namespace Local {
 					{
 						ImGui::BeginGroup( );
 						{
-							auto Location = Locations[ SeletedIndex ];
+                            auto Location = Locations[ SeletedIndex ];
 							std::string Loc = xorstr( "Teleportar para " ) + Location.Name;
 							if ( Custom::Button( Loc.c_str( ), ImVec2( ContentSize.x, 32 ), 0 ) ) {
 								if ( SeletedIndex == 0 )

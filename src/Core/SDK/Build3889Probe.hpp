@@ -11,6 +11,8 @@
 #include <set>
 #include <chrono>
 #include "ProbePattern.hpp"
+#include "NativeCandidateLogic.hpp"
+#include <array>
 
 namespace Build3889Probe {
 struct Handle {
@@ -35,12 +37,45 @@ inline bool Matrix(HANDLE process,uintptr_t at) {
 }
 struct Hit {std::uint64_t rva=0,target=0;bool resolved=false;};
 struct Spec {const char* name;std::vector<int> bytes;std::vector<Hit> hits;std::set<std::uint64_t> seen;};
-inline std::string Inspect(HANDLE process,uintptr_t base,const Spec& spec,const Hit& hit) {
+inline std::string Inspect(HANDLE process,uintptr_t base,std::uint64_t imageSize,const Spec& spec,const Hit& hit) {
     if(!hit.resolved)return "{}";
     const uintptr_t global=base+hit.target;
     uintptr_t pointer=0;const bool pointerRead=Read(process,global,pointer);
     std::ostringstream s;s<<"{\"pointer_read\":"<<Bool(pointerRead)<<",\"pointer_nonzero\":"<<Bool(pointer!=0);
     const std::string name=spec.name;
+    if(name=="source_clock_direct"||name=="source_clock_pointer") {
+        const uintptr_t clock=name=="source_clock_direct"?global:(pointerRead?pointer:0);
+        int hour=-1,minute=-1,second=-1;
+        const bool clockRead=clock>=0x10000&&Read(process,clock+0x10,hour)&&
+            Read(process,clock+0x14,minute)&&Read(process,clock+0x18,second);
+        const bool sane=clockRead&&hour>=0&&hour<24&&minute>=0&&minute<60&&second>=0&&second<60;
+        s<<",\"clock_values_read\":"<<Bool(clockRead)<<",\"clock_values_in_range\":"<<Bool(sane);
+        if(sane)s<<",\"hour\":"<<hour<<",\"minute\":"<<minute<<",\"second\":"<<second;
+    }
+    if(name=="source_native_registration") {
+        uintptr_t first=0;
+        s<<",\"first_bucket_read\":"<<Bool(Read(process,global,first))
+         <<",\"first_bucket_nonzero\":"<<Bool(first!=0);
+        std::array<std::uint8_t,12> caller{};std::uint64_t resolver=0;
+        const bool callOk=Read(process,base+hit.rva,caller)&&
+            NativeCandidateLogic::Resolver(caller.data(),caller.size(),hit.rva,imageSize,resolver);
+        s<<",\"resolver_resolved\":"<<Bool(callOk);
+        if(callOk) {
+            s<<",\"resolver_rva\":\""<<Hex(resolver)<<"\"";
+            auto hexBytes=[](const auto& bytes) {
+                const char* digits="0123456789abcdef";std::string out;out.reserve(bytes.size()*2);
+                for(auto value:bytes){out.push_back(digits[value>>4]);out.push_back(digits[value&15]);}return out;
+            };
+            std::array<std::uint8_t,512> code{};
+            const bool codeOk=resolver<imageSize&&imageSize-resolver>=code.size()&&Read(process,base+resolver,code);
+            s<<",\"resolver_code_read\":"<<Bool(codeOk);
+            if(codeOk)s<<",\"resolver_code_hex\":\""<<hexBytes(code)<<"\"";
+            std::array<std::uint8_t,128> node{};
+            const bool nodeOk=NativeCandidateLogic::Pointer(first)&&Read(process,first,node);
+            s<<",\"first_bucket_node_read\":"<<Bool(nodeOk);
+            if(nodeOk)s<<",\"first_bucket_node_hex\":\""<<hexBytes(node)<<"\"";
+        }
+    }
     if(name=="world"||name=="world_short") {
         uintptr_t ped=0,nav=0,info=0,weapon=0;
         Vec pos{},navPos{};float health=0,maxHealth=0,armor=0;std::uint32_t type=0;
@@ -80,9 +115,12 @@ inline std::string Inspect(HANDLE process,uintptr_t base,const Spec& spec,const 
     }
     s<<"}";return s.str();
 }
-inline void Run(DWORD pid) {
+inline void Run(DWORD pid, int build=3889) {
     // This path returns before game-offset initialization or any feature thread starts.
-    MessageBoxW(nullptr,L"Esta versao vai coletar dados de compatibilidade da build 3889.\nEla nao ativa o menu e nao escreve na memoria do jogo.\nMantenha o personagem carregado na cidade e aguarde a coleta.",L"Coleta de compatibilidade 3889",MB_OK|MB_ICONINFORMATION);
+    const std::wstring title=L"Coleta de compatibilidade "+std::to_wstring(build);
+    const std::wstring intro=L"Esta versao vai coletar dados de compatibilidade da build "+std::to_wstring(build)+
+        L".\nEla nao ativa o menu e nao escreve na memoria do jogo.\nMantenha o personagem carregado na cidade e aguarde a coleta.";
+    MessageBoxW(nullptr,intro.c_str(),title.c_str(),MB_OK|MB_ICONINFORMATION);
     const auto started=std::chrono::steady_clock::now();
     Handle process;process.value=OpenProcess(PROCESS_VM_READ|PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pid);
     DWORD error=process.value?0:GetLastError();
@@ -98,6 +136,9 @@ inline void Run(DWORD pid) {
         nt.FileHeader.NumberOfSections>0&&nt.FileHeader.NumberOfSections<=96&&nt.OptionalHeader.SizeOfImage>0 && nt.OptionalHeader.SizeOfImage<0x20000000;
     if(!peOk&&!error){error=GetLastError();if(!error)error=ERROR_BAD_EXE_FORMAT;}
     std::vector<Spec> specs={
+        {"source_native_registration",{0x48,0x8D,0x0D,-1,-1,-1,-1,0xE8,-1,-1,-1,-1,0x48,0x85,0xC0,0x75}},
+        {"source_clock_direct",{0x48,0x8D,0x0D,-1,-1,-1,-1,0xBA,-1,-1,-1,-1,0xE8,-1,-1,-1,-1,0x44,0x8B,0x05}},
+        {"source_clock_pointer",{0x48,0x8B,0x05,-1,-1,-1,-1,0x0F,0xB6,0x48,0x10}},
         {"world",{0x48,0x8B,0x05,-1,-1,-1,-1,0x33,0xD2,0x48,0x8B,0x40,0x08,0x8A,0xCA,0x48,0x85,0xC0,0x74,0x16,0x48,0x8B}},
         {"world_short",{0x48,0x8B,0x05,-1,-1,-1,-1,0x48,0x8B,0x48,0x08,0x48,0x85,0xC9,0x74}},
         {"replay",{0x48,0x8D,0x0D,-1,-1,-1,-1,0x48,0x8B,0xD7,0xE8,-1,-1,-1,-1,0x48,0x8D,0x0D,-1,-1,-1,-1,0x8A,0xD8}},
@@ -145,7 +186,7 @@ inline void Run(DWORD pid) {
         }
     }
     std::ostringstream report;
-    report<<"{\"schema\":1,\"build\":3889,\"pid\":"<<pid<<",\"read_only\":true,\"memory_writes\":0,\"features_enabled\":false,"
+    report<<"{\"schema\":3,\"build\":"<<build<<",\"pid\":"<<pid<<",\"read_only\":true,\"memory_writes\":0,\"features_enabled\":false,"
           <<"\"pe_valid\":"<<Bool(peOk)<<",\"image_size\":"<<(peOk?nt.OptionalHeader.SizeOfImage:0)
           <<",\"pe_timestamp\":"<<(peOk?nt.FileHeader.TimeDateStamp:0)<<",\"scanned_bytes\":"<<scanned
           <<",\"failed_pages\":"<<failed<<",\"read_error\":"<<error<<",\"patterns\":{";
@@ -157,7 +198,7 @@ inline void Run(DWORD pid) {
         for(const auto& hit:spec.hits) {
             if(!firstHit)report<<",";firstHit=false;
             report<<"{\"instruction_rva\":\""<<Hex(hit.rva)<<"\",\"resolved\":"<<Bool(hit.resolved)
-                  <<",\"target_rva\":\""<<Hex(hit.target)<<"\",\"checks\":"<<Inspect(process.value,base,spec,hit)<<"}";
+                  <<",\"target_rva\":\""<<Hex(hit.target)<<"\",\"checks\":"<<Inspect(process.value,base,nt.OptionalHeader.SizeOfImage,spec,hit)<<"}";
         }
         report<<"]}";
     }
@@ -166,16 +207,16 @@ inline void Run(DWORD pid) {
     wchar_t folder[MAX_PATH]={};
     const DWORD folderLength=GetTempPathW(MAX_PATH,folder);
     if(!folderLength||folderLength>=MAX_PATH) {
-        MessageBoxW(nullptr,L"Nao foi possivel localizar a pasta temporaria.",L"Coleta 3889",MB_ICONERROR);return;
+        MessageBoxW(nullptr,L"Nao foi possivel localizar a pasta temporaria.",L"Coleta de recursos",MB_ICONERROR);return;
     }
-    const std::filesystem::path path=std::filesystem::path(folder)/L"ALTOS_PODERES_3889.json";
+    const std::filesystem::path path=std::filesystem::path(folder)/(L"ALTOS_PODERES_"+std::to_wstring(build)+L".json");
     std::ofstream output(path,std::ios::binary|std::ios::trunc);
     output<<report.str();output.close();
     if(!output) {
-        MessageBoxW(nullptr,L"Nao foi possivel salvar o relatorio da coleta.",L"Coleta 3889",MB_ICONERROR);return;
+        MessageBoxW(nullptr,L"Nao foi possivel salvar o relatorio da coleta.",L"Coleta de recursos",MB_ICONERROR);return;
     }
     const std::wstring message=L"Coleta concluida. Envie este arquivo:\n\n"+path.wstring()+
         L"\n\nEsta coleta nao habilitou o menu nem alterou a memoria do jogo. A compatibilidade ainda precisa ser validada.";
-    MessageBoxW(nullptr,message.c_str(),L"Relatorio 3889 salvo",MB_ICONINFORMATION);
+    MessageBoxW(nullptr,message.c_str(),L"Relatorio de recursos salvo",MB_ICONINFORMATION);
 }
 }

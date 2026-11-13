@@ -1,7 +1,9 @@
 #include "Gui.hpp"
+#include <Bridge/Pages.hpp>
 #include <cstdlib>
 #include <Core/Features/ExtraFeatures.hpp>
 #include <Core/Features/ExtraCamera.hpp>
+#include <Core/Features/WorldClock.hpp>
 
 #include <Includes/CustomWidgets/Custom.hpp>
 #include <Includes/CustomWidgets/WaterMarks.hpp>
@@ -27,6 +29,7 @@
 #include <Core/Features/ExternalCameraOptions.hpp>
 
 #include <Security/Api/api.hpp>
+#include <Gui/Pages/SkinChanger.hpp>
 #include <Gui/AltosInterface.hpp>
 
 inline std::mutex DrawMtx;
@@ -50,7 +53,7 @@ inline void CheatLogin( )
 void Gui::Rendering( )
 {
     static bool cleanupRegistered=false;
-    if(!cleanupRegistered){std::atexit([](){Core::Features::ExtraCamera::Stop();Core::Features::Extras::Tick(true);});cleanupRegistered=true;}
+    if(!cleanupRegistered){std::atexit([](){Core::Features::Exploits::TickSwim(true);BridgeFeatures::Stop();Core::Features::WorldClock::Tick(true);Core::Features::ExtraCamera::Stop();Core::Features::Extras::Tick(true);});cleanupRegistered=true;}
 
     static bool diagnosticSession=false;
     if(!diagnosticSession) {
@@ -59,7 +62,11 @@ void Gui::Rendering( )
     }
     Core::Features::CarreraAdditions::TickCollision();
     ClientState::Tick();
+    Core::Features::Exploits::TickSwim();
+    Core::Features::Exploits::TickPaint();
     Core::Features::Extras::Tick();
+    Core::Features::WorldClock::Tick();
+    BridgeFeatures::Tick();
     Core::Features::ExtraCamera::Tick();
     Core::Features::Extras::DrawRadar();
     Core::Features::VehicleManipulation::Tick();
@@ -167,6 +174,7 @@ void Gui::Rendering( )
             case g_MenuInfo.Cars: Categories::Cars(); break;
             case g_MenuInfo.Players: Categories::Players(); break;
             case g_MenuInfo.Weapons: Categories::Weapons(); break;
+            case SkinChanger::page: SkinChanger::Render(); break;
             case g_MenuInfo.Teleports: Categories::Teleports(); break;
 			case g_MenuInfo.Settings:
 				Categories::Settings();
@@ -262,17 +270,7 @@ void Gui::Rendering( )
 
 					ImGui::PopFont( );
 				}
-				else {
-
-					if ( ImGui::GetStyle( ).Alpha >= 0.9f )
-					{
-						g_MenuInfo.IsOpen = false;
-						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT );
-					}
-
-				}
-
-			}
+}
 		}
 		else {
 
@@ -323,6 +321,8 @@ void Gui::Rendering( )
                 Core::Features::ExternalCameraOptions::Tick(true);
                 Core::Features::VehicleManipulation::Tick(true);
                 Core::Features::ExtraCamera::Tick(true);
+                BridgeFeatures::Stop();
+                Core::Features::WorldClock::Tick(true);
                 Core::Features::Extras::Tick(true);
                 ExitProcess( 0 );
 			}

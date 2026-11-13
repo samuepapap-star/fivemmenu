@@ -66,12 +66,11 @@ namespace Visuals {
 							}
 						}
 
-						Custom::CheckBox("Caixa de cantos", &g_Config.ESP->CornerBox);
+						Custom::CheckBox("Caixa 3D", &g_Config.ESP->Box3D);
+                        Custom::CheckBox("Caixa de cantos", &g_Config.ESP->CornerBox);
                         Custom::CheckBox("ESP estático (limites do modelo)", &g_Config.ESP->StaticESP);
                         ImGui::SliderInt("Largura da caixa", &g_Config.ESP->BoxSize, 0, 30);
                         ImGui::SliderFloat("Opacidade do preenchimento", &g_Config.ESP->FilledBoxCol.Value.w, 0.f, 1.f);
-                        ImGui::Combo("Posição da vida", &g_Config.ESP->HealthBarState, "Acima\0Direita\0Abaixo\0Esquerda\0");
-                        ImGui::Combo("Posição do colete", &g_Config.ESP->ArmorBarState, "Acima\0Direita\0Abaixo\0Esquerda\0");
                         Custom::CheckBox("Mostrar prévia", &g_Config.ESP->PreviewEnabled);
                         ImGui::ColorEdit4("Cor da caixa", &g_Config.ESP->BoxCol.Value.x);
                         ImGui::ColorEdit4("Cor dos cantos", &g_Config.ESP->CornerColor.Value.x);
@@ -83,21 +82,22 @@ namespace Visuals {
                         ImGui::ColorEdit4("Cor das armas", &g_Config.ESP->WeaponNameCol.Value.x);
                         ImGui::ColorEdit4("Cor da distância", &g_Config.ESP->DistanceCol.Value.x);
                         ImGui::ColorEdit4("Cor do esqueleto", &g_Config.ESP->SkeletonCol.Value.x);
-                        Custom::CheckBox( xorstr( "Nomes dos jogadores" ), &g_Config.ESP->UserNames );
+                        Custom::CheckBox( xorstr( "ID do jogador / NPC" ), &g_Config.ESP->UserNames );
 						Custom::CheckBox( xorstr( "Nomes das armas" ), &g_Config.ESP->WeaponName );
 						Custom::CheckBox( xorstr( "Distância" ), &g_Config.ESP->DistanceFromMe );
 
 
-						if ( Custom::CheckBox( xorstr( "Esqueleto" ), &g_Config.ESP->Skeleton ) )
-						{
-							Core::SDK::Pointers::pLocalPlayer->RemoveKinematics( );
-						}
+						Custom::CheckBox( xorstr( "Esqueleto" ), &g_Config.ESP->Skeleton );
 
 						Custom::CheckBox( xorstr( "Círculo na cabeça" ), &g_Config.ESP->HeadCircle );
 						Custom::CheckBox( xorstr( "Barra de vida" ), &g_Config.ESP->HealthBar );
+                        if (g_Config.ESP->HealthBar)
+                            ImGui::SliderInt("Espessura vida", &g_Config.ESP->HealthBarWidth, 1, 6, "%d px");
 						Custom::CheckBox( xorstr( "Barra de colete" ), &g_Config.ESP->ArmorBar );
+                        if (g_Config.ESP->ArmorBar)
+                            ImGui::SliderInt("Espessura colete", &g_Config.ESP->ArmorBarWidth, 1, 6, "%d px");
 						Custom::CheckBox( xorstr( "Linhas" ), &g_Config.ESP->SnapLines );
-						Custom::CheckBox( xorstr( "Destacar visíveis" ), &g_Config.ESP->HighlightVisible );
+						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.ESP->HighlightVisible );
 						Custom::CheckBoxCfg( xorstr( "Marcar amigo" ), &g_Config.ESP->FriendsMarker, [ ]
 							{
 								static int KeyMode = 1;
@@ -111,8 +111,7 @@ namespace Visuals {
                             AdminList::RenderEntries();
                             ImGui::TreePop();
                         }
-                        if(g_Config.ESP->UserNames)
-                            ImGui::TextWrapped("%s",Core::Threads::g_UpdateNames.Status().c_str());
+                        if (g_Config.ESP->HeadCircle) ImGui::SliderFloat("Raio da cabeça", &g_Config.ESP->HeadSize, 1.f, 20.f);
                         Custom::CheckBox("Destacar possíveis invisíveis", &g_Config.ESP->AdminHighlight);
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Usa indicadores locais de invisibilidade em jogadores carregados. Não confirma cargo de administrador.");
@@ -121,7 +120,7 @@ namespace Visuals {
                             ImGui::SetTooltip("Indícios de voo ou ausência de colisão por 3 segundos. Pode marcar quedas ou paraquedas. Não identifica administradores.");
 						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.ESP->IgnoreNPCs );
 
-						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.ESP->MaxDistance, 0, 5000, xorstr( "%dm" ), 0 );
+						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.ESP->MaxDistance, 0, g_Config.ESP->DistanceLimit, xorstr( "%dm" ), 0 );
 					}
 					ImGui::EndChild( );
 				}
