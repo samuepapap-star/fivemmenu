@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include "NativeApi.hpp"
+#include "NativeVehicleSeats.hpp"
 
 namespace MenuBridge {
 namespace N {
@@ -31,6 +32,7 @@ constexpr std::uint64_t CurrentVehicle=0x9A9112A0FE9A4713,FixVehicle=0x115722B1B
  Passengers=0x24CB2137731FFE89,SeatFree=0x22AC59A870E6A669;
 }
 class Actions {
+ VehicleSeats seats;
  NativeApi& api;Command command{};bool pending=false,animConfirm=false,animRequested=false;std::uint64_t deadline=0,animDeadline=0;
  std::uint32_t model=0;int cloneSource=0,backup=0,expectedPed=0,oldHealth=0,oldArmor=0;
  bool weaponRequested=false;std::uint64_t lastShot=0;
@@ -54,6 +56,7 @@ class Actions {
   Call(N::Freeze,{static_cast<std::uint64_t>(backup),1});
  }
  void Release(){
+  seats.Reset();
   if(model)Call(N::ReleaseModel,{model});
   if(animRequested)Call(N::ReleaseAnim,{reinterpret_cast<std::uint64_t>(command.text)});
   model=0;pending=false;animConfirm=false;animRequested=false;spawned=0;spawnStarted=false;
@@ -74,9 +77,9 @@ class Actions {
  }
 public:
  Reply reply{};bool hasReply=false;int rpgState=0;
- explicit Actions(NativeApi& native):api(native){}
+ explicit Actions(NativeApi& native):seats(native),api(native){}
  bool Pending()const{return pending;}
- void Reset(){pending=false;animConfirm=false;animRequested=false;model=0;backup=0;expectedPed=0;weaponRequested=false;hasReply=false;rpgState=0;spawned=0;spawnStarted=false;}
+ void Reset(){seats.Reset();pending=false;animConfirm=false;animRequested=false;model=0;backup=0;expectedPed=0;weaponRequested=false;hasReply=false;rpgState=0;spawned=0;spawnStarted=false;}
  void Abort(const std::string& message){if(pending)Finish(false,message);}
  void Submit(const Command& value,std::uint64_t now){
   if(pending)throw std::runtime_error("Outra acao esta em andamento");
@@ -90,6 +93,8 @@ public:
   if(command.action!=Action::Connect&&command.action!=Action::StopAll&&command.action!=Action::StopAnimation&&Call(N::Dead,{static_cast<std::uint64_t>(ped),0})){Finish(false,"Espere o personagem estar vivo");return;}
   if(expectedPed&&ped!=expectedPed){Delete(backup);}expectedPed=ped;
   switch(command.action){
+   case Action::EnterDriver:case Action::EjectSeat:
+    seats.Submit(command,now);if(!seats.Pending())Finish(seats.reply.success!=0,seats.reply.message);return;
    case Action::Model:model=Hash(command.text);break;
    case Action::CloneAppearance:cloneSource=Target(command.targetServerId);if(!cloneSource){Finish(false,"Jogador selecionado nao encontrado");return;}model=static_cast<std::uint32_t>(Call(N::EntityModel,{static_cast<std::uint64_t>(cloneSource)}));break;
    case Action::Restore:if(!Exists(backup)){Finish(false,"Nao ha aparencia original para restaurar");return;}model=static_cast<std::uint32_t>(Call(N::EntityModel,{static_cast<std::uint64_t>(backup)}));break;
@@ -160,6 +165,9 @@ public:
   if(expectedPed&&ped!=expectedPed&&!pending){Delete(backup);expectedPed=ped;}
   if(pending){
    if(cancelled==command.id||now>=deadline||!fresh||!Exists(ped)){Finish(false,"Acao cancelada ou tempo de carregamento esgotado");}
+   else if(command.action==Action::EnterDriver||command.action==Action::EjectSeat){
+    seats.Tick(now);if(!seats.Pending())Finish(seats.reply.success!=0,seats.reply.message);
+   }
    else if(command.action==Action::SpawnVehicle&&spawnStarted){
     if(Exists(spawned)){if(!ConfirmVehicle(ped)&&now>=spawnDeadline)Finish(false,"Veiculo existe localmente, mas o registro em rede nao foi confirmado. Sem sucesso de sincronizacao.");}
     else if(now>=spawnDeadline)Finish(false,"Veiculo recebeu handle, mas nao apareceu em 2 segundos; sem nova tentativa automatica");

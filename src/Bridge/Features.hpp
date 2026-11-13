@@ -45,6 +45,7 @@ inline void TeleportWaypoint(){
  if(cameraRequested||MenuBridge::Connection().CameraState()||g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){localStatus="Desative camera livre, NoClip e sem colisao antes de teleportar";return;}
  MenuBridge::Command c{};c.action=MenuBridge::Action::TeleportWaypoint;Submit(c);
 }
+inline void VehicleSeat(std::uintptr_t vehicle,bool enter,bool passenger=false){MenuBridge::Command c{};c.action=enter?MenuBridge::Action::EnterDriver:MenuBridge::Action::EjectSeat;c.targetEntityAddress=vehicle;c.flags=passenger?1u:0u;Submit(c);}
 inline void RepairVehicle(){MenuBridge::Command c{};c.action=MenuBridge::Action::RepairVehicle;Submit(c);}
 inline void LoadVehicleCatalog(){MenuBridge::Command c{};c.action=MenuBridge::Action::VehicleCatalog;Submit(c);}
 inline void ApplyWeaponSkin(int tintIndex){MenuBridge::Command c{};c.action=MenuBridge::Action::WeaponSkin;c.flags=static_cast<std::uint32_t>(tintIndex);Submit(c);}
