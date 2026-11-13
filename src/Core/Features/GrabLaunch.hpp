@@ -4,6 +4,7 @@
 #include <Bridge/Features.hpp>
 #include <atomic>
 #include <cmath>
+#include <chrono>
 
 // Offsets locais — espelham off:: de AcBypass.hpp sem re-incluir o header
 // (re-incluir causaria LNK2005 por funcoes nao-inline duplicadas)
@@ -26,12 +27,18 @@ namespace GrabLaunch {
     constexpr float k_LaunchSpeed = 160.0f;
     constexpr float k_UpBias      = 0.40f;
 
-    constexpr const char* k_AnimDict = "anim@mp_player_intcelebrationmale@raise_the_roof";
-    constexpr const char* k_AnimName = "raise_the_roof_01_player";
+    // Animacao de SEGURAR — bracos levantados acima da cabeca
+    constexpr const char* k_AnimDict     = "anim@mp_player_intcelebrationmale@raise_the_roof";
+    constexpr const char* k_AnimName     = "raise_the_roof_01_player";
+    // Animacao de ARREMESSAR — ped inclina pra frente e estende o braco (tipo lancamento)
+    constexpr const char* k_ThrowDict    = "random@domestic";
+    constexpr const char* k_ThrowAnim    = "domestic_v1_m";
 
     enum class Phase { Idle, Holding, Throwing };
     static std::atomic<Phase> g_Phase { Phase::Idle };
     static uintptr_t g_HeldVeh = 0;
+    // Timestamp do inicio do arremesso para durar a animacao (~600ms)
+    static std::chrono::steady_clock::time_point g_ThrowStart{};
 
     // -------------------------------------------------------------------------
     // Helpers de vetor
@@ -122,16 +129,31 @@ namespace GrabLaunch {
             Write(g_HeldVeh + GrabLaunchOff::kVehVelocity, velocity);
         }
 
-        BridgeFeatures::StopAnimation();
-        g_Phase.store(Phase::Idle);
-        g_HeldVeh = 0;
+        // Troca para animacao de arremesso — fase Throwing dura ~600ms
+        BridgeFeatures::Animate(k_ThrowDict, k_ThrowAnim, false);
+        g_ThrowStart = std::chrono::steady_clock::now();
+        g_Phase.store(Phase::Throwing);
+        // g_HeldVeh zerado pelo Tick apos o timeout
     }
 
     // -------------------------------------------------------------------------
-    // Tick — trava o carro acima do ped enquanto Holding
+    // Tick — trava o carro acima do ped enquanto Holding; finaliza apos Throwing
     // -------------------------------------------------------------------------
     inline void Tick() {
-        if (g_Phase.load() != Phase::Holding) return;
+        const Phase phase = g_Phase.load();
+
+        // Fase Throwing: aguarda animacao terminar (~600ms) depois limpa
+        if (phase == Phase::Throwing) {
+            const auto elapsed = std::chrono::steady_clock::now() - g_ThrowStart;
+            if (elapsed >= std::chrono::milliseconds(600)) {
+                BridgeFeatures::StopAnimation();
+                g_HeldVeh = 0;
+                g_Phase.store(Phase::Idle);
+            }
+            return;
+        }
+
+        if (phase != Phase::Holding) return;
         if (!g_HeldVeh) { g_Phase.store(Phase::Idle); return; }
 
         using namespace Core::Features::CarreraAdditions;
@@ -160,7 +182,8 @@ namespace GrabLaunch {
     // -------------------------------------------------------------------------
     // State helpers
     // -------------------------------------------------------------------------
-    inline bool IsIdle()    { return g_Phase.load() == Phase::Idle; }
-    inline bool IsHolding() { return g_Phase.load() == Phase::Holding; }
+    inline bool IsIdle()     { return g_Phase.load() == Phase::Idle; }
+    inline bool IsHolding()  { return g_Phase.load() == Phase::Holding; }
+    inline bool IsThrowing() { return g_Phase.load() == Phase::Throwing; }
 
 } // namespace GrabLaunch

@@ -42,6 +42,9 @@ inline void Render(int section){
    if(Custom::Button("Arremessar!",ImVec2(-1,30),0))GrabLaunch::Throw();
    ImGui::PopStyleColor();
   }
+  if(GrabLaunch::IsThrowing()){
+   ImGui::TextColored(ImVec4(1.f,0.6f,0.1f,1.f),"Arremessando...");
+  }
   ImGui::Separator();
   ImGui::TextDisabled("Pistola Telecinetica (PsychicGun)");
   Custom::CheckBox("Ativar PsychicGun",&PsychicGun::g_Enabled);
