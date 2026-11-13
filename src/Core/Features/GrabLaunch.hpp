@@ -20,8 +20,8 @@ namespace GrabLaunchOff {
 
 namespace GrabLaunch {
 
-    constexpr float k_GrabRange   = 12.0f;
-    constexpr float k_FovCos      = 0.65f;
+    constexpr float k_GrabRange   = 20.0f;
+    constexpr float k_FovCos      = 0.0f;  // 0 = qualquer direcao no raio
     constexpr float k_HoldHeight  = 2.4f;
     constexpr float k_LaunchSpeed = 160.0f;
     constexpr float k_UpBias      = 0.40f;
@@ -64,12 +64,6 @@ namespace GrabLaunch {
         D3DXVECTOR3 pedPos{};
         if (!Read(ped + 0x90, pedPos)) return 0;
 
-        // FILL: offset do heading — verificar no Cheat Engine (0x280 e candidato)
-        float headingDeg = 0.f;
-        Read(ped + 0x280, headingDeg);
-
-        const D3DXVECTOR3 forward = HeadingToForward(headingDeg);
-
         std::vector<Core::SDK::Game::VehicleStructure> snapshot;
         {
             std::lock_guard<std::mutex> guard(Core::Threads::g_VehicleList.vehicleListMutex);
@@ -86,12 +80,6 @@ namespace GrabLaunch {
             const D3DXVECTOR3 delta = item.Pos - pedPos;
             const float dist = Vec3Len(delta);
             if (dist > k_GrabRange || dist < 0.5f) continue;
-
-            const D3DXVECTOR3 dir = Vec3Norm(delta);
-            const float dot = Vec3Dot(
-                D3DXVECTOR3(forward.x, forward.y, 0.f),
-                D3DXVECTOR3(dir.x,     dir.y,     0.f));
-            if (dot < k_FovCos) continue;
 
             if (dist < bestDist) { bestDist = dist; best = veh; }
         }
