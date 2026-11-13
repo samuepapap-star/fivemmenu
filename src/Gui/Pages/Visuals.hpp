@@ -55,6 +55,10 @@ namespace Visuals {
 					ImGui::BeginChild( xorstr( "Geral#ESP" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						Custom::CheckBox( xorstr( "Ativar" ), &g_Config.ESP->Enabled );
+                        if (Custom::CheckBox("ESP Name", &g_Config.ESP->UserNames) && g_Config.ESP->UserNames)
+                            g_Config.ESP->Enabled = true;
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Mostra o nome e o ID acima dos jogadores. Se o servidor nao fornecer o nome, mostra o ID. Respeita os filtros e a distancia maxima do ESP.");
 						if ( Custom::CheckBox( xorstr( "Caixa" ), &g_Config.ESP->Box ) ) {
 							if ( !g_Config.ESP->Box ) {
 								g_Config.ESP->FilledBox = false;
@@ -82,7 +86,6 @@ namespace Visuals {
                         ImGui::ColorEdit4("Cor das armas", &g_Config.ESP->WeaponNameCol.Value.x);
                         ImGui::ColorEdit4("Cor da distância", &g_Config.ESP->DistanceCol.Value.x);
                         ImGui::ColorEdit4("Cor do esqueleto", &g_Config.ESP->SkeletonCol.Value.x);
-                        Custom::CheckBox( xorstr( "ID do jogador / NPC" ), &g_Config.ESP->UserNames );
 						Custom::CheckBox( xorstr( "Nomes das armas" ), &g_Config.ESP->WeaponName );
 						Custom::CheckBox( xorstr( "Distância" ), &g_Config.ESP->DistanceFromMe );
 
