@@ -115,7 +115,6 @@ public:
     const float radius=massDelete?static_cast<float>(command.flags):15.f;
     const float radiusSq=radius*radius;
     int vehicle=0,best=0,uncontrolled=0,outside=0;float bestDistance=radiusSq;
-    int deleted=0,skipped=0;
     {
      const int handle=static_cast<int>(Call(Hash("FIND_FIRST_VEHICLE"),{reinterpret_cast<std::uint64_t>(&vehicle)}));
      struct Iterator{NativeApi& api;int handle;~Iterator(){if(handle>=0)try{api.Call(Hash("END_FIND_VEHICLE"),{static_cast<std::uint64_t>(handle)});}catch(...){}}} iterator{api,handle};
@@ -166,6 +165,7 @@ public:
     Finish(confirmed,confirmed?"Reparo confirmado localmente: motor, carroceria e portas":"O jogo nao confirmou o reparo completo; nenhuma nova tentativa");return;
    }
    case Action::Connect:Finish(true,"Ponte pronta");return;
+   case Action::WeaponSkin:case Action::PlayerNames:
    case Action::TeleportWaypoint:case Action::StartCamera:case Action::StopCamera:case Action::ObservePlayer:case Action::TransferVehicles:case Action::VehicleCatalog:Finish(false,"Comando deve ser tratado pela ponte");return;
   }
   if(!Call(N::ModelValid,{model})||!Call(command.action==Action::SpawnVehicle?N::ModelVehicle:N::ModelPed,{model})){
