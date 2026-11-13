@@ -27,12 +27,15 @@ using namespace Core;
 
 int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow )
 {
+	MessageBoxA( nullptr, "PASSO 1: WinMain iniciado", "DIAG", MB_OK );
+
 	if ( !Mem.GetMaxPrivileges( GetCurrentProcess( ) ) )
 	{
-		//std::cout << xorstr( "[Error]: Failed GetMaxPrivileges\n" );
-		//std::cin.get( );
+		MessageBoxA( nullptr, "FALHOU: GetMaxPrivileges retornou false\nExecute como Administrador", "DIAG - ERRO", MB_OK );
 		return 0;
 	}
+
+	MessageBoxA( nullptr, "PASSO 2: Privilégios OK\nAguardando FiveM abrir...", "DIAG", MB_OK );
 
 
 	//Utils::OpenConsole( );
@@ -79,10 +82,18 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 
 	DWORD ProcIdFiveM = 0;
 	GetWindowThreadProcessId( g_Variables.g_hGameWindow, &ProcIdFiveM );
+
+	char diagMsg[512];
+	sprintf_s( diagMsg, "PASSO 3: grcWindow encontrado!\nPID do FiveM: %lu", ProcIdFiveM );
+	MessageBoxA( nullptr, diagMsg, "DIAG", MB_OK );
+
 	if ( ProcIdFiveM != 0 )
 	{
 		std::string ProcessName = Mem.GetNameByPid( ProcIdFiveM );
-		if ( ProcessName.empty( ) ) { return 0; };
+		if ( ProcessName.empty( ) ) {
+			MessageBoxA( nullptr, "FALHOU: GetNameByPid retornou vazio", "DIAG - ERRO", MB_OK );
+			return 0;
+		};
 
 		const std::string arguments=cmdline?cmdline:"";
         if (arguments.find("--diagnostico-recursos") != std::string::npos ||
@@ -92,11 +103,18 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 			return 0;
 		}
 
+		char diagMsg2[512];
+		sprintf_s( diagMsg2, "PASSO 4: Processo = %s", ProcessName.c_str() );
+		MessageBoxA( nullptr, diagMsg2, "DIAG", MB_OK );
+
 		if ( !Mem.OpenProcByPid(ProcIdFiveM) ) {
-			//std::cout << xorstr( "[Error]: Failed to OpenProc\n" );
-			//std::cin.get( );
+			MessageBoxA( nullptr, "FALHOU: OpenProcByPid retornou false\nTente executar como Administrador", "DIAG - ERRO", MB_OK );
 			return 0;
 		}
+
+		char diagMsg3[512];
+		sprintf_s( diagMsg3, "PASSO 5: Attach OK!\nModBase: 0x%llX\nBuild: %lu", Mem.ModBase, (DWORD)ClientBuild::Detect(ProcessName) );
+		MessageBoxA( nullptr, diagMsg3, "DIAG", MB_OK );
 
 		//std::cout << xorstr( "[ProcessName]: " ) << ProcessName << std::endl;
 		//std::cout << xorstr( "[PID]: " ) << ProcIdFiveM << std::endl;
