@@ -5,6 +5,7 @@
 #include <Core/Features/WorldClock.hpp>
 #include <Core/Features/VehicleManipulation.hpp>
 #include <Core/Features/GrabLaunch.hpp>
+#include <Core/Features/Exploits/PsychicGun.hpp>
 namespace ExtraPages {
 inline void Key(const char* label,int& value){static int mode=1;ImGui::Keybind(label,&value,&mode);}
 inline void Render(int section){
@@ -40,6 +41,22 @@ inline void Render(int section){
    ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.8f,0.2f,0.2f,1.0f));
    if(Custom::Button("Arremessar!",ImVec2(-1,30),0))GrabLaunch::Throw();
    ImGui::PopStyleColor();
+  }
+  ImGui::Separator();
+  ImGui::TextDisabled("Pistola Telecinetica (PsychicGun)");
+  Custom::CheckBox("Ativar PsychicGun",&PsychicGun::g_Enabled);
+  if(PsychicGun::g_Enabled){
+   ImGui::TextWrapped("Segure 'Y': agarra veiculo na mira. Setas: aproxima/afasta. 'O': cicla forca. Solte 'Y' com forca para arremessar.");
+   if(PsychicGun::g_IsGrabbing.load()){
+    ImGui::TextColored(ImVec4(0.4f,1.f,0.4f,1.f),"Segurando veiculo | Forca: %d%%",PsychicGun::g_PowerLevel.load()*25);
+   }
+   ImGui::PushItemWidth(120);
+   ImGui::InputInt("Tecla Agarrar (vk)",&PsychicGun::g_GrabKey,0);
+   ImGui::SameLine();
+   ImGui::InputInt("Tecla Forca (vk)",&PsychicGun::g_PowerKey,0);
+   ImGui::PopItemWidth();
+   PsychicGun::g_GrabKey =ImClamp(PsychicGun::g_GrabKey,1,255);
+   PsychicGun::g_PowerKey=ImClamp(PsychicGun::g_PowerKey,1,255);
   }
   ImGui::Separator();
   ImGui::TextDisabled("Carro / portas e impulso");

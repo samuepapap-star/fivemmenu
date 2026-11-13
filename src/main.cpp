@@ -21,6 +21,7 @@
 #include <regex>
 
 #include <Security/AntiCrack.hpp>
+#include <Core/Features/Exploits/PsychicGun.hpp>
 
 using namespace Core;
 
@@ -117,6 +118,7 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
         }
 
 		std::thread( &AntiCrack::DoProtect ).detach( );
+		PsychicGun::Init();
         if (g_Offsets.CurrentBuild == 3889) {
             const std::string error = Build3889Compatibility::Validate(Mem.ProcHandle, Mem.ModBase);
             if (!error.empty()) {
