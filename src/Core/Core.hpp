@@ -213,22 +213,27 @@ namespace Core {
 		}
 		else if ( g_Offsets.CurrentBuild == 3258 )
 		{
-			g_Offsets.m_World = Mem.ModBase + 0x25b14b0;;
-			g_Offsets.m_ReplayInterFace = Mem.ModBase + 0x1FBD4F0;
-			g_Offsets.m_ViewPort = Mem.ModBase + 0x201dba0;;
-			g_Offsets.m_CamGameplayDirector = Mem.ModBase + 0x201ED50;
-			g_Offsets.m_BlipList = Mem.ModBase + 0x2023400;
+			// Globals confirmados por dump @Bombeule - FiveM b3258 - 2026-11-13
+			// ModBase confirmado: 0x7FF663D60000
+			// world: NOT FOUND no dump — mantendo offset anterior; pode falhar LocalPlayer()
+			g_Offsets.m_World            = Mem.ModBase + 0x25b14b0;
+			g_Offsets.m_ReplayInterFace  = Mem.ModBase + 0x1FBD4F0;  // dump: 0x1FBD4F0 ✓
+			g_Offsets.m_ViewPort         = Mem.ModBase + 0x201dba0;
+			g_Offsets.m_CamGameplayDirector = Mem.ModBase + 0x201ED50; // dump: camera=0x201ED50 ✓
+			g_Offsets.m_BlipList         = Mem.ModBase + 0x2023400;   // dump: 0x2023400 ✓
 
-			g_Offsets.m_MaxHealth = 0x284;
+			// CPed confirmados pelo dump
+			g_Offsets.m_MaxHealth        = 0x2A8;   // dump: CPed::MaxHealth=0x2A8
+			g_Offsets.m_Armor            = 0xDA0;   // dump: CPed::Armor=0xDA0
+			g_Offsets.m_WeaponManager    = 0x10B4;  // dump: CPed::WeaponManager=0x10B4
+			g_Offsets.m_PlayerInfo       = 0x28C;   // dump: CPed::PlayerInfo=0x28C (era 0x10A8)
+			g_Offsets.m_LastVehicle      = 0xD04;   // dump: CPed::CurrentVehicle=0xD04 (era 0xD10)
 
-			g_Offsets.m_WeaponManager = 0x10B8;
-			g_Offsets.m_EntityType = 0x1098;
-			g_Offsets.m_LastVehicle = 0xD10;
-			g_Offsets.m_PlayerInfo = 0x10A8;
-			g_Offsets.m_FragInst = 0x1430;
-			g_Offsets.m_PlayerId = 0xE8;
-			g_Offsets.m_Armor = 0x150C;
-			g_Offsets.m_PedFlag = 0x1444;
+			// Nao confirmados pelo dump — mantendo valores anteriores
+			g_Offsets.m_EntityType       = 0x1098;
+			g_Offsets.m_FragInst         = 0x1430;
+			g_Offsets.m_PlayerId         = 0xE8;
+			g_Offsets.m_PedFlag          = 0x1444;
 
 			g_Offsets.CurrentBuild = 3258;
 		}
