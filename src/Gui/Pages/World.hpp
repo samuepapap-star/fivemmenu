@@ -155,7 +155,8 @@ namespace World {
 							//if ( Custom::Button( xorstr( "Observar" ), ImVec2( -1, 30 ), 0 ) ) 
 							//{
 							//}
-                            if(actionMode==2){
+                            {
+                                // ESP Nome disponivel em qualquer actionMode que mostre a lista de players
                                 const uintptr_t selPedAddr=reinterpret_cast<uintptr_t>(SelectedPed.Ped);
                                 bool espNameOn=Core::Features::EspName::IsPinned(selPedAddr);
                                 if(Custom::CheckBox("ESP Nome",& espNameOn))
