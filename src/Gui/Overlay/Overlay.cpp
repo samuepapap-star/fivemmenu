@@ -43,24 +43,13 @@ namespace Gui
 		MARGINS Margin = { -1, -1, -1, -1 };
 		DwmExtendFrameIntoClientArea( g_Variables.g_hCheatWindow, &Margin );
 
-		if ( !g_Variables.g_hCheatWindow )
-		{
-			std::string errMsg = "CreateWindowExW falhou - overlay nao foi criado.\nErro Win32: " + std::to_string(GetLastError());
-			MessageBoxA(nullptr, errMsg.c_str(), "[DIAG] Overlay window", MB_OK|MB_ICONERROR);
-			UnregisterClassW( wc.lpszClassName, wc.hInstance );
-			return;
-		}
-
 		if ( !CreateDeviceD3D( g_Variables.g_hCheatWindow ) )
 		{
-			MessageBoxA(nullptr, "CreateDeviceD3D falhou — DirectX11 nao inicializou.\nFiveM precisa estar em Windowed ou Borderless Windowed.", "[DIAG] DirectX", MB_OK|MB_ICONERROR);
 			CleanupDeviceD3D( );
 			UnregisterClassW( wc.lpszClassName, wc.hInstance );
 			return;
 		}
 
-		// Forca overlay na frente do FiveM
-		SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
 
 		SetWindowDisplayAffinity( g_Variables.g_hCheatWindow, WDA_EXCLUDEFROMCAPTURE );
 
@@ -79,17 +68,7 @@ namespace Gui
 
 
 		Core::StartThreads( );
-		if ( !Core::ThreadsStarted )
-		{
-			MessageBoxA(nullptr, "StartThreads falhou — threads internas nao iniciaram.", "[DIAG] Threads", MB_OK|MB_ICONERROR);
-			return;
-		}
-
-		MessageBoxA(nullptr,
-			"Menu iniciado com sucesso!\n\n"
-			"Pressione INSERT ou P com o FiveM em foco para abrir o menu.\n"
-			"Se nao aparecer: use FiveM em modo Windowed ou Borderless.",
-			"[DIAG] Menu Iniciado", MB_OK|MB_ICONINFORMATION);
+		if ( !Core::ThreadsStarted ) return;
 
 		std::thread( [ & ] ( ) { NotifyManager::Send( xorstr( "We are here!" ), 4000 ); } ).detach( );
 
