@@ -37,6 +37,8 @@ class Actions {
  std::uint32_t model=0;int cloneSource=0,backup=0,expectedPed=0,oldHealth=0,oldArmor=0;
  bool weaponRequested=false;std::uint64_t lastShot=0;
  int spawned=0;bool spawnStarted=false;std::uint64_t spawnDeadline=0;
+ // Estado para delete em massa com request control assincrono
+ std::vector<int> massDeleteTargets{};int massDeletePhase=0;std::uint64_t massDeleteDeadline=0;
  std::uint64_t Call(std::uint64_t hash,std::initializer_list<std::uint64_t> args={}){return api.Call(hash,std::vector<std::uint64_t>(args));}
  bool Exists(int entity){return entity>0&&Call(N::EntityExists,{static_cast<std::uint64_t>(entity)})!=0;}
  void Delete(int& entity){if(Exists(entity))Call(N::DeleteEntity,{reinterpret_cast<std::uint64_t>(&entity)});entity=0;}
@@ -60,6 +62,7 @@ class Actions {
   if(model)Call(N::ReleaseModel,{model});
   if(animRequested)Call(N::ReleaseAnim,{reinterpret_cast<std::uint64_t>(command.text)});
   model=0;pending=false;animConfirm=false;animRequested=false;spawned=0;spawnStarted=false;
+  massDeleteTargets.clear();massDeletePhase=0;
  }
  void Finish(bool ok,const std::string& text,std::uint32_t value=0){
   reply={};reply.id=command.id;reply.success=ok?1u:0u;reply.value=value;Copy(reply.message,sizeof(reply.message),text);hasReply=true;Release();
@@ -124,11 +127,9 @@ public:
        if(!Sane(current)||distance>radiusSq){outside++;goto next_vehicle;}
        if(Call(N::Networked,{id})&&!Call(N::HasControl,{id})){uncontrolled++;goto next_vehicle;}
        if(massDelete){
-        // Modo em massa: deletar todos no raio
-        Call(N::MissionEntity,{id,1,1});
-        int vh=vehicle;
-        Call(N::DeleteVehicle,{reinterpret_cast<std::uint64_t>(&vh)});
-        if(!Call(N::EntityExists,{id}))deleted++;else skipped++;
+        // Fase 0: coletar handle e pedir controle
+        Call(Hash("NETWORK_REQUEST_CONTROL_OF_ENTITY"),{id});
+        massDeleteTargets.push_back(vehicle);
         goto next_vehicle;
        }
        if(distance<=bestDistance){best=vehicle;bestDistance=distance;}
@@ -138,8 +139,9 @@ public:
      }
     }
     if(massDelete){
-     const std::string msg="Deletados: "+std::to_string(deleted)+(uncontrolled?" | Sem controle: "+std::to_string(uncontrolled):"")+(skipped?" | Nao confirmados: "+std::to_string(skipped):"");
-     Finish(deleted>0,deleted>0?msg:"Nenhum veiculo elegivel em "+std::to_string(command.flags)+" m. Sem controle: "+std::to_string(uncontrolled)+". Fora do raio: "+std::to_string(outside)+".");return;
+     if(massDeleteTargets.empty()){Finish(false,"Nenhum veiculo encontrado em "+std::to_string(command.flags)+" m. Fora do raio: "+std::to_string(outside)+".");return;}
+     // Aguardar controle no Tick (fase 1 -> 2)
+     massDeletePhase=1;massDeleteDeadline=now+600;return; // pending ja e true
     }
     if(!best){Finish(false,"Nenhum veiculo elegivel em 15 m. Sem controle: "+std::to_string(uncontrolled)+". Fora do raio: "+std::to_string(outside)+". Seu veiculo atual e ignorado.");return;}
     const auto id=static_cast<std::uint64_t>(best);
@@ -196,6 +198,28 @@ public:
     else if(Call(N::AnimLoaded,{reinterpret_cast<std::uint64_t>(command.text)})){
      Call(N::PlayAnim,{static_cast<std::uint64_t>(ped),reinterpret_cast<std::uint64_t>(command.text),reinterpret_cast<std::uint64_t>(command.text2),Float(8),Float(-8),static_cast<std::uint64_t>(-1),command.flags&1u,Float(0),0,0,0});animConfirm=true;animDeadline=now+2000;
     }
+   }else if(command.action==Action::DeleteClosestVehicle&&massDeletePhase==1){
+    // Fase 1: aguardar controle ou timeout, depois deletar todos
+    const bool timedOut=now>=massDeleteDeadline;
+    // Re-pedir controle dos que ainda nao tem (ate timeout)
+    if(!timedOut){for(int vh:massDeleteTargets){const auto id=static_cast<std::uint64_t>(vh);if(Exists(vh)&&Call(N::Networked,{id})&&!Call(N::HasControl,{id}))Call(Hash("NETWORK_REQUEST_CONTROL_OF_ENTITY"),{id});}}
+    // Checkar se todos ja tem controle ou se chegou timeout
+    bool allReady=true;
+    for(int vh:massDeleteTargets){const auto id=static_cast<std::uint64_t>(vh);if(Exists(vh)&&Call(N::Networked,{id})&&!Call(N::HasControl,{id})){allReady=false;break;}}
+    if(!allReady&&!timedOut)return; // ainda esperando
+    // Fase 2: deletar
+    int deleted=0,noControl=0;
+    for(int vh:massDeleteTargets){
+     if(!Exists(vh))continue;
+     const auto id=static_cast<std::uint64_t>(vh);
+     if(Call(N::Networked,{id})&&!Call(N::HasControl,{id})){++noControl;continue;}
+     Call(N::MissionEntity,{id,1,1});
+     Call(N::DeleteVehicle,{reinterpret_cast<std::uint64_t>(&vh)});
+     if(!Call(N::EntityExists,{id}))++deleted;
+    }
+    massDeleteTargets.clear();massDeletePhase=0;
+    const std::string msg="Deletados: "+std::to_string(deleted)+(noControl?" | Sem controle apos espera: "+std::to_string(noControl):"");
+    Finish(deleted>0,deleted>0?msg:"Nenhum veiculo deletado. Sem controle: "+std::to_string(noControl)+".");return;
    }else if(Call(N::ModelLoaded,{model})){
     if(command.action==Action::SpawnVehicle){
      const float heading=AsFloat(Call(N::Heading,{static_cast<std::uint64_t>(ped)}));
