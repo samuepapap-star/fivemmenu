@@ -39,7 +39,11 @@ public:
    Call(SeatN::Warp,{ped,vehicle,seat});occupant=ped;
   }else{
    if(!occupant){Finish(false,command.flags?"Nenhum ocupante no P2":"Nenhum ocupante no P1");return;}
-   if(!Call(SeatN::Exists,{occupant})||!Controlled(occupant)||!Controlled(vehicle)){Finish(false,"Sem controle do ocupante ou veiculo; retirada nao aplicada");return;}
+   if(!Call(SeatN::Exists,{occupant})){Finish(false,"Ocupante deixou de estar disponivel");return;}
+   if(!Controlled(occupant)){
+    const bool player=Call(0x12534C348C6CB68BULL,{occupant})!=0;
+    Finish(false,player?"Outro jogador controla este personagem. Retirada requer uma acao autorizada pelo servidor.":"Sem controle local do NPC; retirada nao aplicada");return;
+   }
    Call(SeatN::Leave,{occupant,vehicle,16});
   }
   pending=true;deadline=now+4000;

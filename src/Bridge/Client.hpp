@@ -119,7 +119,7 @@ class Client {
     while(!Stopping()&&GetTickCount64()<end){
      {std::lock_guard<std::mutex> lock(mutex);
       if(pid!=target)throw std::runtime_error("Processo do jogo alterado; acao cancelada");
-      if(shared&&State(shared->commandState)==Done&&shared->reply.id==command.id){status=shared->reply.message;InterlockedExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Idle);done=true;break;}
+      if(shared&&State(shared->commandState)==Done&&shared->reply.id==command.id){if(command.action!=Action::PlayerNames)status=shared->reply.message;InterlockedExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Idle);done=true;break;}
       if(shared&&State(shared->service)<0)throw std::runtime_error(shared->error);
      }
      if(WaitForSingleObject(h,25)==WAIT_OBJECT_0)throw std::runtime_error("FiveM encerrado durante a acao");
@@ -143,7 +143,7 @@ public:
   value.id=++serial;if(!Valid(value)){status="Valores invalidos para a acao";return false;}
   if(!Fresh(lastFrame,GetTickCount64())){status="Carregue seu personagem primeiro";return false;}
   if(!worker.joinable())worker=std::thread([this](){Run();});
-  job=value;working=true;status="Preparando acao...";wake.notify_one();return true;
+  job=value;working=true;if(value.action!=Action::PlayerNames)status="Preparando acao...";wake.notify_one();return true;
  }
  bool Busy(){std::lock_guard<std::mutex> lock(mutex);return working;}
  std::string Status(){std::lock_guard<std::mutex> lock(mutex);return status;}

@@ -102,7 +102,8 @@ inline void Tick(){
  MenuBridge::Connection().Tick(Core::Mem.ProcId,Core::Mem.ProcHandle,f);
  static std::uint64_t lastNamesRequest=0;
  if(g_Config.ESP->Enabled&&g_Config.ESP->UserNames&&f.valid&&f.heartbeat-lastNamesRequest>=3000&&!MenuBridge::Connection().Busy()){
-  lastNamesRequest=f.heartbeat;MenuBridge::Command request{};request.action=MenuBridge::Action::PlayerNames;Submit(request);
+  lastNamesRequest=f.heartbeat;MenuBridge::Command request{};request.action=MenuBridge::Action::PlayerNames;
+  if(MenuBridge::BuildPolicy::Supported(g_Offsets.CurrentBuild))MenuBridge::Connection().Submit(request);
  }
 
 }
