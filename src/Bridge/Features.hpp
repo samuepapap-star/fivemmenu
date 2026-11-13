@@ -41,6 +41,9 @@ inline void Clone(int serverId){MenuBridge::Command c{};c.action=MenuBridge::Act
 inline void Spawn(const char* model,bool network,bool enter){MenuBridge::Command c{};c.action=MenuBridge::Action::SpawnVehicle;c.flags=(network?1u:0u)|(enter?2u:0u);MenuBridge::Copy(c.text,sizeof(c.text),model);Submit(c);}
 inline void TransferVehicles(int serverId,bool rain){MenuBridge::Command c{};c.action=MenuBridge::Action::TransferVehicles;c.targetServerId=static_cast<std::uint64_t>(serverId);c.flags=rain?1u:0u;Submit(c);}
 inline void DeleteClosestVehicle(){MenuBridge::Command c{};c.action=MenuBridge::Action::DeleteClosestVehicle;Submit(c);}
+// Deleta todos os veiculos no raio especificado (metros) via native DeleteVehicle.
+// flags>0 ativa modo em massa no NativeActions; flags==0 = comportamento de 1 carro.
+inline void DeleteVehiclesRadius(int meters=20){MenuBridge::Command c{};c.action=MenuBridge::Action::DeleteClosestVehicle;c.flags=static_cast<std::uint32_t>(meters>0?meters:20);Submit(c);}
 inline void TeleportWaypoint(){
  if(cameraRequested||MenuBridge::Connection().CameraState()||g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){localStatus="Desative camera livre, NoClip e sem colisao antes de teleportar";return;}
  MenuBridge::Command c{};c.action=MenuBridge::Action::TeleportWaypoint;Submit(c);

@@ -315,11 +315,8 @@ namespace Local {
                             if(Custom::Button("Apagar veiculo proximo (15 m)",ImVec2(-1,33),0))BridgeFeatures::DeleteClosestVehicle();
                             ImGui::TextWrapped("Apaga o veiculo elegivel mais proximo, mesmo ocupado. Ignora seu veiculo atual e veiculos sem controle local.");
                             BridgeFeatures::Status();
-                            if(Custom::Button("Deletar todos em 20 m",ImVec2(-1,33),0)){
-                                const std::string r=Core::Features::CarreraAdditions::DeleteVehiclesRadius();
-                                NotifyManager::Send(r.c_str(),4000);
-                            }
-                            ImGui::TextWrapped("Destroi todos os veiculos a ate 20 m via motor (RPM/WPM). Ignora seu veiculo atual e veiculos invencíveis.");
+                            if(Custom::Button("Deletar todos em 20 m",ImVec2(-1,33),0))BridgeFeatures::DeleteVehiclesRadius(20);
+                            ImGui::TextWrapped("Apaga da rede todos os veiculos a ate 20 m via native DeleteVehicle. Ignora seu veiculo atual e veiculos sem controle local.");
 
                         ImGui::BeginDisabled(!InVehicle || !CurrentVehicle || g_Config.Player->VehicleGodMode);
                         if (Custom::Button("Destruir veículo atual", ImVec2(-1,33), 0)) {

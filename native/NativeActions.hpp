@@ -106,7 +106,13 @@ public:
     const Vec pos=api.Vector(N::EntityCoords,{static_cast<std::uint64_t>(ped),0});
     if(!Sane(pos)){Finish(false,"Posicao indisponivel");return;}
     const auto own=Call(N::CurrentVehicle,{static_cast<std::uint64_t>(ped),0});
-    int vehicle=0,best=0,uncontrolled=0,outside=0;float bestDistance=15.f*15.f;
+    // flags==0 -> deletar o mais proximo em 15 m (comportamento original)
+    // flags>0  -> deletar TODOS no raio de flags metros (modo em massa)
+    const bool massDelete=command.flags>0;
+    const float radius=massDelete?static_cast<float>(command.flags):15.f;
+    const float radiusSq=radius*radius;
+    int vehicle=0,best=0,uncontrolled=0,outside=0;float bestDistance=radiusSq;
+    int deleted=0,skipped=0;
     {
      const int handle=static_cast<int>(Call(Hash("FIND_FIRST_VEHICLE"),{reinterpret_cast<std::uint64_t>(&vehicle)}));
      struct Iterator{NativeApi& api;int handle;~Iterator(){if(handle>=0)try{api.Call(Hash("END_FIND_VEHICLE"),{static_cast<std::uint64_t>(handle)});}catch(...){}}} iterator{api,handle};
@@ -115,12 +121,25 @@ public:
       if(Exists(vehicle)&&id!=own){
        const Vec current=api.Vector(N::EntityCoords,{id,0});
        const float x=current.x-pos.x,y=current.y-pos.y,z=current.z-pos.z,distance=x*x+y*y+z*z;
-       if(!Sane(current)||distance>15.f*15.f)outside++;
-       else if(Call(N::Networked,{id})&&!Call(N::HasControl,{id}))uncontrolled++;
-       else if(distance<=bestDistance){best=vehicle;bestDistance=distance;}
+       if(!Sane(current)||distance>radiusSq){outside++;goto next_vehicle;}
+       if(Call(N::Networked,{id})&&!Call(N::HasControl,{id})){uncontrolled++;goto next_vehicle;}
+       if(massDelete){
+        // Modo em massa: deletar todos no raio
+        Call(N::MissionEntity,{id,1,1});
+        int vh=vehicle;
+        Call(N::DeleteVehicle,{reinterpret_cast<std::uint64_t>(&vh)});
+        if(!Call(N::EntityExists,{id}))deleted++;else skipped++;
+        goto next_vehicle;
+       }
+       if(distance<=bestDistance){best=vehicle;bestDistance=distance;}
       }
+      next_vehicle:
       if(!Call(Hash("FIND_NEXT_VEHICLE"),{static_cast<std::uint64_t>(handle),reinterpret_cast<std::uint64_t>(&vehicle)}))break;
      }
+    }
+    if(massDelete){
+     const std::string msg="Deletados: "+std::to_string(deleted)+(uncontrolled?" | Sem controle: "+std::to_string(uncontrolled):"")+(skipped?" | Nao confirmados: "+std::to_string(skipped):"");
+     Finish(deleted>0,deleted>0?msg:"Nenhum veiculo elegivel em "+std::to_string(command.flags)+" m. Sem controle: "+std::to_string(uncontrolled)+". Fora do raio: "+std::to_string(outside)+".");return;
     }
     if(!best){Finish(false,"Nenhum veiculo elegivel em 15 m. Sem controle: "+std::to_string(uncontrolled)+". Fora do raio: "+std::to_string(outside)+". Seu veiculo atual e ignorado.");return;}
     const auto id=static_cast<std::uint64_t>(best);
