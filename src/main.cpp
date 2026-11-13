@@ -30,30 +30,43 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 {
 	if ( !Mem.GetMaxPrivileges( GetCurrentProcess( ) ) )
 	{
-		//std::cout << xorstr( "[Error]: Failed GetMaxPrivileges\n" );
-		//std::cin.get( );
+		MessageBoxA(nullptr,
+			"Falha ao obter privilegios maximos.\nExecute o .exe como Administrador.",
+			"[DIAG] Privilegios", MB_OK | MB_ICONERROR);
 		return 0;
 	}
 
-
 	//Utils::OpenConsole( );
 
-
-
-	while ( !g_Variables.g_hGameWindow )
+	// Aguarda janela do FiveM (grcWindow) com timeout de 30s
 	{
-
-		g_Variables.g_hGameWindow = FindWindowA( xorstr( "grcWindow" ), nullptr );
-		if ( g_Variables.g_hGameWindow )
+		int attempts = 0;
+		while ( !g_Variables.g_hGameWindow && attempts < 60 )
 		{
-			auto WindowInfo = Utils::GetWindowPosAndSize( g_Variables.g_hGameWindow );
-			g_Variables.g_vGameWindowSize = WindowInfo.second;
-			g_Variables.g_vGameWindowPos = WindowInfo.first;
-			g_Variables.g_vGameWindowCenter = { g_Variables.g_vGameWindowSize.x / 2, g_Variables.g_vGameWindowSize.y / 2 };
-			break;
+			g_Variables.g_hGameWindow = FindWindowA( "grcWindow", nullptr );
+			if ( g_Variables.g_hGameWindow )
+			{
+				auto WindowInfo = Utils::GetWindowPosAndSize( g_Variables.g_hGameWindow );
+				g_Variables.g_vGameWindowSize = WindowInfo.second;
+				g_Variables.g_vGameWindowPos = WindowInfo.first;
+				g_Variables.g_vGameWindowCenter = { g_Variables.g_vGameWindowSize.x / 2, g_Variables.g_vGameWindowSize.y / 2 };
+				break;
+			}
+			std::this_thread::sleep_for( std::chrono::milliseconds(500) );
+			attempts++;
 		}
 
-		//std::this_thread::sleep_for( std::chrono::seconds( 3 ) );
+		if ( !g_Variables.g_hGameWindow )
+		{
+			MessageBoxA(nullptr,
+				"Janela do FiveM (grcWindow) nao encontrada apos 30 segundos.\n\n"
+				"Certifique-se de:\n"
+				"1. FiveM esta aberto e carregado no servidor\n"
+				"2. O personagem ja apareceu na tela\n"
+				"3. O jogo nao esta minimizado",
+				"[DIAG] FiveM nao encontrado", MB_OK | MB_ICONWARNING);
+			return 0;
+		}
 	}
 	//
  //	char cDcId[ 255 ];
@@ -80,10 +93,23 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 
 	DWORD ProcIdFiveM = 0;
 	GetWindowThreadProcessId( g_Variables.g_hGameWindow, &ProcIdFiveM );
+	if ( ProcIdFiveM == 0 )
+	{
+		MessageBoxA(nullptr,
+			"Encontrou a janela do FiveM mas nao conseguiu obter o PID do processo.\nTente executar como Administrador.",
+			"[DIAG] PID invalido", MB_OK | MB_ICONERROR);
+		return 0;
+	}
+
 	if ( ProcIdFiveM != 0 )
 	{
 		std::string ProcessName = Mem.GetNameByPid( ProcIdFiveM );
-		if ( ProcessName.empty( ) ) { return 0; };
+		if ( ProcessName.empty( ) )
+		{
+			std::string msg = "Nao foi possivel obter o nome do processo. PID: " + std::to_string(ProcIdFiveM);
+			MessageBoxA(nullptr, msg.c_str(), "[DIAG] Nome do processo", MB_OK | MB_ICONERROR);
+			return 0;
+		}
 
 		const std::string arguments=cmdline?cmdline:"";
         if (arguments.find("--diagnostico-recursos") != std::string::npos ||
@@ -94,8 +120,11 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 		}
 
 		if ( !Mem.OpenProcByPid(ProcIdFiveM) ) {
-			//std::cout << xorstr( "[Error]: Failed to OpenProc\n" );
-			//std::cin.get( );
+			std::string msg = "OpenProcess falhou para o processo: " + ProcessName +
+				"\nPID: " + std::to_string(ProcIdFiveM) +
+				"\nErro Windows: " + std::to_string(GetLastError()) +
+				"\n\nCertifique-se de executar o .exe como Administrador.";
+			MessageBoxA(nullptr, msg.c_str(), "[DIAG] OpenProcess falhou", MB_OK | MB_ICONERROR);
 			return 0;
 		}
 
@@ -106,15 +135,33 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
         g_Offsets.CurrentBuild = ClientBuild::Detect(ProcessName);
         AltosDiagnostics::Log("startup process="+ProcessName+" window_pid="+std::to_string(ProcIdFiveM)+
             " attached_pid="+std::to_string(Mem.ProcId)+" build="+std::to_string(g_Offsets.CurrentBuild));
+
+		// Diagnostico: mostra info de attach bem-sucedido
+		{
+			char diagBuf[512];
+			sprintf_s(diagBuf, sizeof(diagBuf),
+				"[DIAG] Attach bem-sucedido!\n\n"
+				"Processo: %s\n"
+				"PID: %lu\n"
+				"Build detectada: %u\n"
+				"ModBase: 0x%llX\n"
+				"ModBaseSize: 0x%llX",
+				ProcessName.c_str(), ProcIdFiveM,
+				g_Offsets.CurrentBuild,
+				(unsigned long long)Mem.ModBase,
+				(unsigned long long)Mem.ModBaseSize);
+			MessageBoxA(nullptr, diagBuf, "[DIAG] Status do Attach", MB_OK | MB_ICONINFORMATION);
+		}
+
         if(!g_Offsets.CurrentBuild) {
-            const std::string error="Esta build do FiveM não tem endereços compatíveis neste projeto. Processo: "+ProcessName+
-                ". Envie o nome deste processo e o registro ALTOS_PODERES_teleporte.log.";
-            MessageBoxA(nullptr,error.c_str(),"Build do FiveM não suportada",MB_ICONINFORMATION);
+            const std::string error="Esta build do FiveM nao tem enderecos compativeis. Processo: "+ProcessName+
+                ". Envie o nome deste processo no suporte.";
+            MessageBoxA(nullptr,error.c_str(),"Build do FiveM nao suportada",MB_ICONINFORMATION);
             return 0;
         }
         if(!Mem.ModBase || !Mem.ModBaseSize) {
             AltosDiagnostics::Log("startup_failed module_unavailable");
-            MessageBoxA(nullptr,"Não foi possível localizar o módulo do processo do FiveM.","Inicialização",MB_ICONERROR);
+            MessageBoxA(nullptr,"Nao foi possivel localizar o modulo do processo do FiveM.","Inicializacao",MB_ICONERROR);
             return 0;
         }
 
