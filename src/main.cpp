@@ -113,7 +113,10 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 		}
 
 		char diagMsg3[512];
-		sprintf_s( diagMsg3, "PASSO 5: Attach OK!\nModBase: 0x%llX\nBuild: %lu", Mem.ModBase, (DWORD)ClientBuild::Detect(ProcessName) );
+		sprintf_s( diagMsg3, "PASSO 5: Attach OK!\nModBase: 0x%llX\nBuild: %lu\nJanela FiveM: %dx%d em (%d,%d)",
+			Mem.ModBase, (DWORD)ClientBuild::Detect(ProcessName),
+			(int)g_Variables.g_vGameWindowSize.x, (int)g_Variables.g_vGameWindowSize.y,
+			(int)g_Variables.g_vGameWindowPos.x, (int)g_Variables.g_vGameWindowPos.y );
 		MessageBoxA( nullptr, diagMsg3, "DIAG", MB_OK );
 
 		//std::cout << xorstr( "[ProcessName]: " ) << ProcessName << std::endl;

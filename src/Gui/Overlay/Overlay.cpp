@@ -56,6 +56,11 @@ namespace Gui
 		ShowWindow( g_Variables.g_hCheatWindow, SW_SHOWDEFAULT );
 		UpdateWindow( g_Variables.g_hCheatWindow );
 
+		// Força a janela do overlay na frente de tudo
+		SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW );
+		BringWindowToTop( g_Variables.g_hCheatWindow );
+		SetForegroundWindow( g_Variables.g_hCheatWindow );
+
 
 		ImGui::CreateContext( );
 
