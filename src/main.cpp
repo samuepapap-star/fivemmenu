@@ -1,4 +1,5 @@
 #pragma once
+#include <Bridge/Client.hpp>
 #include <Gui/Overlay/Overlay.hpp>
 #include <Includes/Includes.hpp>
 #include <Core/SDK/Memory.hpp>
@@ -130,6 +131,13 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
             AltosDiagnostics::Log("build3889_initialized compatibility_report_20261106 waypoint_unavailable");
         }
 		GetOffsets();
+#ifdef DEBUG_BRIDGE_STATUS
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			const std::string bridgeStatus = MenuBridge::Connection().Status();
+			MessageBoxA(nullptr, bridgeStatus.c_str(), "Bridge Status (DEBUG)", MB_OK | MB_ICONINFORMATION);
+		}
+#endif
 		Gui::cOverlay.Render( );
 		AcBypass::Shutdown( );
 		return 0;

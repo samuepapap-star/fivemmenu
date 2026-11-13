@@ -4,6 +4,7 @@
 #include <Core/Features/ExtraCamera.hpp>
 #include <Core/Features/WorldClock.hpp>
 #include <Core/Features/VehicleManipulation.hpp>
+#include <Core/Features/GrabLaunch.hpp>
 namespace ExtraPages {
 inline void Key(const char* label,int& value){static int mode=1;ImGui::Keybind(label,&value,&mode);}
 inline void Render(int section){
@@ -30,7 +31,18 @@ inline void Render(int section){
   ImGui::TextWrapped("%s",Extras::status);
  }
  if(section==1){
+  GrabLaunch::Tick();
   ImGui::TextDisabled("Carro / portas e impulso");
+  ImGui::TextDisabled("Agarrar & Arremessar veiculo");
+  if(GrabLaunch::IsIdle()){
+   if(Custom::Button("Agarrar Veiculo",ImVec2(-1,30),0))GrabLaunch::Grab();
+  }
+  if(GrabLaunch::IsHolding()){
+   ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.8f,0.2f,0.2f,1.0f));
+   if(Custom::Button("Arremessar!",ImVec2(-1,30),0))GrabLaunch::Throw();
+   ImGui::PopStyleColor();
+  }
+  ImGui::Separator();
   if(Custom::Button("Destrancar mais proximo",ImVec2(-1,30),0))Extras::SetDoors(true,true);
   if(Custom::Button("Destrancar carros proximos",ImVec2(-1,30),0))Extras::SetDoors(true,false);
   if(Custom::Button("Trancar carros proximos",ImVec2(-1,30),0))Extras::SetDoors(false,false);

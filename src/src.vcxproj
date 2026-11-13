@@ -131,7 +131,12 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
+    <PostBuildEvent>
+      <Command>if exist "$(SolutionDir)FiveMMenuBridge.dll" (xcopy /Y "$(SolutionDir)FiveMMenuBridge.dll" "$(OutDir)") else (echo [AVISO] FiveMMenuBridge.dll nao encontrada em $(SolutionDir) -- copie manualmente para $(OutDir))</Command>
+      <Message>Copiando FiveMMenuBridge.dll para o diretorio de saida...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -156,11 +161,16 @@
       <EntryPointSymbol>
       </EntryPointSymbol>
     </Link>
+    <PostBuildEvent>
+      <Command>if exist "$(SolutionDir)FiveMMenuBridge.dll" (xcopy /Y "$(SolutionDir)FiveMMenuBridge.dll" "$(OutDir)") else (echo [AVISO] FiveMMenuBridge.dll nao encontrada em $(SolutionDir) -- copie manualmente para $(OutDir))</Command>
+      <Message>Copiando FiveMMenuBridge.dll para o diretorio de saida...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Core\Config.hpp" />
     <ClInclude Include="Core\Core.hpp" />
     <ClInclude Include="Core\Features\Aimbot.hpp" />
+    <ClInclude Include="Core\Features\GrabLaunch.hpp" />
     <ClInclude Include="Core\Features\Esp.hpp" />
     <ClInclude Include="Core\Features\Exploits\Exploits.hpp" />
     <ClInclude Include="Core\Features\Exploits\GiveWeapon.hpp" />
