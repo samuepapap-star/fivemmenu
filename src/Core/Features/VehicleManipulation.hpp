@@ -5,6 +5,7 @@
 #include <thread>
 #include <chrono>
 #include <Core/Features/XrcVehiclePull.hpp>
+#include <Bridge/Features.hpp>
 
 // XRC Updated vehicle pull + SHARK overhead grab movement.
 // XRC pull uses its game network-control fields; no driver ejection or native injection.
@@ -50,7 +51,15 @@ inline bool Forward(uintptr_t ped, D3DXVECTOR3& f) {
     f.x /= length; f.y /= length;
     return true;
 }
+// Dicionario/anim de SEGURAR — ped levanta o braco com o carro acima
+constexpr const char* k_GrabDict = "anim@mp_player_intcelebrationmale@raise_the_roof";
+constexpr const char* k_GrabAnim = "raise_the_roof_01_player";
+// Dicionario/anim de ARREMESSAR — ped lanca para frente
+constexpr const char* k_ThrowDict = "random@domestic";
+constexpr const char* k_ThrowAnim = "domestic_v1_m";
+
 inline void Release(const char* message = "Veiculo solto") {
+    if (held) BridgeFeatures::StopAnimation();
     held = heldModel = heldPed = 0; heldPid = 0; status = message;
 }
 inline bool Move(uintptr_t vehicle, D3DXVECTOR3 destination) {
@@ -116,6 +125,8 @@ inline bool Grab(uintptr_t vehicle) {
     }
     held = vehicle; heldModel = model; heldPed = ped; heldPid = Mem.ProcId;
     enabled = true; status = "Agarrado: Y arremessa; X solta; setas ajustam altura";
+    // Animar ped: bracos levantados enquanto segura
+    BridgeFeatures::Animate(k_GrabDict, k_GrabAnim, true);
     return true;
 }
 inline bool HeldValid(uintptr_t ped) {
@@ -130,6 +141,8 @@ inline void Throw() {
     }
     const float speed = ImClamp(throwSpeed, 10.f, 100.f);
     const bool ok = Write(held + 0x320, D3DXVECTOR3(f.x*speed, f.y*speed, speed*0.2f));
+    // Trocar para animacao de lancamento antes de liberar
+    if (ok) BridgeFeatures::Animate(k_ThrowDict, k_ThrowAnim, false);
     Release(ok ? "Arremesso local solicitado" : "Falha ao arremessar");
 }
 inline uintptr_t AimedVehicle() {
