@@ -12,7 +12,7 @@
 #include <tchar.h>
 #include <thread>
 
-#define FULLSCREEN_EX
+//#define FULLSCREEN_EX
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam );
 
