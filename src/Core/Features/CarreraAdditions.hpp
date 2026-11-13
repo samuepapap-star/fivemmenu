@@ -156,4 +156,38 @@ namespace Core { namespace Features { namespace CarreraAdditions {
         return "Escritas completas em "+std::to_string(updated)+" de "+std::to_string(nearby)+
             " veículos próximos. Falhas: "+std::to_string(failed)+".";
     }
+    // Destroi todos os veiculos no raio de 20 metros via engine health = -4000.
+    // Nao usa bridge/natives — opera direto via RPM/WPM na lista local.
+    // Ignora o veiculo atual do player e veiculos com GodMode ativo.
+    inline std::string DeleteVehiclesRadius() {
+        if (!g_Offsets.m_VehicleEngineHealth)
+            return "Campo de saúde do motor indisponível nesta build.";
+        const uintptr_t ped = LocalPlayer();
+        if (!ped) return "Player indisponível.";
+        // Ler veiculo atual do ped para ignorar
+        uintptr_t currentVeh = 0;
+        Read(ped + g_Offsets.m_LastVehicle, currentVeh);
+        // Snapshot thread-safe da lista
+        const auto snapshot = Core::SDK::Game::SnapshotVehicles();
+        int deleted = 0, skipped = 0, failed = 0;
+        for (const auto& v : snapshot) {
+            if (!v.Pointer || !std::isfinite(v.Dist)) continue;
+            if (v.Dist > 20.f) continue; // fora do raio
+            const uintptr_t vehAddr = reinterpret_cast<uintptr_t>(v.Pointer);
+            if (vehAddr == currentVeh) { ++skipped; continue; } // veiculo atual, ignora
+            // Verificar GodMode (invincible flag +0x189)
+            BYTE invincible = 0;
+            Read(vehAddr + 0x189, invincible);
+            if (invincible) { ++skipped; continue; }
+            // Escrever engine health = -4000 para destruir
+            const uintptr_t condition = vehAddr + g_Offsets.m_VehicleEngineHealth;
+            if (Write(condition, -4000.f)) ++deleted; else ++failed;
+        }
+        if (deleted == 0 && skipped == 0 && failed == 0)
+            return "Nenhum veículo encontrado no raio de 20 m.";
+        std::string result = "Destruídos: " + std::to_string(deleted);
+        if (skipped) result += " | Ignorados: " + std::to_string(skipped);
+        if (failed)  result += " | Falhas: " + std::to_string(failed);
+        return result;
+    }
 }}}
