@@ -21,21 +21,17 @@
 #include <regex>
 
 #include <Security/AntiCrack.hpp>
-#include <Security/AcBypass.hpp>
 
 using namespace Core;
 
 int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow )
 {
-	MessageBoxA( nullptr, "PASSO 1: WinMain iniciado", "DIAG", MB_OK );
-
 	if ( !Mem.GetMaxPrivileges( GetCurrentProcess( ) ) )
 	{
-		MessageBoxA( nullptr, "FALHOU: GetMaxPrivileges retornou false\nExecute como Administrador", "DIAG - ERRO", MB_OK );
+		//std::cout << xorstr( "[Error]: Failed GetMaxPrivileges\n" );
+		//std::cin.get( );
 		return 0;
 	}
-
-	MessageBoxA( nullptr, "PASSO 2: Privilégios OK\nAguardando FiveM abrir...", "DIAG", MB_OK );
 
 
 	//Utils::OpenConsole( );
@@ -82,18 +78,10 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 
 	DWORD ProcIdFiveM = 0;
 	GetWindowThreadProcessId( g_Variables.g_hGameWindow, &ProcIdFiveM );
-
-	char diagMsg[512];
-	sprintf_s( diagMsg, "PASSO 3: grcWindow encontrado!\nPID do FiveM: %lu", ProcIdFiveM );
-	MessageBoxA( nullptr, diagMsg, "DIAG", MB_OK );
-
 	if ( ProcIdFiveM != 0 )
 	{
 		std::string ProcessName = Mem.GetNameByPid( ProcIdFiveM );
-		if ( ProcessName.empty( ) ) {
-			MessageBoxA( nullptr, "FALHOU: GetNameByPid retornou vazio", "DIAG - ERRO", MB_OK );
-			return 0;
-		};
+		if ( ProcessName.empty( ) ) { return 0; };
 
 		const std::string arguments=cmdline?cmdline:"";
         if (arguments.find("--diagnostico-recursos") != std::string::npos ||
@@ -103,21 +91,11 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
 			return 0;
 		}
 
-		char diagMsg2[512];
-		sprintf_s( diagMsg2, "PASSO 4: Processo = %s", ProcessName.c_str() );
-		MessageBoxA( nullptr, diagMsg2, "DIAG", MB_OK );
-
 		if ( !Mem.OpenProcByPid(ProcIdFiveM) ) {
-			MessageBoxA( nullptr, "FALHOU: OpenProcByPid retornou false\nTente executar como Administrador", "DIAG - ERRO", MB_OK );
+			//std::cout << xorstr( "[Error]: Failed to OpenProc\n" );
+			//std::cin.get( );
 			return 0;
 		}
-
-		char diagMsg3[512];
-		sprintf_s( diagMsg3, "PASSO 5: Attach OK!\nModBase: 0x%llX\nBuild: %lu\nJanela FiveM: %dx%d em (%d,%d)",
-			Mem.ModBase, (DWORD)ClientBuild::Detect(ProcessName),
-			(int)g_Variables.g_vGameWindowSize.x, (int)g_Variables.g_vGameWindowSize.y,
-			(int)g_Variables.g_vGameWindowPos.x, (int)g_Variables.g_vGameWindowPos.y );
-		MessageBoxA( nullptr, diagMsg3, "DIAG", MB_OK );
 
 		//std::cout << xorstr( "[ProcessName]: " ) << ProcessName << std::endl;
 		//std::cout << xorstr( "[PID]: " ) << ProcIdFiveM << std::endl;
@@ -138,21 +116,18 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
             return 0;
         }
 
-		AcBypass::Init( GetModuleHandle( nullptr ) );
 		std::thread( &AntiCrack::DoProtect ).detach( );
         if (g_Offsets.CurrentBuild == 3889) {
             const std::string error = Build3889Compatibility::Validate(Mem.ProcHandle, Mem.ModBase);
             if (!error.empty()) {
                 AltosDiagnostics::Log("build3889_initialization_failed " + error);
                 MessageBoxA(nullptr, error.c_str(), "Compatibilidade 3889", MB_ICONERROR);
-                AcBypass::Shutdown( );
                 return 0;
             }
             AltosDiagnostics::Log("build3889_initialized compatibility_report_20261106 waypoint_unavailable");
         }
 		GetOffsets();
 		Gui::cOverlay.Render( );
-		AcBypass::Shutdown( );
 		return 0;
 	}
 

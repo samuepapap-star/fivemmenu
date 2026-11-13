@@ -32,7 +32,6 @@ inline void Render(int section){
  }
  if(section==1){
   GrabLaunch::Tick();
-  ImGui::TextDisabled("Carro / portas e impulso");
   ImGui::TextDisabled("Agarrar & Arremessar veiculo");
   if(GrabLaunch::IsIdle()){
    if(Custom::Button("Agarrar Veiculo",ImVec2(-1,30),0))GrabLaunch::Grab();
@@ -43,6 +42,7 @@ inline void Render(int section){
    ImGui::PopStyleColor();
   }
   ImGui::Separator();
+  ImGui::TextDisabled("Carro / portas e impulso");
   if(Custom::Button("Destrancar mais proximo",ImVec2(-1,30),0))Extras::SetDoors(true,true);
   if(Custom::Button("Destrancar carros proximos",ImVec2(-1,30),0))Extras::SetDoors(true,false);
   if(Custom::Button("Trancar carros proximos",ImVec2(-1,30),0))Extras::SetDoors(false,false);
