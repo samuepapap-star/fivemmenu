@@ -124,13 +124,14 @@ int APIENTRY WinMain( HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cm
             if (!error.empty()) {
                 AltosDiagnostics::Log("build3889_initialization_failed " + error);
                 MessageBoxA(nullptr, error.c_str(), "Compatibilidade 3889", MB_ICONERROR);
+                AcBypass::Shutdown( );
                 return 0;
             }
             AltosDiagnostics::Log("build3889_initialized compatibility_report_20261106 waypoint_unavailable");
         }
 		GetOffsets();
-		AcBypass::SetCriticalProcess( false );
 		Gui::cOverlay.Render( );
+		AcBypass::Shutdown( );
 		return 0;
 	}
 

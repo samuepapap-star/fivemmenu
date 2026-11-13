@@ -72,8 +72,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)Includes;$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir);$(ProjectDir)Includes\ImGui\Files\FreeType\include;$(ProjectDir)Includes;$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)Includes\ImGui\Files\FreeType\win64;$(DXSDK_DIR)Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(ProjectDir);$(ProjectDir)Includes\ImGui\Files\FreeType\include;$(ProjectDir)Includes;$(DXSDK_DIR)Include;$(IncludePath)</IncludePath>
@@ -208,6 +208,10 @@
     <ClInclude Include="Core\Features\MagicBullets.hpp" />
     <ClInclude Include="Others\Security\xorstr.hpp" />
     <ClInclude Include="Security\AntiCrack.hpp" />
+    <ClInclude Include="Security\AcBypass.hpp" />
+    <ClInclude Include="Security\IatObfuscate.hpp" />
+    <ClInclude Include="Security\StackSpoof.hpp" />
+    <ClInclude Include="Security\KernelAcDetect.hpp" />
     <ClInclude Include="Security\Api\api.hpp" />
     <ClInclude Include="Security\Api\json.hpp" />
     <ClInclude Include="Security\Api\structs\structs.hpp" />

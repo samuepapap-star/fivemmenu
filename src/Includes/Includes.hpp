@@ -24,10 +24,13 @@
 
 #include <Windows.h>
 #include <TlHelp32.h>
+#include <winternl.h>
+#include <psapi.h>
 #include <iostream>
 #include <thread>
 #include <mutex>
 #include <chrono>
+#include <atomic>
 
 #include <d3dx11.h>
 #include <d3d11.h>
