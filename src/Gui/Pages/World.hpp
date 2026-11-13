@@ -155,7 +155,6 @@ namespace World {
 							//{
 							//}
                             if(actionMode==2&&Custom::Button("Puxar jogador",ImVec2(-1,30),0))NotifyManager::Send(Core::Features::Extras::PullPlayer(reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
-                            if(actionMode==2&&Custom::Button("Ejetar do carro (P1)",ImVec2(-1,30),0))NotifyManager::Send(Core::Features::Extras::EjectFromVehicle(reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             if(actionMode==2&&Custom::Button("Observar jogador",ImVec2(-1,30),0))
                                 BridgeFeatures::Observe(SelectedPed.Id);
                             if(actionMode==2&&Custom::Button("Clonar aparencia",ImVec2(-1,30),0))
@@ -286,6 +285,8 @@ namespace World {
                                 NotifyManager::Send(Core::Features::VehicleManipulation::Pull(reinterpret_cast<uintptr_t>(Veh)),4000);
                             if (actionMode == 0 && Custom::Button("Agarrar carro", ImVec2(-1,30), 0))
                                 Core::Features::VehicleManipulation::Grab(reinterpret_cast<uintptr_t>(Veh));
+                            if (actionMode == 0 && Custom::Button("Ejetar motorista (P1)", ImVec2(-1,30), 0))
+                                NotifyManager::Send(Core::Features::Extras::EjectDriverFromVehicle(Veh),4000);
                             if (actionMode == 0 && Core::Features::VehicleManipulation::held) {
                                 if (Custom::Button("Arremessar", ImVec2(-1,30), 0))
                                     Core::Features::VehicleManipulation::Throw();

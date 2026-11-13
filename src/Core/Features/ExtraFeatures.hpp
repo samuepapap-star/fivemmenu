@@ -46,6 +46,30 @@ inline Override<float> cameraDistance;
 inline Override<float> weaponY,weaponZ,reload,shotInterval,traction,suspension,lift,gravity,driftMinimum,driftLoss;
 inline Bits frameFlags,aimFlags,modelFlags;
 inline Bits passiveFriendlyLock, passiveFriendlyDamage;
+// Ejecta o motorista (P1) de um CVehicle* selecionado na lista de carros.
+inline const char* EjectDriverFromVehicle(CVehicle* veh){
+ if(!veh)return "Veiculo invalido";
+ CPed* driver=veh->GetDriver();
+ if(!driver)return "Nenhum motorista no P1";
+ uintptr_t driverAddr=reinterpret_cast<uintptr_t>(driver);
+ // Ler posicao do veiculo (+0x90 visual pos)
+ uintptr_t vehAddr=reinterpret_cast<uintptr_t>(veh);
+ D3DXVECTOR3 vehPos{};
+ if(!Read(vehAddr+0x90,vehPos)||!Sane(vehPos))return "Posicao do veiculo indisponivel";
+ // Usar coluna direita da matriz de rotacao (+0x60) para offset lateral
+ D3DXVECTOR3 rightVec{1,0,0};
+ Read(vehAddr+0x60,rightVec);
+ float len=std::hypot(rightVec.x,rightVec.y);
+ if(len>0.1f){rightVec.x/=len;rightVec.y/=len;rightVec.z=0;}
+ else{rightVec={1,0,0};}
+ D3DXVECTOR3 ejectPos=vehPos+rightVec*4.f;
+ ejectPos.z=vehPos.z+1.f;
+ if(!Sane(ejectPos))return "Posicao de ejecao invalida";
+ if(!driver->SetPos(ejectPos))return "Falha ao mover motorista";
+ D3DXVECTOR3 zero{0,0,0};
+ Write(driverAddr+0x320,zero);
+ return "Motorista ejetado do P1 localmente";
+}
 // Ejecta o alvo do assento de motorista (P1) do veiculo em que esta.
 // Funciona apenas localmente — reposiciona o ped fora do carro com velocidade zerada.
 inline const char* EjectFromVehicle(uintptr_t target){
