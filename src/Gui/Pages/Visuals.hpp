@@ -122,15 +122,13 @@ namespace Visuals {
                         if (g_Config.ESP->AdminList) {
                             ImGui::Separator();
                             ImGui::TextColored(ImVec4(1.f,0.3f,0.3f,1.f), "ESP Admin");
+                            ImGui::SameLine(); ImGui::TextDisabled("(nomes RGB sempre ativos)");
                             Custom::CheckBox("Caixa (ADM)", &g_Config.ESP->AdminEspBox);
                             if (ImGui::IsItemHovered())
                                 ImGui::SetTooltip("Desenha uma caixa colorida ao redor de possíveis administradores.");
                             Custom::CheckBox("Linha de mira (ADM)", &g_Config.ESP->AdminEspSnapLines);
                             if (ImGui::IsItemHovered())
                                 ImGui::SetTooltip("Traça uma linha da base da tela até cada possível administrador.");
-                            Custom::CheckBox("Nomes RGB (ADM)", &g_Config.ESP->AdminEspNames);
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip("Exibe o nome do jogador acima da caixa com cor em arco-íris.");
                             Custom::CheckBox("Esqueleto (ADM)", &g_Config.ESP->AdminEspSkeleton);
                             if (ImGui::IsItemHovered())
                                 ImGui::SetTooltip("Desenha o esqueleto completo sobre possíveis administradores.");

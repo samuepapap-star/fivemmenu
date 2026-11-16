@@ -61,7 +61,7 @@ inline void Draw() {
     static DWORD processId=0;
     if(processId!=Mem.ProcId){filter.Clear();processId=Mem.ProcId;}
 
-    const bool anyAdminEsp = cfg->AdminEspBox||cfg->AdminEspSnapLines||cfg->AdminEspNames||cfg->AdminEspSkeleton;
+    const bool anyAdminEsp = cfg->AdminEspBox||cfg->AdminEspSnapLines||cfg->AdminEspSkeleton;
     if (!g_MenuInfo.IsLogged || (!cfg->Enabled && !ExtraSettings::InvisibleWarning) ||
         (!cfg->AdminList && !cfg->AdminHighlight && !anyAdminEsp && !ExtraSettings::InvisibleWarning)) {
         filter.Clear();
@@ -115,10 +115,10 @@ inline void Draw() {
         if (cfg->AdminEspSnapLines) {
             draw->AddLine(screenCenter, ImVec2(screenFeet.x,screenFeet.y), adminCol, 1.f);
         }
-        if (cfg->AdminEspNames) {
+        // RGB names sempre ativos para ADMs detectados
+        {
             const ImColor rgbCol=RgbCycleColor();
             const ImVec2 namePos(screenHead.x, screenHead.y-14.f);
-            // shadow
             draw->AddText(ImGui::GetFont(),13.f,ImVec2(namePos.x+1.f,namePos.y+1.f),IM_COL32(0,0,0,200),name.c_str());
             draw->AddText(ImGui::GetFont(),13.f,namePos,rgbCol,name.c_str());
         }
