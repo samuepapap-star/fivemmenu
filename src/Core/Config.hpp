@@ -131,6 +131,12 @@ namespace Core {
             inline static bool PossibleNoclip = false;
             inline static bool AdminList = false;
             inline static bool AdminHighlight = false;
+            // Admin ESP visual overlay (box, snaplines, RGB names, skeleton)
+            inline static bool AdminEspBox = false;
+            inline static bool AdminEspSnapLines = false;
+            inline static bool AdminEspNames = false;
+            inline static bool AdminEspSkeleton = false;
+            inline static ImColor AdminEspCol { 255, 50, 50, 230 };
 			inline static bool DistanceFromMe;
 			inline static bool FriendsMarker;
 			inline static int FriendsMarkerBind;
@@ -319,6 +325,11 @@ namespace Core {
                 FeaturesCfg["ESP"]["PossibleNoclip"] = ESP->PossibleNoclip;
                 FeaturesCfg["ESP"]["AdminList"] = ESP->AdminList;
                 FeaturesCfg["ESP"]["AdminHighlight"] = ESP->AdminHighlight;
+                FeaturesCfg["ESP"]["AdminEspBox"] = ESP->AdminEspBox;
+                FeaturesCfg["ESP"]["AdminEspSnapLines"] = ESP->AdminEspSnapLines;
+                FeaturesCfg["ESP"]["AdminEspNames"] = ESP->AdminEspNames;
+                FeaturesCfg["ESP"]["AdminEspSkeleton"] = ESP->AdminEspSkeleton;
+                FeaturesCfg["ESP"]["AdminEspCol"] = ImColToJson(ESP->AdminEspCol);
                 FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
                 FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
                 FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
@@ -485,6 +496,11 @@ namespace Core {
                 ESP->PossibleNoclip = FeaturesCfg["ESP"].value("PossibleNoclip", false);
                 ESP->AdminList = FeaturesCfg["ESP"].value("AdminList", false);
                 ESP->AdminHighlight = FeaturesCfg["ESP"].value("AdminHighlight", false);
+                ESP->AdminEspBox = FeaturesCfg["ESP"].value("AdminEspBox", false);
+                ESP->AdminEspSnapLines = FeaturesCfg["ESP"].value("AdminEspSnapLines", false);
+                ESP->AdminEspNames = FeaturesCfg["ESP"].value("AdminEspNames", false);
+                ESP->AdminEspSkeleton = FeaturesCfg["ESP"].value("AdminEspSkeleton", false);
+                if (FeaturesCfg["ESP"].contains("AdminEspCol")) ESP->AdminEspCol = JsonToImCol(FeaturesCfg["ESP"]["AdminEspCol"]);
                 ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
                 if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
                 ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);

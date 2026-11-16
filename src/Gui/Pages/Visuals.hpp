@@ -118,6 +118,25 @@ namespace Visuals {
                         Custom::CheckBox("Destacar possíveis invisíveis", &g_Config.ESP->AdminHighlight);
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Usa indicadores locais de invisibilidade em jogadores carregados. Não confirma cargo de administrador.");
+                        // --- ESP Admin visual overlay ---
+                        if (g_Config.ESP->AdminList) {
+                            ImGui::Separator();
+                            ImGui::TextColored(ImVec4(1.f,0.3f,0.3f,1.f), "ESP Admin");
+                            Custom::CheckBox("Caixa (ADM)", &g_Config.ESP->AdminEspBox);
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Desenha uma caixa colorida ao redor de possíveis administradores.");
+                            Custom::CheckBox("Linha de mira (ADM)", &g_Config.ESP->AdminEspSnapLines);
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Traça uma linha da base da tela até cada possível administrador.");
+                            Custom::CheckBox("Nomes RGB (ADM)", &g_Config.ESP->AdminEspNames);
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Exibe o nome do jogador acima da caixa com cor em arco-íris.");
+                            Custom::CheckBox("Esqueleto (ADM)", &g_Config.ESP->AdminEspSkeleton);
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Desenha o esqueleto completo sobre possíveis administradores.");
+                            ImGui::ColorEdit4("Cor ADM ESP", reinterpret_cast<float*>(&g_Config.ESP->AdminEspCol), ImGuiColorEditFlags_NoInputs|ImGuiColorEditFlags_AlphaBar);
+                            ImGui::Separator();
+                        }
                         Custom::CheckBox("Possível noclip", &g_Config.ESP->PossibleNoclip);
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Indícios de voo ou ausência de colisão por 3 segundos. Pode marcar quedas ou paraquedas. Não identifica administradores.");
