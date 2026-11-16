@@ -79,7 +79,6 @@ inline void Render(int section){
  }
  if(section==2){
   ImGui::TextDisabled("Armas / efeitos e velocidade");
-  Custom::CheckBox("Congelar quantidade de municao",&FreezeAmmo);
   Custom::CheckBox("Punho explosivo",&ExplosiveFist);Custom::CheckBox("Municao incendiaria",&FireAmmo);Custom::CheckBox("Municao explosiva",&ExplosiveAmmo);
   Custom::CheckBox("Recarga rapida",&FastReload);if(FastReload)ImGui::SliderFloat("Multiplicador da recarga",&ReloadSpeed,1.f,10.f,"%.1fx");
   Custom::CheckBox("Cadencia ajustavel",&RapidFire);if(RapidFire)ImGui::SliderFloat("Multiplicador da cadencia",&FireRate,1.f,10.f,"%.1fx");

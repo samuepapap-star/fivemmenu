@@ -184,6 +184,16 @@ inline void Tick(bool stop=false){
   float max=p->GetMaxHealth(),armor=p->GetArmor();
   if(RegenHealth&&std::isfinite(max)&&max>100.f&&max<=10000.f&&health<max)p->SetHealth(max);
   if(RegenArmor&&std::isfinite(armor)&&armor>=0.f&&armor<100.f)p->SetArmor(100.f);
+  // Semi God Mode: regen when health or armor drops below 50 %
+  if(g_Config.Player->SemiGodEnabled&&std::isfinite(max)&&max>100.f&&max<=10000.f){
+   if(health<max*0.5f)p->SetHealth(max);
+   if(std::isfinite(armor)&&armor<50.f)p->SetArmor(100.f);
+  }
+ }
+ // No fall damage: clamp negative Z velocity before impact
+ if(ready&&g_Config.Player->NoFallDamageEnabled&&!p->InVehicle()){
+  D3DXVECTOR3 vel{};
+  if(Read((uintptr_t)p+0x320,vel)&&std::isfinite(vel.z)&&vel.z<-20.f){vel.z=-1.f;Write((uintptr_t)p+0x320,vel);}
  }
  uintptr_t info=0,weapon=0,object=0,vehicle=0,model=0;
  if(ready){if(g_Offsets.m_PlayerInfo)Read((uintptr_t)p+g_Offsets.m_PlayerInfo,info);auto manager=p->GetWeaponManager();if(manager){weapon=(uintptr_t)manager->GetWeaponInfo();if(g_Offsets.m_CObject)Read((uintptr_t)manager+g_Offsets.m_CObject,object);}if(p->InVehicle()){vehicle=(uintptr_t)p->GetLastVehicle();if(vehicle)Read(vehicle+0x20,model);}}

@@ -11,6 +11,7 @@
 #include <Core/Core.hpp>
 #include <Core/Features/VehicleManipulation.hpp>
 #include <Core/Features/CarreraAdditions.hpp>
+#include <Core/Features/NoclipVisibility.hpp>
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Core/Features/Exploits/HandlingEditor.hpp>
 
@@ -98,6 +99,17 @@ namespace Local {
                         if (g_Config.Player->EnableGodMode)
                             ImGui::TextDisabled("God nao revive o personagem.");
 
+                        if ( Custom::CheckBox( xorstr( "Semi God Mode" ), &g_Config.Player->SemiGodEnabled ) )
+                        {
+                            if ( !g_Config.Player->SemiGodEnabled ) {
+                                // desativar: restaurar estado normal sem forcar nada
+                            }
+                        }
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Regenera vida e colete automaticamente ao cair abaixo de 50%%. Menos detectavel que o God Mode completo.");
+                        if (g_Config.Player->SemiGodEnabled)
+                            ImGui::TextDisabled("Regen ativo: vida < 50%% restaura para maxima.");
+
 						if ( Custom::CheckBoxCfg( xorstr( "Voo livre" ), &g_Config.Player->NoClipEnabled, [ & ] ( ) { static int KeyMode = 1; ImGui::Keybind( xorstr( "Tecla" ), &g_Config.Player->NoClipKey, &KeyMode ); ImGui::SliderFloat( xorstr( "Velocidade" ), &g_Config.Player->NoClipSpeed, 0.1f, 20.f, xorstr( "%1.2fm/s" ) ); }, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
 							Core::SDK::Pointers::pLocalPlayer->FreezePed( g_Config.Player->NoClipEnabled );
@@ -126,7 +138,10 @@ namespace Local {
 							Core::SDK::Pointers::pLocalPlayer->SetConfigFlag( ePedConfigFlag::Shrink, g_Config.Player->ShrinkEnabled );
 						}
 
-						Custom::CheckBox("Sem colisão", &g_Config.Player->NoCollisionEnabled);
+						if ( Custom::CheckBox( xorstr( "Sem colisão" ), &g_Config.Player->NoCollisionEnabled ) )
+						{
+							Core::Features::CarreraAdditions::TickCollision( true );
+						}
                         if(g_Config.Player->NoCollisionEnabled)
                             ImGui::TextWrapped("%s",Core::Features::CarreraAdditions::collisionStatus.c_str());
                         if ( Custom::CheckBox( xorstr( "Evitar quedas" ), &g_Config.Player->NoRagDollEnabled ) )
@@ -134,6 +149,9 @@ namespace Local {
 							Core::SDK::Pointers::pLocalPlayer->NoRagDoll( g_Config.Player->NoRagDollEnabled );
 						}
 
+                        Custom::CheckBox( xorstr( "Sem dano de queda" ), &g_Config.Player->NoFallDamageEnabled );
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Bloqueia velocidade vertical negativa antes do impacto, eliminando dano de queda fatal.");
 
 						if ( Custom::CheckBox( xorstr( "Entrar em veículos" ), &g_Config.Player->StealCarEnabled ) )
 						{
@@ -151,7 +169,10 @@ namespace Local {
 							}
 						}
 
-                        Custom::CheckBox("Invisível", &g_Config.Player->InvisibleEnabled);
+                        if ( Custom::CheckBox( xorstr( "Invisível" ), &g_Config.Player->InvisibleEnabled ) )
+                        {
+                            Core::Features::NoclipVisibility::Tick();
+                        }
                         if (ImGui::IsItemHovered())
                             ImGui::SetTooltip("Independente do Voo livre: permite andar normalmente. Você aparece semitransparente na própria tela. Visibilidade para outros jogadores não validada.");
 
@@ -378,15 +399,13 @@ namespace Local {
 							if ( Custom::Button( Loc.c_str( ), ImVec2( ContentSize.x, 32 ), 0 ) ) {
 								if ( SeletedIndex == 0 )
 								{
-									if (MenuBridge::BuildPolicy::Supported(g_Offsets.CurrentBuild)) BridgeFeatures::TeleportWaypoint();
-                                    else Core::Features::Exploits::TpToWaypoint( );
+									Core::Features::Exploits::TpToWaypoint( );
 								}
 								else {
 									Core::SDK::Pointers::pLocalPlayer->SetPos( Location.Coords );
 								}
 							}
 						}
-                            if (SeletedIndex == 0 && MenuBridge::BuildPolicy::Supported(g_Offsets.CurrentBuild)) BridgeFeatures::Status();
 						ImGui::EndGroup( );
 
 					}
@@ -504,6 +523,32 @@ namespace Local {
 								{
 									std::thread AmmoAlert( [ ] ( ) {  NotifyManager::Send( xorstr( "Equipe uma arma primeiro!" ), 4000 );  } );
 									AmmoAlert.detach( );
+								}
+							}
+						}
+
+						if ( Custom::Button( xorstr( "Definir 200 munições" ), ImVec2( -1, 33 ), 0, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
+						{
+							CWeaponInfo * pCWeaponInfo200 = Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( )->GetWeaponInfo( );
+							if ( pCWeaponInfo200 )
+							{
+								uintptr_t Lixo200 = Mem.FindSignature(
+									{ 0x48, 0x8b, 0x43, 0x00, 0x48, 0x83, 0xc4, 0x00, 0x5b, 0xc3, 0xcc, 0x40, 0x53 }
+								);
+								uintptr_t AmmoInfo200 = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo200 + Mem.Read<BYTE>( Lixo200 + 3 ) );
+								if ( AmmoInfo200 )
+								{
+									uintptr_t pAmmoCount200 = Mem.Read<uintptr_t>( ( uintptr_t ) AmmoInfo200 + 0x8 );
+									if ( pAmmoCount200 )
+									{
+										uintptr_t CurrentAmmoAddr200 = Mem.Read<uintptr_t>( pAmmoCount200 + 0x0 ) + 0x18;
+										Mem.Write( CurrentAmmoAddr200, 200 );
+									}
+								}
+								else
+								{
+									std::thread AmmoAlert200( [ ] ( ) { NotifyManager::Send( xorstr( "Equipe uma arma primeiro!" ), 4000 ); } );
+									AmmoAlert200.detach( );
 								}
 							}
 						}

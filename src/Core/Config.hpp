@@ -187,6 +187,8 @@ namespace Core {
             inline static bool NoCollisionEnabled = false;
 			inline static bool AntiHSEnabled;
 			inline static bool StealCarEnabled;
+			inline static bool SemiGodEnabled;
+			inline static bool NoFallDamageEnabled;
 			inline static int GodModeKey;
 		} *Player;
 
