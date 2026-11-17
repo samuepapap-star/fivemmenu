@@ -78,11 +78,13 @@ namespace Gui
 #ifdef FULLSCREEN_EX
 		g_Variables.g_hCheatWindow = pCreateWindowInBand( WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, RegClass, L" ", WS_POPUP, static_cast< int >( g_Variables.g_vGameWindowPos.x ), static_cast< int >( g_Variables.g_vGameWindowPos.y ), static_cast< int >( g_Variables.g_vGameWindowSize.x ), static_cast< int >( g_Variables.g_vGameWindowSize.y ), NULL, NULL, wc.hInstance, NULL, 2/*ZBID_UIACCESS*/ );
 #else
-		// WS_EX_TRANSPARENT removido da criação — click-through controlado dinamicamente
-		// por WM_NCHITTEST no WndProc (retorna HTTRANSPARENT quando menu fechado).
-		// SetWindowLong(GWL_EXSTYLE) em runtime triggera DWM reactivation mesmo com
-		// WS_EX_NOACTIVATE, causando fullscreen minimize no GTA5.
-		g_Variables.g_hCheatWindow = CreateWindowExW( WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, wc.lpszClassName, L" ", WS_POPUP, g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y, NULL, NULL, wc.hInstance, NULL );
+		// WS_EX_TRANSPARENT SEMPRE presente — sem ele, DXGI/DWM trata o overlay como
+		// uma janela competidora do fullscreen exclusivo e minimiza o jogo no startup.
+		// Click-through controlado por WM_NCHITTEST no WndProc:
+		//   WS_EX_TRANSPARENT age via DefWindowProc (retorna HTTRANSPARENT). O WndProc
+		//   AINDA recebe WM_NCHITTEST antes de DefWindowProc e pode retornar HTCLIENT
+		//   para abrir mouse input pro ImGui — sem remover o flag, sem SetWindowLong.
+		g_Variables.g_hCheatWindow = CreateWindowExW( WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, wc.lpszClassName, L" ", WS_POPUP, g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y, NULL, NULL, wc.hInstance, NULL );
 #endif // FULLSCREEN_EX		
 		
 		SetLayeredWindowAttributes( g_Variables.g_hCheatWindow, RGB( 0, 0, 0 ), 255, LWA_ALPHA );
@@ -374,15 +376,15 @@ namespace Gui
 		// ele pode retornar true e o overlay vira foreground → GTA5 minimiza.
 		switch ( msg ) {
 		case WM_NCHITTEST:
-			// Click-through dinâmico sem mudar estilo da janela.
-			// Quando menu fechado: retorna HTTRANSPARENT — todo input de mouse passa para
-			// a janela abaixo (GTA5). Quando menu aberto: deixa cair pro default (HTCLIENT)
-			// para o ImGui receber mouse. NUNCA usar SetWindowLong(GWL_EXSTYLE) para isso —
-			// trocar WS_EX_TRANSPARENT em runtime triggera DWM reactivation que minimiza
-			// o jogo em fullscreen exclusivo mesmo com WS_EX_NOACTIVATE setado.
-			if ( !g_MenuInfo.IsOpen )
-				return HTTRANSPARENT;
-			break;
+			// Click-through controlado por WM_NCHITTEST — SEM remover WS_EX_TRANSPARENT.
+			// WS_EX_TRANSPARENT fica presente SEMPRE (evita minimize no startup com DXGI).
+			// DefWindowProc retornaria HTTRANSPARENT por causa do WS_EX_TRANSPARENT flag,
+			// mas o WndProc intercepta ANTES e pode retornar o valor que quiser:
+			//   - Menu fechado → HTTRANSPARENT: todo mouse passa pro GTA5 abaixo.
+			//   - Menu aberto  → HTCLIENT: ImGui recebe mouse (override do WS_EX_TRANSPARENT).
+			// NUNCA usar SetWindowLong(GWL_EXSTYLE) para trocar WS_EX_TRANSPARENT —
+			// isso triggera DWM reactivation que minimiza o jogo em fullscreen exclusivo.
+			return g_MenuInfo.IsOpen ? HTCLIENT : HTTRANSPARENT;
 
 		case WM_MOUSEACTIVATE:
 			// Não ativar o overlay quando o mouse clicar nele.
