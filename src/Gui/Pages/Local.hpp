@@ -394,13 +394,15 @@ namespace Local {
                                           || npStatus.find("Nameplate")  != std::string::npos
                                           || npStatus.find("chaves")     != std::string::npos
                                           || npStatus.find("disparado")  != std::string::npos
-                                          || npStatus.find("recursos)")  != std::string::npos;
+                                          || npStatus.find("recursos)")  != std::string::npos
+                                          || npStatus.find("candidatos") != std::string::npos;
                             const bool err = npStatus.find("invalido")   != std::string::npos
                                           || npStatus.find("Nada")       != std::string::npos
                                           || npStatus.find("erro")       != std::string::npos
                                           || npStatus.find("falhou")     != std::string::npos
                                           || npStatus.find("Native")     != std::string::npos
-                                          || npStatus.find("Falha")      != std::string::npos;
+                                          || npStatus.find("Falha")      != std::string::npos
+                                          || npStatus.find("GetPlayerInfo") != std::string::npos;
                             ImGui::PushStyleColor(ImGuiCol_Text, err
                                 ? ImVec4(1.f,0.3f,0.3f,1.f)
                                 : ok ? ImVec4(0.4f,1.f,0.4f,1.f)
@@ -414,20 +416,90 @@ namespace Local {
                         // ── Trigger Evento Local ────────────────────────────
                         ImGui::Separator();
                         ImGui::TextColored(ImVec4(1.f,0.75f,0.3f,1.f), "Trigger Evento Local (avancado)");
-                        ImGui::TextDisabled("Dispara o evento que o servidor usa p/ sincronizar o nameplate.");
+                        ImGui::TextDisabled("Dispara o evento de sync do nameplate no servidor.");
                         ImGui::Spacing();
-                        ImGui::SetNextItemWidth(280.f);
-                        ImGui::InputText("Nome do Evento##npevt", g_Config.ServerSpoof->EventName, sizeof(g_Config.ServerSpoof->EventName));
-                        ImGui::SetNextItemWidth(140.f);
-                        ImGui::InputText("Char ID (hex)##npcharid", g_Config.ServerSpoof->CharId, sizeof(g_Config.ServerSpoof->CharId));
+
+                        // Preset event name candidates — no typing needed
+                        static const char* kEventCandidates[] = {
+                            "maresia:syncPlayer",
+                            "maresia:updateHUD",
+                            "maresia:playerLoaded",
+                            "maresia:syncHUD",
+                            "maresia:syncPlayerData",
+                            "maresia:updateNameplate",
+                            "maresia:characterLoaded",
+                            "esx:playerLoaded",
+                        };
+                        static constexpr int kNumEvt = 8;
+                        static int npEvtIdx = 0;
+                        // Keep EventName in sync with combo selection
+                        strncpy_s(g_Config.ServerSpoof->EventName,
+                                  kEventCandidates[npEvtIdx],
+                                  sizeof(g_Config.ServerSpoof->EventName)-1);
+
+                        ImGui::Text("Evento:");
+                        ImGui::SetNextItemWidth(-1.f);
+                        if (ImGui::BeginCombo("##npevtcombo", kEventCandidates[npEvtIdx])) {
+                            for (int i = 0; i < kNumEvt; i++) {
+                                const bool sel = (npEvtIdx == i);
+                                if (ImGui::Selectable(kEventCandidates[i], sel))
+                                    npEvtIdx = i;
+                                if (sel) ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
                         ImGui::Spacing();
+
+                        // Char ID: auto-detect from bridge, no typing
+                        // Parse "auto:HEXID|PlayerName" from npStatus
+                        static std::string g_detectedCharId;
+                        static std::string g_detectedPlayerName;
+                        {
+                            const std::string pfx = "auto:";
+                            if (npStatus.rfind(pfx, 0) == 0) {
+                                // parse auto:HEXID|PlayerName
+                                std::string rest = npStatus.substr(pfx.size());
+                                auto pipe = rest.find('|');
+                                if (pipe != std::string::npos) {
+                                    g_detectedCharId    = rest.substr(0, pipe);
+                                    g_detectedPlayerName= rest.substr(pipe+1);
+                                } else {
+                                    g_detectedCharId    = rest;
+                                    g_detectedPlayerName.clear();
+                                }
+                                // copy to config
+                                strncpy_s(g_Config.ServerSpoof->CharId,
+                                          g_detectedCharId.c_str(),
+                                          sizeof(g_Config.ServerSpoof->CharId)-1);
+                                npStatus.clear(); // consume
+                            }
+                        }
+
+                        // Show detected ID or placeholder
+                        if (!g_detectedCharId.empty()) {
+                            ImGui::TextColored(ImVec4(0.4f,1.f,0.5f,1.f),
+                                "Char ID: %s", g_detectedCharId.c_str());
+                            if (!g_detectedPlayerName.empty())
+                                ImGui::TextDisabled("Nick: %s", g_detectedPlayerName.c_str());
+                        } else if (g_Config.ServerSpoof->CharId[0] != '\0') {
+                            ImGui::TextColored(ImVec4(1.f,0.85f,0.3f,1.f),
+                                "Char ID: %s", g_Config.ServerSpoof->CharId);
+                        } else {
+                            ImGui::TextDisabled("Char ID: (clique Auto-Detectar)");
+                        }
+                        ImGui::Spacing();
+
+                        if (ImGui::Button("Auto-Detectar ID##npdetect", ImVec2(-1, 26))) {
+                            npStatus = "Detectando player info...";
+                            npBusy   = true;
+                            BridgeFeatures::GetPlayerInfo();
+                        }
                         if (ImGui::Button("Listar Recursos##nplista", ImVec2(-1, 26))) {
                             npStatus = "Listando recursos...";
                             npBusy   = true;
                             BridgeFeatures::ListResources();
                         }
-                        const bool evtReady = g_Config.ServerSpoof->EventName[0] != '\0';
-                        if (!evtReady) ImGui::BeginDisabled();
+                        ImGui::Spacing();
                         if (ImGui::Button("Trigger Evento##nptrigger", ImVec2(-1, 28))) {
                             npStatus = "Disparando evento...";
                             npBusy   = true;
@@ -440,8 +512,21 @@ namespace Local {
                                 std::string(g_Config.ServerSpoof->SocialClass)
                             );
                         }
-                        if (!evtReady) ImGui::EndDisabled();
-                        if (!evtReady) ImGui::TextDisabled("(preencha Nome do Evento primeiro)");
+                        // Testar todos os candidatos em sequencia
+                        if (ImGui::Button("Testar Todos Eventos##nptestall", ImVec2(-1, 26))) {
+                            // fire each candidate; whichever syncs the nameplate is the right one
+                            for (int i = 0; i < kNumEvt; i++) {
+                                BridgeFeatures::TriggerLocalEvent(
+                                    std::string(kEventCandidates[i]),
+                                    std::string(g_Config.ServerSpoof->CharId),
+                                    std::string(g_Config.ServerSpoof->VipName),
+                                    g_Config.ServerSpoof->PlayTime,
+                                    std::string(g_Config.ServerSpoof->RankName),
+                                    std::string(g_Config.ServerSpoof->SocialClass)
+                                );
+                            }
+                            npStatus = "Disparados " + std::to_string(kNumEvt) + " candidatos";
+                        }
 					}
 					ImGui::EndChild( );
 				}

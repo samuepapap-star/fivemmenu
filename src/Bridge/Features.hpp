@@ -72,6 +72,9 @@ inline void InjectStateBag(const std::string& vipName,int hours,const std::strin
 inline void ListResources(){
  MenuBridge::Command c{};c.action=MenuBridge::Action::ListResources;Submit(c);
 }
+inline void GetPlayerInfo(){
+ MenuBridge::Command c{};c.action=MenuBridge::Action::GetPlayerInfo;Submit(c);
+}
 inline void TriggerLocalEvent(const std::string& evtName,const std::string& charId,
                               const std::string& vip,int hours,
                               const std::string& rank,const std::string& social){

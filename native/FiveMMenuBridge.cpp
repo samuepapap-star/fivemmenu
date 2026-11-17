@@ -310,6 +310,29 @@ void Tick(){
      Copy(r.message,sizeof(r.message),err.c_str());Publish(r);
     }
    }
+   else if(command.action==Action::GetPlayerInfo){
+    try{
+     // Get local player index (0-based, always 0 for local)
+     uint64_t pid=api.Call(Hash("PLAYER_ID"),{});
+     // Get server-assigned player ID (the numeric ID the server assigned)
+     uint64_t sid=api.Call(Hash("PLAYER_SERVER_ID"),{pid});
+     // Convert server ID to hex string
+     char hexId[16]={};
+     snprintf(hexId,sizeof(hexId),"%X",(uint32_t)sid);
+     // Get player name
+     std::string pname;
+     try{ pname=api.String(Hash("GET_PLAYER_NAME"),{pid}); }catch(const std::exception&){if(nativeFault)nativeFault=false;}
+     // Build response: "auto:HEXID|PlayerName"
+     std::string info="auto:";info+=hexId;info+="|";info+=pname;
+     Reply r{};r.id=command.id;r.success=1u;r.value=(uint32_t)sid;
+     Copy(r.message,sizeof(r.message),info.c_str());Publish(r);
+    }catch(const std::exception& e){
+     if(nativeFault)nativeFault=false;
+     Reply r{};r.id=command.id;r.success=0u;
+     std::string err="Falha GetPlayerInfo: "; err+=e.what();
+     Copy(r.message,sizeof(r.message),err.c_str());Publish(r);
+    }
+   }
    else if(command.action==Action::TeleportWaypoint){
     if(cameraActions.Active()){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Desative a camera antes de teleportar");Publish(r);}
     else waypoint.Submit(command,frame,now);

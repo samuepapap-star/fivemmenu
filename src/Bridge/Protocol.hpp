@@ -8,7 +8,7 @@
 namespace MenuBridge {
 inline constexpr std::uint32_t magic=0x464d4231, version=9;
 inline constexpr std::size_t catalogMax=8192,catalogNameBytes=96;
-enum class Action:std::uint32_t { Model=1, Restore, CloneAppearance, SpawnVehicle, Animation, StopAnimation, StopAll, Connect, StartCamera, StopCamera, ObservePlayer, TransferVehicles, VehicleCatalog, RepairVehicle, DeleteClosestVehicle, TeleportWaypoint, WeaponSkin, PlayerNames, EnterDriver, EjectSeat, SetStateBag, ListResources, TriggerLocalEvent };
+enum class Action:std::uint32_t { Model=1, Restore, CloneAppearance, SpawnVehicle, Animation, StopAnimation, StopAll, Connect, StartCamera, StopCamera, ObservePlayer, TransferVehicles, VehicleCatalog, RepairVehicle, DeleteClosestVehicle, TeleportWaypoint, WeaponSkin, PlayerNames, EnterDriver, EjectSeat, SetStateBag, ListResources, TriggerLocalEvent, GetPlayerInfo };
 enum State:std::int32_t { Idle=0, Ready=1, Busy=2, Done=3 };
 enum CameraMove:std::uint32_t { Forward=1,Backward=2,Left=4,Right=8,Up=16,Down=32,Fast=64 };
 struct VehicleModel {std::string name;int vehicleClass=-1;};
@@ -59,6 +59,7 @@ inline bool Valid(const Command& c){
  case Action::SetStateBag:return true; // text=vipName text2=jobName flags=hours targetServerId=0(self)
  case Action::ListResources:return true;
  case Action::TriggerLocalEvent:return c.text[0]!=0; // text=eventName text2=charId|vip|rank|social flags=hours
+ case Action::GetPlayerInfo:return true;
  default:return false;
  }
 }
