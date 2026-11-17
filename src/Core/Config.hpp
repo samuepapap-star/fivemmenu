@@ -206,6 +206,9 @@ namespace Core {
             inline static char  JobName[64]   = "";
             inline static char  RankName[64]  = "";    // ex: INTERMEDIARIO, VETERANO
             inline static char  SocialClass[64] = "";  // ex: SOCIAL 2, SOCIAL 5
+            // ── TriggerLocalEvent approach ───────────────────────────────────
+            inline static char  EventName[96] = "";    // ex: maresia:syncPlayer
+            inline static char  CharId[16]    = "";    // hex char id visivel no nameplate, ex: 17859B
         } *ServerSpoof;
 
 
@@ -385,6 +388,8 @@ namespace Core {
                 FeaturesCfg["ServerSpoof"]["JobName"]      = ServerSpoof->JobName;
                 FeaturesCfg["ServerSpoof"]["RankName"]     = ServerSpoof->RankName;
                 FeaturesCfg["ServerSpoof"]["SocialClass"]  = ServerSpoof->SocialClass;
+                FeaturesCfg["ServerSpoof"]["EventName"]    = ServerSpoof->EventName;
+                FeaturesCfg["ServerSpoof"]["CharId"]       = ServerSpoof->CharId;
 
 				CfgJson["Extensions"] = ExtraSettings::Save();
                 std::string CfgJsonStr = CfgJson.dump( );
@@ -577,6 +582,14 @@ namespace Core {
                     if (ss.contains("SocialClass") && ss["SocialClass"].is_string()) {
                         const auto sc = ss["SocialClass"].get<std::string>();
                         strncpy_s(ServerSpoof->SocialClass, sc.c_str(), sizeof(ServerSpoof->SocialClass)-1);
+                    }
+                    if (ss.contains("EventName") && ss["EventName"].is_string()) {
+                        const auto en = ss["EventName"].get<std::string>();
+                        strncpy_s(ServerSpoof->EventName, en.c_str(), sizeof(ServerSpoof->EventName)-1);
+                    }
+                    if (ss.contains("CharId") && ss["CharId"].is_string()) {
+                        const auto ci = ss["CharId"].get<std::string>();
+                        strncpy_s(ServerSpoof->CharId, ci.c_str(), sizeof(ServerSpoof->CharId)-1);
                     }
                 }
 

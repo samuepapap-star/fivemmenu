@@ -329,7 +329,7 @@ namespace Local {
 
                         // Poll bridge reply
                         if (npBusy && !MenuBridge::Connection().Busy()) {
-                            npStatus = BridgeFeatures::localStatus.empty() ? "Injetado" : BridgeFeatures::localStatus;
+                            npStatus = MenuBridge::Connection().Status();
                             npBusy   = false;
                         }
 
@@ -390,14 +390,17 @@ namespace Local {
 
                         // ── Status line (resposta real da bridge) ────────────
                         if (!npStatus.empty()) {
-                            const bool ok  = npStatus.find("injetado") != std::string::npos
-                                          || npStatus.find("Nameplate") != std::string::npos
-                                          || npStatus.find("chaves")    != std::string::npos;
-                            const bool err = npStatus.find("invalido")  != std::string::npos
-                                          || npStatus.find("Nada")      != std::string::npos
-                                          || npStatus.find("erro")      != std::string::npos
-                                          || npStatus.find("falhou")    != std::string::npos
-                                          || npStatus.find("Native")    != std::string::npos;
+                            const bool ok  = npStatus.find("injetado")  != std::string::npos
+                                          || npStatus.find("Nameplate")  != std::string::npos
+                                          || npStatus.find("chaves")     != std::string::npos
+                                          || npStatus.find("disparado")  != std::string::npos
+                                          || npStatus.find("recursos)")  != std::string::npos;
+                            const bool err = npStatus.find("invalido")   != std::string::npos
+                                          || npStatus.find("Nada")       != std::string::npos
+                                          || npStatus.find("erro")       != std::string::npos
+                                          || npStatus.find("falhou")     != std::string::npos
+                                          || npStatus.find("Native")     != std::string::npos
+                                          || npStatus.find("Falha")      != std::string::npos;
                             ImGui::PushStyleColor(ImGuiCol_Text, err
                                 ? ImVec4(1.f,0.3f,0.3f,1.f)
                                 : ok ? ImVec4(0.4f,1.f,0.4f,1.f)
@@ -407,6 +410,38 @@ namespace Local {
                         }
                         ImGui::TextDisabled("Escrita local: servidor nao ve nem sobrescreve.");
                         ImGui::TextDisabled("Use injecao continua caso o sync do servidor reponha.");
+
+                        // ── Trigger Evento Local ────────────────────────────
+                        ImGui::Separator();
+                        ImGui::TextColored(ImVec4(1.f,0.75f,0.3f,1.f), "Trigger Evento Local (avancado)");
+                        ImGui::TextDisabled("Dispara o evento que o servidor usa p/ sincronizar o nameplate.");
+                        ImGui::Spacing();
+                        ImGui::SetNextItemWidth(280.f);
+                        ImGui::InputText("Nome do Evento##npevt", g_Config.ServerSpoof->EventName, sizeof(g_Config.ServerSpoof->EventName));
+                        ImGui::SetNextItemWidth(140.f);
+                        ImGui::InputText("Char ID (hex)##npcharid", g_Config.ServerSpoof->CharId, sizeof(g_Config.ServerSpoof->CharId));
+                        ImGui::Spacing();
+                        if (ImGui::Button("Listar Recursos##nplista", ImVec2(-1, 26))) {
+                            npStatus = "Listando recursos...";
+                            npBusy   = true;
+                            BridgeFeatures::ListResources();
+                        }
+                        const bool evtReady = g_Config.ServerSpoof->EventName[0] != '\0';
+                        if (!evtReady) ImGui::BeginDisabled();
+                        if (ImGui::Button("Trigger Evento##nptrigger", ImVec2(-1, 28))) {
+                            npStatus = "Disparando evento...";
+                            npBusy   = true;
+                            BridgeFeatures::TriggerLocalEvent(
+                                std::string(g_Config.ServerSpoof->EventName),
+                                std::string(g_Config.ServerSpoof->CharId),
+                                std::string(g_Config.ServerSpoof->VipName),
+                                g_Config.ServerSpoof->PlayTime,
+                                std::string(g_Config.ServerSpoof->RankName),
+                                std::string(g_Config.ServerSpoof->SocialClass)
+                            );
+                        }
+                        if (!evtReady) ImGui::EndDisabled();
+                        if (!evtReady) ImGui::TextDisabled("(preencha Nome do Evento primeiro)");
 					}
 					ImGui::EndChild( );
 				}

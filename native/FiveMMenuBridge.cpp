@@ -240,6 +240,75 @@ void Tick(){
      Copy(r.message,sizeof(r.message),msg);Publish(r);
     }
    }
+   else if(command.action==Action::ListResources){
+    int count=0;
+    std::string firstErr;
+    try{ count=(int)api.Call(Hash("GET_NUM_RESOURCES"),{}); }
+    catch(const std::exception& e){
+     if(nativeFault)nativeFault=false;
+     Reply r{};r.id=command.id;r.success=0u;
+     std::string err="ListResources falhou: "; err+=e.what();
+     Copy(r.message,sizeof(r.message),err);Publish(r);
+     goto done_list;
+    }
+    {
+     std::string names;
+     for(int i=0;i<count;i++){
+      try{
+       auto n=api.String(Hash("GET_RESOURCE_NAME"),{(std::uint64_t)i});
+       if(!n.empty()&&names.size()+n.size()+1<230){
+        if(!names.empty())names+=",";
+        names+=n;
+       }
+      }catch(const std::exception&){if(nativeFault)nativeFault=false;}
+     }
+     Reply r{};r.id=command.id;r.success=1u;r.value=(std::uint32_t)count;
+     Copy(r.message,sizeof(r.message),names.empty()?"(sem recursos)":names.c_str());Publish(r);
+    }
+    done_list:;
+   }
+   else if(command.action==Action::TriggerLocalEvent){
+    std::string evtName(command.text);
+    // Parse 4-part pipe: charId|vipName|rankName|socialClass
+    std::string remaining(command.text2);
+    std::string charId,vipName,rankName,socialClass;
+    auto splitNext=[&](std::string& out)->bool{
+     auto pos=remaining.find('|');
+     if(pos==std::string::npos){out=remaining;remaining.clear();return false;}
+     out=remaining.substr(0,pos);remaining=remaining.substr(pos+1);return true;
+    };
+    splitNext(charId);splitNext(vipName);splitNext(rankName);socialClass=remaining;
+    int hours=(int)command.flags;
+    // Build msgpack fixarray(5): charId, vipName, rankName, hours(int), socialClass
+    std::vector<uint8_t> args;
+    args.push_back(0x95u); // fixarray(5)
+    auto appendStr=[&](const std::string& s){
+     if(s.size()<=31){args.push_back(0xa0u|(uint8_t)s.size());}
+     else if(s.size()<=255){args.push_back(0xd9u);args.push_back((uint8_t)s.size());}
+     else{args.push_back(0xdau);args.push_back((uint8_t)(s.size()>>8));args.push_back((uint8_t)s.size());}
+     args.insert(args.end(),s.begin(),s.end());
+    };
+    appendStr(charId);appendStr(vipName);appendStr(rankName);
+    if(hours>=0&&hours<=127){args.push_back((uint8_t)hours);}
+    else if(hours<=255){args.push_back(0xccu);args.push_back((uint8_t)hours);}
+    else{args.push_back(0xcdu);args.push_back((uint8_t)(hours>>8));args.push_back((uint8_t)hours);}
+    appendStr(socialClass);
+    try{
+     api.Call(Hash("TRIGGER_EVENT_INTERNAL"),{
+      reinterpret_cast<std::uint64_t>(evtName.c_str()),
+      reinterpret_cast<std::uint64_t>(args.data()),
+      static_cast<std::uint64_t>(args.size())
+     });
+     Reply r{};r.id=command.id;r.success=1u;
+     std::string ok="Evento disparado: "+evtName;
+     Copy(r.message,sizeof(r.message),ok.c_str());Publish(r);
+    }catch(const std::exception& e){
+     if(nativeFault)nativeFault=false;
+     Reply r{};r.id=command.id;r.success=0u;
+     std::string err="Falha no evento: "; err+=e.what();
+     Copy(r.message,sizeof(r.message),err.c_str());Publish(r);
+    }
+   }
    else if(command.action==Action::TeleportWaypoint){
     if(cameraActions.Active()){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Desative a camera antes de teleportar");Publish(r);}
     else waypoint.Submit(command,frame,now);

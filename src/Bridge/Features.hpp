@@ -69,6 +69,19 @@ inline void InjectStateBag(const std::string& vipName,int hours,const std::strin
  c.targetServerId=serverId;
  Submit(c);
 }
+inline void ListResources(){
+ MenuBridge::Command c{};c.action=MenuBridge::Action::ListResources;Submit(c);
+}
+inline void TriggerLocalEvent(const std::string& evtName,const std::string& charId,
+                              const std::string& vip,int hours,
+                              const std::string& rank,const std::string& social){
+ MenuBridge::Command c{};c.action=MenuBridge::Action::TriggerLocalEvent;
+ MenuBridge::Copy(c.text,sizeof(c.text),evtName.c_str());
+ std::string enc=charId+"|"+vip+"|"+rank+"|"+social;
+ MenuBridge::Copy(c.text2,sizeof(c.text2),enc.c_str());
+ c.flags=static_cast<std::uint32_t>(hours>=0?hours:0);
+ Submit(c);
+}
 inline void Animate(const char* dictionary,const char* animation,bool loop){MenuBridge::Command c{};c.action=MenuBridge::Action::Animation;c.flags=loop?1u:0u;MenuBridge::Copy(c.text,sizeof(c.text),dictionary);MenuBridge::Copy(c.text2,sizeof(c.text2),animation);Submit(c);}
 inline void StopAnimation(){MenuBridge::Command c{};c.action=MenuBridge::Action::StopAnimation;Submit(c);}
 inline void ToggleCamera(){
