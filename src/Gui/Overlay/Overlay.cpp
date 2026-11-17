@@ -61,8 +61,14 @@ namespace Gui
 
 		// Coloca o overlay na frente sem roubar foco do jogo (evita alt-tab em fullscreen)
 		SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE );
-		// NÃO chamar BringWindowToTop nem SetForegroundWindow aqui — roubaria o foco
-		// do GTA5 e causaria minimize em fullscreen exclusivo.
+		// NÃO chamar BringWindowToTop nem SetForegroundWindow(overlay) aqui.
+
+		// Devolve o foco ao GTA5 após a janela overlay aparecer.
+		// Isso evita que o GTA5 perca foreground durante a criação do overlay e minimize.
+		// O Sleep(150) dá tempo ao DWM/DXGI de estabilizar antes de transferir o foco.
+		Sleep( 150 );
+		if ( g_Variables.g_hGameWindow )
+			SetForegroundWindow( g_Variables.g_hGameWindow );
 
 
 		ImGui::CreateContext( );
@@ -263,7 +269,10 @@ namespace Gui
 		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		sd.BufferDesc.RefreshRate.Numerator = 60;
 		sd.BufferDesc.RefreshRate.Denominator = 1;
-		sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		// ALLOW_MODE_SWITCH removed: essa flag permite que o DXGI troque o modo de display,
+		// o que interrompe o fullscreen exclusivo do GTA5 e causa minimize automático.
+		// Overlay não precisa de mode switching — deve ficar windowed sempre.
+		sd.Flags = 0;
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		sd.OutputWindow = hWnd;
 		sd.SampleDesc.Count = 1;
