@@ -11,98 +11,41 @@
 #include <dwmapi.h>
 #include <tchar.h>
 #include <thread>
-#include <atomic>
 
-//#define FULLSCREEN_EX
+#define FULLSCREEN_EX
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam );
 
 namespace Gui
 {
-	// Low-level keyboard hook para engolir a tecla de toggle do menu
-	// antes que chegue no GTA5. Se GTA5 processar INSERT internamente
-	// (mapa pra minimize, phone, etc.) o jogo minimiza sem relação com focus.
-	static HHOOK   s_hKeyboardHook  = nullptr;
-	static int     s_menuVkCode     = VK_INSERT; // atualizado em Render() antes do loop
-
-	// IMPORTANTE: WH_KEYBOARD_LL retornando 1 cancela o input no kernel,
-	// inclusive GetAsyncKeyState(key)&0x8000 nunca fica setado para teclas engolidas.
-	// Usamos uma flag atômica setada DENTRO do hook para sinalizar o toggle.
-	static std::atomic<bool> s_menuKeyTriggered { false };
-	static DWORD             s_hookThreadId     = 0; // TID da thread dedicada ao hook
-
-	static LRESULT CALLBACK LLKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam ) {
-		if ( nCode >= 0 && ( wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN ) ) {
-			const KBDLLHOOKSTRUCT * kb = reinterpret_cast< KBDLLHOOKSTRUCT * >( lParam );
-			if ( static_cast< int >( kb->vkCode ) == s_menuVkCode ) {
-				s_menuKeyTriggered.store( true, std::memory_order_release );
-				return 1; // Engole: não passa pro GTA5
-			}
-		}
-		return CallNextHookEx( s_hKeyboardHook, nCode, wParam, lParam );
-	}
-
-	// Thread dedicada ao WH_KEYBOARD_LL.
-	// WH_KEYBOARD_LL callbacks são entregues na thread que instalou o hook,
-	// via mensagens do sistema. A thread precisa de um GetMessage blocking loop
-	// para processar essas notificações. Separar em thread dedicada garante
-	// que o hook nunca fica sem message pump, independente do render loop.
-	static DWORD WINAPI HookPumpThread( LPVOID ) {
-		s_hKeyboardHook = SetWindowsHookExW( WH_KEYBOARD_LL, LLKeyboardProc,
-		                                     GetModuleHandle( nullptr ), 0 );
-		MSG msg{};
-		// GetMessage bloqueia até chegar mensagem — processa callbacks do hook
-		while ( GetMessage( &msg, NULL, 0, 0 ) > 0 ) {
-			TranslateMessage( &msg );
-			DispatchMessage( &msg );
-		}
-		if ( s_hKeyboardHook ) { UnhookWindowsHookEx( s_hKeyboardHook ); s_hKeyboardHook = nullptr; }
-		return 0;
-	}
-
-	// Restaurar foco para o jogo de forma confiável cross-process via AttachThreadInput.
-	// SetForegroundWindow simples é bloqueado pelo Windows quando chamado de um
-	// processo que não é foreground — AttachThreadInput contorna essa restrição.
-	static void RestoreGameFocus( ) {
-		if ( !g_Variables.g_hGameWindow ) return;
-		DWORD fgTid  = GetWindowThreadProcessId( g_Variables.g_hGameWindow, nullptr );
-		DWORD myTid  = GetCurrentThreadId( );
-		if ( fgTid && fgTid != myTid ) {
-			AttachThreadInput( myTid, fgTid, TRUE );
-			SetForegroundWindow( g_Variables.g_hGameWindow );
-			BringWindowToTop( g_Variables.g_hGameWindow );
-			AttachThreadInput( myTid, fgTid, FALSE );
-		} else {
-			SetForegroundWindow( g_Variables.g_hGameWindow );
-		}
-	}
 	typedef HWND( WINAPI * CreateWindowInBand )( _In_ DWORD dwExStyle, _In_opt_ ATOM atom, _In_opt_ LPCWSTR lpWindowName, _In_ DWORD dwStyle, _In_ int X, _In_ int Y, _In_ int nWidth, _In_ int nHeight, _In_opt_ HWND hWndParent, _In_opt_ HMENU hMenu, _In_opt_ HINSTANCE hInstance, _In_opt_ LPVOID lpParam, DWORD band );
 
+	// Hook envia teclas para a janela overlay via PostMessage.
+	// NÃO swallows — a tecla ainda chega no GTA5, mas com CreateWindowInBand
+	// ZBID_UIACCESS o overlay está num z-band separado e o jogo não minimiza.
+	inline HHOOK hKeyboardHook;
+
+	inline LRESULT CALLBACK KeyboardCallBack( int nCode, WPARAM wParam, LPARAM lParam )
+	{
+		if ( nCode >= 0 )
+		{
+			KBDLLHOOKSTRUCT * pKeyboard = ( KBDLLHOOKSTRUCT * ) lParam;
+			PostMessage( g_Variables.g_hCheatWindow, wParam, pKeyboard->vkCode, 0 );
+		}
+		return CallNextHookEx( hKeyboardHook, nCode, wParam, lParam );
+	}
 
 	void Overlay::Render( )
 	{
-
-#ifdef FULLSCREEN_EX
 		CoInitializeEx( NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE );
 		CreateWindowInBand pCreateWindowInBand = reinterpret_cast< CreateWindowInBand >( GetProcAddress( LoadLibraryA( xorstr( "user32.dll" ) ), xorstr( "CreateWindowInBand" ) ) );
 		PrepareForUIAccess( );
-#endif // FULLSCREEN_EX
 
 		WNDCLASSEXW wc = { sizeof( wc ), CS_CLASSDC, Overlay::WndProc, 0L, 0L, GetModuleHandle( NULL ), NULL, NULL, NULL, NULL, L" ", NULL };
 		ATOM RegClass = RegisterClassExW( &wc );
 
-#ifdef FULLSCREEN_EX
 		g_Variables.g_hCheatWindow = pCreateWindowInBand( WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, RegClass, L" ", WS_POPUP, static_cast< int >( g_Variables.g_vGameWindowPos.x ), static_cast< int >( g_Variables.g_vGameWindowPos.y ), static_cast< int >( g_Variables.g_vGameWindowSize.x ), static_cast< int >( g_Variables.g_vGameWindowSize.y ), NULL, NULL, wc.hInstance, NULL, 2/*ZBID_UIACCESS*/ );
-#else
-		// WS_EX_TRANSPARENT SEMPRE presente — sem ele, DXGI/DWM trata o overlay como
-		// uma janela competidora do fullscreen exclusivo e minimiza o jogo no startup.
-		// Click-through controlado por WM_NCHITTEST no WndProc:
-		//   WS_EX_TRANSPARENT age via DefWindowProc (retorna HTTRANSPARENT). O WndProc
-		//   AINDA recebe WM_NCHITTEST antes de DefWindowProc e pode retornar HTCLIENT
-		//   para abrir mouse input pro ImGui — sem remover o flag, sem SetWindowLong.
-		g_Variables.g_hCheatWindow = CreateWindowExW( WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, wc.lpszClassName, L" ", WS_POPUP, g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y, NULL, NULL, wc.hInstance, NULL );
-#endif // FULLSCREEN_EX		
-		
+
 		SetLayeredWindowAttributes( g_Variables.g_hCheatWindow, RGB( 0, 0, 0 ), 255, LWA_ALPHA );
 		MARGINS Margin = { -1, -1, -1, -1 };
 		DwmExtendFrameIntoClientArea( g_Variables.g_hCheatWindow, &Margin );
@@ -114,26 +57,10 @@ namespace Gui
 			return;
 		}
 
-
 		SetWindowDisplayAffinity( g_Variables.g_hCheatWindow, WDA_EXCLUDEFROMCAPTURE );
 
-		// SW_SHOWNOACTIVATE: mostra sem ativar a janela.
-		// SW_SHOWDEFAULT ativa a janela e rouba o foco do GTA5 imediatamente
-		// na injeção, causando minimize em fullscreen exclusivo.
-		ShowWindow( g_Variables.g_hCheatWindow, SW_SHOWNOACTIVATE );
+		ShowWindow( g_Variables.g_hCheatWindow, SW_SHOWDEFAULT );
 		UpdateWindow( g_Variables.g_hCheatWindow );
-
-		// Coloca o overlay na frente sem roubar foco do jogo (evita alt-tab em fullscreen)
-		SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE );
-		// NÃO chamar BringWindowToTop nem SetForegroundWindow(overlay) aqui.
-
-		// Devolve o foco ao GTA5 após a janela overlay aparecer.
-		// Isso evita que o GTA5 perca foreground durante a criação do overlay e minimize.
-		// O Sleep(150) dá tempo ao DWM/DXGI de estabilizar antes de transferir o foco.
-		Sleep( 150 );
-		if ( g_Variables.g_hGameWindow )
-			SetForegroundWindow( g_Variables.g_hGameWindow );
-
 
 		ImGui::CreateContext( );
 
@@ -143,140 +70,83 @@ namespace Gui
 		ImGui_ImplWin32_Init( g_Variables.g_hCheatWindow );
 		ImGui_ImplDX11_Init( g_pd3dDevice, g_pd3dDeviceContext );
 
-
+		hKeyboardHook = SetWindowsHookEx( WH_KEYBOARD_LL, KeyboardCallBack, NULL, 0 );
 
 		Core::StartThreads( );
 		if ( !Core::ThreadsStarted ) return;
 
 		std::thread( [ & ] ( ) { NotifyManager::Send( xorstr( "We are here!" ), 4000 ); } ).detach( );
 
-		// Inicia thread dedicada para WH_KEYBOARD_LL.
-		// A thread instala o hook e roda GetMessage blocking loop — garante
-		// que os callbacks do hook são processados mesmo que o render loop esteja ocupado.
-		{
-			const int customKey = g_Config.General->MenuKey;
-			s_menuVkCode = ( customKey > 0 && customKey < 255 ) ? customKey : VK_INSERT;
-		}
-		HANDLE hHookThread = CreateThread( nullptr, 0, HookPumpThread, nullptr, 0, &s_hookThreadId );
-		if ( hHookThread ) CloseHandle( hHookThread ); // não precisamos do handle
-
 		static RECT old_rc;
 		ZeroMemory( &Message, sizeof( MSG ) );
 
 		while ( Message.message != WM_QUIT )
 		{
-			// hwnd=NULL: processa mensagens de janela E thread messages.
-			// WH_KEYBOARD_LL callbacks chegam como thread messages (hwnd=NULL) —
-			// filtrar por g_hCheatWindow bloqueia essas mensagens na queue
-			// e o LLKeyboardProc nunca é chamado de volta pela thread.
-			while ( PeekMessage( &Message, NULL, 0, 0, PM_REMOVE ) ) {
+			if ( PeekMessage( &Message, g_Variables.g_hCheatWindow, 0, 0, PM_REMOVE ) ) {
 				TranslateMessage( &Message );
 				DispatchMessage( &Message );
-				if ( Message.message == WM_QUIT ) break;
 			}
 
 			HWND ActiveWindow = GetForegroundWindow( );
 
-            // Em fullscreen exclusivo GetForegroundWindow() pode retornar uma janela DX
-            // interna do GTA5 (não "grcWindow"). Verificamos o PID da janela foreground
-            // contra o PID do processo do GTA5 (não do nosso processo) para cobrir isso.
-            // Também aceitamos nossa janela overlay em foreground (menu aberto).
-            DWORD fgPid   = 0;
-            DWORD gamePid = 0;
-            if ( ActiveWindow ) GetWindowThreadProcessId( ActiveWindow, &fgPid );
-            if ( g_Variables.g_hGameWindow ) GetWindowThreadProcessId( g_Variables.g_hGameWindow, &gamePid );
-            const bool gameHasFocus =
-                ActiveWindow == g_Variables.g_hGameWindow  ||
-                ActiveWindow == g_Variables.g_hCheatWindow ||
-                ( fgPid != 0 && gamePid != 0 && fgPid == gamePid ) ||
-                ( fgPid != 0 && fgPid == GetCurrentProcessId( ) );
+			const int menuKey = ( g_Config.General->MenuKey > 0 && g_Config.General->MenuKey < 255 )
+			                    ? g_Config.General->MenuKey : VK_INSERT;
 
-            // Toggle once per key press, including while the overlay has focus.
-            // Atualiza s_menuVkCode para o hook de teclado ficar sincronizado.
-            // NOTA: teclas engolidas pelo WH_KEYBOARD_LL não atualizam o key state table,
-            // então GetAsyncKeyState & 0x8000 nunca fica setado para elas.
-            // Usamos s_menuKeyTriggered (setada no hook) para INSERT/customKey,
-            // e GetAsyncKeyState apenas para 'P' (que não é engolida pelo hook).
-            const int customKey = g_Config.General->MenuKey;
-            s_menuVkCode = ( customKey > 0 && customKey < 255 ) ? customKey : VK_INSERT;
+			DWORD fgPid = 0, gamePid = 0;
+			if ( ActiveWindow ) GetWindowThreadProcessId( ActiveWindow, &fgPid );
+			if ( g_Variables.g_hGameWindow ) GetWindowThreadProcessId( g_Variables.g_hGameWindow, &gamePid );
+			const bool gameHasFocus =
+			    ActiveWindow == g_Variables.g_hGameWindow  ||
+			    ActiveWindow == g_Variables.g_hCheatWindow ||
+			    ( fgPid != 0 && gamePid != 0 && fgPid == gamePid );
 
-            // Lê e limpa a flag atômica — disparada uma vez por keydown no hook
-            const bool hookFired = s_menuKeyTriggered.exchange( false, std::memory_order_acq_rel );
+			const bool editingShortcut = MenuShortcut::Poll( g_Config.General->MenuKey, gameHasFocus );
 
-            // 'P' não é engolida pelo hook, usa edge-detection normal
-            static bool s_prevP = false;
-            const bool pDown   = ( GetAsyncKeyState( 'P' ) & 0x8000 ) != 0;
-            const bool pEdge   = pDown && !s_prevP;
-            s_prevP = pDown;
-
-            // hookFired cobre INSERT (default) OU customKey (ambos são engolidos pelo hook)
-            // pEdge cobre 'P' somente quando não há customKey configurado
-            const bool pressed = hookFired || ( !( customKey > 0 && customKey < 255 ) && pEdge );
-            const bool editingShortcut = MenuShortcut::Poll(g_Config.General->MenuKey,
-                gameHasFocus);
-            // hookFired: INSERT/customKey engolida globalmente — se o hook disparou,
-            // o usuário pressionou a tecla. Não exige gameHasFocus pois o hook global
-            // só é relevante quando o mod está rodando. pEdge (tecla P) ainda exige
-            // gameHasFocus para não toggle acidental com outro app em foreground.
-            const bool hookToggle = !editingShortcut && hookFired;
-            const bool keyToggle  = !editingShortcut && ( !( customKey > 0 && customKey < 255 ) && pEdge ) && gameHasFocus;
-            if ( hookToggle || keyToggle ) {
-                g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
-                std::thread( [ & ] ( ) { NotifyManager::Send( g_MenuInfo.IsOpen ? xorstr( "Menu aberto" ) : xorstr( "Menu fechado" ), 1500 ); } ).detach( );
-                // Ao fechar o menu, devolve o foco ao jogo se o overlay ficou em foreground.
-                // Não usa SetWindowLong — isso triggera DWM reactivation e minimiza o GTA5.
-                // Click-through é controlado por WM_NCHITTEST no WndProc.
-                if ( !g_MenuInfo.IsOpen && ActiveWindow == g_Variables.g_hCheatWindow )
-                    RestoreGameFocus( );
-            }
-
+			if ( !editingShortcut && ( GetAsyncKeyState( menuKey ) & 1 ) ) {
+				if ( g_MenuInfo.IsOpen == false ) {
+					if ( gameHasFocus ) {
+						g_MenuInfo.IsOpen = true;
+						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE,
+						               WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE );
+					}
+				}
+				else {
+					g_MenuInfo.IsOpen = false;
+					SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE,
+					               WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE );
+				}
+			}
 
 			static float BgAlpha = 0.f;
 			BgAlpha = ImLerp( BgAlpha, g_MenuInfo.IsOpen ? 1.f : 0.f, ImGui::GetIO( ).DeltaTime * 8 );
 
 			ImGui_ImplDX11_NewFrame( );
 			ImGui_ImplWin32_NewFrame( );
-			
-			MenuScale::PrepareFrame();
-            ImGui::NewFrame( );
-            MenuScale::BeginFrame();
+
+			MenuScale::PrepareFrame( );
+			ImGui::NewFrame( );
+			MenuScale::BeginFrame( );
 			{
-				
-
 				ImGui::PushStyleVar( ImGuiStyleVar_Alpha, BgAlpha );
-
 				ImGui::GetBackgroundDrawList( )->AddRectFilled( ImVec2( 0, 0 ), ImVec2( g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y ), ImColor( 0.f, 0.f, 0.f, BgAlpha >= 0.4f ? 0.4f : BgAlpha ) );
 				Gui::Rendering( );
-
 				ImGui::PopStyleVar( );
 			}
-			MenuScale::EndFrame();
-            ImGui::EndFrame( );
+			MenuScale::EndFrame( );
+			ImGui::EndFrame( );
 
 			const float ClearColor[ 4 ] = { 0 };
 			g_pd3dDeviceContext->OMSetRenderTargets( 1U, &g_mainRenderTargetView, NULL );
 			g_pd3dDeviceContext->ClearRenderTargetView( g_mainRenderTargetView, ClearColor );
 
 			ImGui::Render( );
-            MenuScale::PrepareDrawData(ImGui::GetDrawData());
+			MenuScale::PrepareDrawData( ImGui::GetDrawData( ) );
 			ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData( ) );
 
-			g_pSwapChain->Present( g_Config.General->VSync, 0U ); //VSync
-
-            // Re-assert HWND_TOPMOST every ~60 frames so the overlay survives
-            // fullscreen transitions (flip-model exclusive fullscreen on W10/11
-            // still composites TOPMOST layered windows over the game).
-            static int s_topmostCounter = 0;
-            if ( ++s_topmostCounter >= 60 ) {
-                s_topmostCounter = 0;
-                SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST, 0, 0, 0, 0,
-                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE );
-            }
+			g_pSwapChain->Present( g_Config.General->VSync, 0U );
 		}
 
-		// Finaliza a thread do hook postando WM_QUIT na message queue dela.
-		// A thread desinstala o hook e termina sozinha no GetMessage loop.
-		if ( s_hookThreadId ) { PostThreadMessageW( s_hookThreadId, WM_QUIT, 0, 0 ); s_hookThreadId = 0; }
+		UnhookWindowsHookEx( hKeyboardHook );
 
 		ImGui_ImplDX11_Shutdown( );
 		ImGui_ImplWin32_Shutdown( );
@@ -285,7 +155,6 @@ namespace Gui
 		CleanupDeviceD3D( );
 		DestroyWindow( g_Variables.g_hCheatWindow );
 		UnregisterClassW( wc.lpszClassName, wc.hInstance );
-
 
 		return;
 	}
@@ -358,10 +227,7 @@ namespace Gui
 		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		sd.BufferDesc.RefreshRate.Numerator = 60;
 		sd.BufferDesc.RefreshRate.Denominator = 1;
-		// ALLOW_MODE_SWITCH removed: essa flag permite que o DXGI troque o modo de display,
-		// o que interrompe o fullscreen exclusivo do GTA5 e causa minimize automático.
-		// Overlay não precisa de mode switching — deve ficar windowed sempre.
-		sd.Flags = 0;
+		sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		sd.OutputWindow = hWnd;
 		sd.SampleDesc.Count = 1;
@@ -403,50 +269,6 @@ namespace Gui
 	}
 
 	LRESULT CALLBACK Overlay::WndProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
-
-		// Bloquear TODA ativação do overlay ANTES do ImGui processar qualquer mensagem.
-		// WS_EX_NOACTIVATE previne ativação por clique mas não impede o Windows de
-		// enviar WM_ACTIVATE em resposta a SetWindowLong/ShowWindow/SetWindowPos.
-		// Se ImGui_ImplWin32_WndProcHandler processar WM_ACTIVATE antes de nós,
-		// ele pode retornar true e o overlay vira foreground → GTA5 minimiza.
-		switch ( msg ) {
-		case WM_NCHITTEST:
-			// Click-through controlado por WM_NCHITTEST — SEM remover WS_EX_TRANSPARENT.
-			// WS_EX_TRANSPARENT fica presente SEMPRE (evita minimize no startup com DXGI).
-			// DefWindowProc retornaria HTTRANSPARENT por causa do WS_EX_TRANSPARENT flag,
-			// mas o WndProc intercepta ANTES e pode retornar o valor que quiser:
-			//   - Menu fechado → HTTRANSPARENT: todo mouse passa pro GTA5 abaixo.
-			//   - Menu aberto  → HTCLIENT: ImGui recebe mouse (override do WS_EX_TRANSPARENT).
-			// NUNCA usar SetWindowLong(GWL_EXSTYLE) para trocar WS_EX_TRANSPARENT —
-			// isso triggera DWM reactivation que minimiza o jogo em fullscreen exclusivo.
-			return g_MenuInfo.IsOpen ? HTCLIENT : HTTRANSPARENT;
-
-		case WM_MOUSEACTIVATE:
-			// Não ativar o overlay quando o mouse clicar nele.
-			// MA_NOACTIVATE: não ativa a janela MAS processa o clique normalmente (ImGui recebe).
-			return MA_NOACTIVATE;
-
-		case WM_NCACTIVATE:
-			// Não desenhar o nonclient area como "ativo" (evita flicker de título).
-			return FALSE;
-
-		case WM_ACTIVATE:
-			// Se o Windows tentar ativar nossa janela, devolver o foco ao GTA5.
-			// Usa AttachThreadInput para garantir que SetForegroundWindow funcione
-			// cross-process (SetForegroundWindow simples é bloqueado quando o
-			// processo chamador não é foreground).
-			if ( LOWORD( wParam ) != WA_INACTIVE ) {
-				RestoreGameFocus( );
-				return 0;
-			}
-			break;
-
-		case WM_SETFOCUS:
-			// Se o foco vier para o overlay por qualquer razão, dar de volta ao jogo.
-			RestoreGameFocus( );
-			return 0;
-		}
-
 		if ( ImGui_ImplWin32_WndProcHandler( hWnd, msg, wParam, lParam ) )
 			return true;
 
@@ -460,13 +282,12 @@ namespace Gui
 			}
 			return 0;
 		case WM_SYSCOMMAND:
-			if ( ( wParam & 0xfff0 ) == SC_KEYMENU ) // Disable ALT application menu
+			if ( ( wParam & 0xfff0 ) == SC_KEYMENU )
 				return 0;
 			break;
 		case WM_DESTROY:
 			::PostQuitMessage( 0 );
 			return 0;
-			break;
 		}
 
 		return DefWindowProc( hWnd, msg, wParam, lParam );
