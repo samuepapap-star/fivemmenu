@@ -11,6 +11,7 @@
 #include <dwmapi.h>
 #include <tchar.h>
 #include <thread>
+#include <atomic>
 
 //#define FULLSCREEN_EX
 
@@ -21,16 +22,23 @@ namespace Gui
 	// Low-level keyboard hook para engolir a tecla de toggle do menu
 	// antes que chegue no GTA5. Se GTA5 processar INSERT internamente
 	// (mapa pra minimize, phone, etc.) o jogo minimiza sem relação com focus.
-	static HHOOK   s_hKeyboardHook = nullptr;
-	static int     s_menuVkCode    = VK_INSERT; // atualizado em Render() antes do loop
+	static HHOOK   s_hKeyboardHook  = nullptr;
+	static int     s_menuVkCode     = VK_INSERT; // atualizado em Render() antes do loop
+
+	// IMPORTANTE: WH_KEYBOARD_LL retornando 1 cancela o input no kernel,
+	// inclusive GetAsyncKeyState(key)&0x8000 nunca fica setado para teclas engolidas.
+	// Usamos uma flag atômica setada DENTRO do hook para sinalizar o toggle.
+	static std::atomic<bool> s_menuKeyTriggered { false };
 
 	static LRESULT CALLBACK LLKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam ) {
 		if ( nCode >= 0 && ( wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN ) ) {
 			const KBDLLHOOKSTRUCT * kb = reinterpret_cast< KBDLLHOOKSTRUCT * >( lParam );
 			if ( static_cast< int >( kb->vkCode ) == s_menuVkCode ) {
-				// Engole a tecla: não passa pro GTA5 nem pra nenhum outro processo.
-				// GetAsyncKeyState ainda lê o estado de hardware e funciona normalmente.
-				return 1;
+				// Sinaliza toggle antes de engolir, pois após retornar 1
+				// o kernel NÃO atualiza o key state table — GetAsyncKeyState
+				// nunca veria essa tecla. A flag é o único canal seguro.
+				s_menuKeyTriggered.store( true, std::memory_order_release );
+				return 1; // Engole: não passa pro GTA5
 			}
 		}
 		return CallNextHookEx( s_hKeyboardHook, nCode, wParam, lParam );
@@ -153,18 +161,25 @@ namespace Gui
 
             // Toggle once per key press, including while the overlay has focus.
             // Atualiza s_menuVkCode para o hook de teclado ficar sincronizado.
-            static unsigned previousMenuKeys = 0;
-            unsigned menuKeys = 0;
+            // NOTA: teclas engolidas pelo WH_KEYBOARD_LL não atualizam o key state table,
+            // então GetAsyncKeyState & 0x8000 nunca fica setado para elas.
+            // Usamos s_menuKeyTriggered (setada no hook) para INSERT/customKey,
+            // e GetAsyncKeyState apenas para 'P' (que não é engolida pelo hook).
             const int customKey = g_Config.General->MenuKey;
             s_menuVkCode = ( customKey > 0 && customKey < 255 ) ? customKey : VK_INSERT;
-            if (customKey > 0 && customKey < 255) {
-                if (GetAsyncKeyState(customKey) & 0x8000) menuKeys |= 4u;
-            } else {
-                if (GetAsyncKeyState('P') & 0x8000) menuKeys |= 1u;
-                if (GetAsyncKeyState(VK_INSERT) & 0x8000) menuKeys |= 2u;
-            }
-            const bool pressed = (menuKeys & ~previousMenuKeys) != 0;
-            previousMenuKeys = menuKeys;
+
+            // Lê e limpa a flag atômica — disparada uma vez por keydown no hook
+            const bool hookFired = s_menuKeyTriggered.exchange( false, std::memory_order_acq_rel );
+
+            // 'P' não é engolida pelo hook, usa edge-detection normal
+            static bool s_prevP = false;
+            const bool pDown   = ( GetAsyncKeyState( 'P' ) & 0x8000 ) != 0;
+            const bool pEdge   = pDown && !s_prevP;
+            s_prevP = pDown;
+
+            // hookFired cobre INSERT (default) OU customKey (ambos são engolidos pelo hook)
+            // pEdge cobre 'P' somente quando não há customKey configurado
+            const bool pressed = hookFired || ( !( customKey > 0 && customKey < 255 ) && pEdge );
             const bool editingShortcut = MenuShortcut::Poll(g_Config.General->MenuKey,
                 gameHasFocus);
             if (!editingShortcut && pressed && gameHasFocus) {
