@@ -314,6 +314,38 @@ namespace Gui
 	}
 
 	LRESULT CALLBACK Overlay::WndProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
+
+		// Bloquear TODA ativação do overlay ANTES do ImGui processar qualquer mensagem.
+		// WS_EX_NOACTIVATE previne ativação por clique mas não impede o Windows de
+		// enviar WM_ACTIVATE em resposta a SetWindowLong/ShowWindow/SetWindowPos.
+		// Se ImGui_ImplWin32_WndProcHandler processar WM_ACTIVATE antes de nós,
+		// ele pode retornar true e o overlay vira foreground → GTA5 minimiza.
+		switch ( msg ) {
+		case WM_MOUSEACTIVATE:
+			// Não ativar o overlay quando o mouse clicar nele.
+			// MA_NOACTIVATE: não ativa a janela MAS processa o clique normalmente (ImGui recebe).
+			return MA_NOACTIVATE;
+
+		case WM_NCACTIVATE:
+			// Não desenhar o nonclient area como "ativo" (evita flicker de título).
+			return FALSE;
+
+		case WM_ACTIVATE:
+			// Se o Windows tentar ativar nossa janela, devolver o foco ao GTA5 imediatamente.
+			if ( LOWORD( wParam ) != WA_INACTIVE ) {
+				if ( g_Variables.g_hGameWindow )
+					SetForegroundWindow( g_Variables.g_hGameWindow );
+				return 0;
+			}
+			break;
+
+		case WM_SETFOCUS:
+			// Se o foco vier para o overlay por qualquer razão, dar de volta ao jogo.
+			if ( g_Variables.g_hGameWindow )
+				SetForegroundWindow( g_Variables.g_hGameWindow );
+			return 0;
+		}
+
 		if ( ImGui_ImplWin32_WndProcHandler( hWnd, msg, wParam, lParam ) )
 			return true;
 
