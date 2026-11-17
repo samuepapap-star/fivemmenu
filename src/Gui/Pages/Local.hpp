@@ -69,7 +69,7 @@ namespace Local {
                                 // Se m_MaxHealth retornar valor invalido (offset errado para build atual),
                                 // usa 200.f como fallback (valor padrao do jogador no GTA5).
                                 const float rawMax = ped->GetMaxHealth();
-                                const float hp = (std::isfinite(rawMax) && rawMax > 50.f && rawMax <= 10000.f) ? rawMax : 200.f;
+                                const float hp = (std::isfinite(rawMax) && rawMax > 50.f && rawMax <= 10000.f) ? rawMax : 400.f;
                                 ped->SetHealth(hp);
                                 ped->SetArmor(100.f);
                             } else {
