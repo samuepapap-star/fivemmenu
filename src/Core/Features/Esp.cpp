@@ -8,6 +8,21 @@
 
 
 namespace {
+// Rainbow RGB cycle — mesma lógica do AdminList::RgbCycleColor
+ImColor EspRgbCycle(float speed = 1.f) {
+    const float t = static_cast<float>(GetTickCount64() % 3000) / 3000.f * speed;
+    const float h = fmodf(t, 1.f);
+    const float s = 1.f, v = 1.f;
+    const int i = static_cast<int>(h * 6.f);
+    const float f = h*6.f - i, p = v*(1-s), q = v*(1-s*f), tv = v*(1-s*(1-f));
+    float r, g, b;
+    switch (i % 6) {
+        case 0: r=v;  g=tv; b=p;  break; case 1: r=q;  g=v;  b=p;  break;
+        case 2: r=p;  g=v;  b=tv; break; case 3: r=p;  g=q;  b=v;  break;
+        case 4: r=tv; g=p;  b=v;  break; default: r=v;  g=p;  b=q;  break;
+    }
+    return ImColor(r, g, b, 1.f);
+}
 // Each joint is projected once, even when several segments share it.
 void DrawTracelessSkeleton(CPed* ped, ImDrawList* draw, ImColor color, const ImVec2& screen) {
     Core::Features::PlayerBones bones;
@@ -178,7 +193,7 @@ void Core::Features::cEsp::Draw( )
             const ImVec2 textSize = ImGui::CalcTextSize(label);
             const ImVec2 labelPos(BoxCenter.x - textSize.x * 0.5f, BoxMin.y - 40.f);
             DrawList->AddText(ImVec2(labelPos.x + 1.f, labelPos.y + 1.f), IM_COL32(0, 0, 0, 255), label);
-            DrawList->AddText(labelPos, IM_COL32(255, 190, 60, 255), label);
+            DrawList->AddText(labelPos, EspRgbCycle(), label);
         }
 		if ( Cfg->FriendsMarker && !IsLocalPlayer )
 		{
