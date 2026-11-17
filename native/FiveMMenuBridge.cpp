@@ -262,8 +262,9 @@ void Tick(){
        }
       }catch(const std::exception&){if(nativeFault)nativeFault=false;}
      }
+     std::string dbgMsg="[n="+std::to_string(count)+"] "+(names.empty()?"(nenhum nome lido)":names);
      Reply r{};r.id=command.id;r.success=1u;r.value=(std::uint32_t)count;
-     Copy(r.message,sizeof(r.message),names.empty()?"(sem recursos)":names.c_str());Publish(r);
+     Copy(r.message,sizeof(r.message),dbgMsg.c_str());Publish(r);
     }
     done_list:;
    }
