@@ -85,22 +85,40 @@ namespace Gui
 
 		while ( Message.message != WM_QUIT )
 		{
-			while ( PeekMessage( &Message, g_Variables.g_hCheatWindow, 0, 0, PM_REMOVE ) ) {
+			while ( PeekMessage( &Message, nullptr, 0, 0, PM_REMOVE ) ) {
+                if (Message.message == WM_QUIT) break;
 				TranslateMessage( &Message );
 				DispatchMessage( &Message );
 			}
 
+            if (Message.message == WM_QUIT) break;
+
+            // Resize only between frames. WM_SIZE may arrive while changing
+            // display mode; keep the last valid back buffer until it succeeds.
+            if (g_ResizeWidth != 0 && g_ResizeHeight != 0) {
+                g_pd3dDeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+                Overlay::CleanupRenderTarget();
+                const HRESULT resized = g_pSwapChain->ResizeBuffers(
+                    0, g_ResizeWidth, g_ResizeHeight, DXGI_FORMAT_UNKNOWN, 0);
+                if (SUCCEEDED(resized)) g_ResizeWidth = g_ResizeHeight = 0;
+                Overlay::CreateRenderTarget();
+            }
+            if (!g_mainRenderTargetView || IsIconic(g_Variables.g_hGameWindow)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                continue;
+            }
+
 			HWND ActiveWindow = GetForegroundWindow( );
 
-            // In exclusive fullscreen GetForegroundWindow() may return a window other than
-            // grcWindow (e.g. an internal DX window).  Accept any HWND that belongs to our
-            // own process so the toggle key still works in fullscreen.
-            DWORD fgPid = 0;
-            if ( ActiveWindow ) GetWindowThreadProcessId( ActiveWindow, &fgPid );
+            // FiveM and the overlay run in different processes. Accept alternate
+            // game HWNDs (including those used during display-mode transitions).
+            DWORD fgPid = 0, gamePid = 0;
+            if (ActiveWindow) GetWindowThreadProcessId(ActiveWindow, &fgPid);
+            GetWindowThreadProcessId(g_Variables.g_hGameWindow, &gamePid);
             const bool gameHasFocus =
-                ActiveWindow == g_Variables.g_hGameWindow  ||
+                ActiveWindow == g_Variables.g_hGameWindow ||
                 ActiveWindow == g_Variables.g_hCheatWindow ||
-                ( fgPid != 0 && fgPid == GetCurrentProcessId( ) );
+                (gamePid != 0 && fgPid == gamePid);
 
             // Toggle once per key press, including while the overlay has focus.
             static unsigned previousMenuKeys = 0;
@@ -172,9 +190,8 @@ namespace Gui
 
 			g_pSwapChain->Present( g_Config.General->VSync, 0U ); //VSync
 
-            // Re-assert HWND_TOPMOST every ~60 frames so the overlay survives
-            // fullscreen transitions (flip-model exclusive fullscreen on W10/11
-            // still composites TOPMOST layered windows over the game).
+            // Refresh Z order after borderless/windowed display transitions.
+            // A separate HWND is not guaranteed over true exclusive fullscreen.
             static int s_topmostCounter = 0;
             if ( ++s_topmostCounter >= 60 ) {
                 s_topmostCounter = 0;
@@ -263,7 +280,7 @@ namespace Gui
 		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		sd.BufferDesc.RefreshRate.Numerator = 60;
 		sd.BufferDesc.RefreshRate.Denominator = 1;
-		sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		sd.Flags = 0; // The overlay itself must always remain windowed.
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		sd.OutputWindow = hWnd;
 		sd.SampleDesc.Count = 1;
@@ -278,8 +295,14 @@ namespace Gui
 		if ( D3D11CreateDeviceAndSwapChain( NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext ) != S_OK )
 			return false;
 
-		CreateRenderTarget( );
-		return true;
+        IDXGIFactory* factory = nullptr;
+        if (SUCCEEDED(g_pSwapChain->GetParent(IID_PPV_ARGS(&factory)))) {
+            // Alt+Enter belongs to the game, never to the overlay swap chain.
+            factory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
+            factory->Release();
+        }
+        CreateRenderTarget();
+        return g_mainRenderTargetView != nullptr;
 	}
 
 	void Overlay::CleanupDeviceD3D( )
@@ -293,10 +316,11 @@ namespace Gui
 
 	void Overlay::CreateRenderTarget( )
 	{
-		ID3D11Texture2D * pBackBuffer;
-		g_pSwapChain->GetBuffer( 0, IID_PPV_ARGS( &pBackBuffer ) );
-		g_pd3dDevice->CreateRenderTargetView( pBackBuffer, NULL, &g_mainRenderTargetView );
-		pBackBuffer->Release( );
+        ID3D11Texture2D* pBackBuffer = nullptr;
+        if (SUCCEEDED(g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer)))) {
+            g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
+            pBackBuffer->Release();
+        }
 	}
 
 	void Overlay::CleanupRenderTarget( )
@@ -309,14 +333,12 @@ namespace Gui
 			return true;
 
 		switch ( msg ) {
-		case WM_SIZE:
-			if ( g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED ) {
-				g_pd3dDeviceContext->OMSetRenderTargets( 0, nullptr, nullptr );
-				Overlay::CleanupRenderTarget( );
-				g_pSwapChain->ResizeBuffers( 0, ( UINT ) LOWORD( lParam ), ( UINT ) HIWORD( lParam ), DXGI_FORMAT_UNKNOWN, 0 );
-				Overlay::CreateRenderTarget( );
-			}
-			return 0;
+        case WM_SIZE:
+            if (wParam != SIZE_MINIMIZED && LOWORD(lParam) != 0 && HIWORD(lParam) != 0) {
+                g_ResizeWidth = static_cast<UINT>(LOWORD(lParam));
+                g_ResizeHeight = static_cast<UINT>(HIWORD(lParam));
+            }
+            return 0;
 		case WM_SYSCOMMAND:
 			if ( ( wParam & 0xfff0 ) == SC_KEYMENU ) // Disable ALT application menu
 				return 0;
