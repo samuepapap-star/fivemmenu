@@ -109,35 +109,15 @@ namespace Visuals {
 						);
 						Custom::CheckBox( xorstr( "Mostrar meu personagem" ), &g_Config.ESP->ShowLocalPlayer );
 						Custom::CheckBox( xorstr( "Ignorar mortos" ), &g_Config.ESP->IgnoreDead );
+                        Custom::CheckBox("ESP Admin (noclip + invisíveis)", &g_Config.ESP->AdminEsp);
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Destaca com nome em RGB jogadores com indícios de noclip (3s) ou invisibilidade. Não confirma cargo de administrador.");
                         Custom::CheckBox("ADM list (possíveis invisíveis)", &g_Config.ESP->AdminList);
                         if(g_Config.ESP->AdminList && ImGui::TreeNode("Ver ADM list no menu")) {
                             AdminList::RenderEntries();
                             ImGui::TreePop();
                         }
                         if (g_Config.ESP->HeadCircle) ImGui::SliderFloat("Raio da cabeça", &g_Config.ESP->HeadSize, 1.f, 20.f);
-                        Custom::CheckBox("Destacar possíveis invisíveis", &g_Config.ESP->AdminHighlight);
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Usa indicadores locais de invisibilidade em jogadores carregados. Não confirma cargo de administrador.");
-                        // --- ESP Admin visual overlay ---
-                        if (g_Config.ESP->AdminList) {
-                            ImGui::Separator();
-                            ImGui::TextColored(ImVec4(1.f,0.3f,0.3f,1.f), "ESP Admin");
-                            ImGui::SameLine(); ImGui::TextDisabled("(nomes RGB sempre ativos)");
-                            Custom::CheckBox("Caixa (ADM)", &g_Config.ESP->AdminEspBox);
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip("Desenha uma caixa colorida ao redor de possíveis administradores.");
-                            Custom::CheckBox("Linha de mira (ADM)", &g_Config.ESP->AdminEspSnapLines);
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip("Traça uma linha da base da tela até cada possível administrador.");
-                            Custom::CheckBox("Esqueleto (ADM)", &g_Config.ESP->AdminEspSkeleton);
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip("Desenha o esqueleto completo sobre possíveis administradores.");
-                            ImGui::ColorEdit4("Cor ADM ESP", reinterpret_cast<float*>(&g_Config.ESP->AdminEspCol), ImGuiColorEditFlags_NoInputs|ImGuiColorEditFlags_AlphaBar);
-                            ImGui::Separator();
-                        }
-                        Custom::CheckBox("Possível noclip", &g_Config.ESP->PossibleNoclip);
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Indícios de voo ou ausência de colisão por 3 segundos. Pode marcar quedas ou paraquedas. Não identifica administradores.");
 						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.ESP->IgnoreNPCs );
 
 						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.ESP->MaxDistance, 0, g_Config.ESP->DistanceLimit, xorstr( "%dm" ), 0 );

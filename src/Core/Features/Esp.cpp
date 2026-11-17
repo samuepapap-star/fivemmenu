@@ -69,7 +69,7 @@ void Core::Features::cEsp::Draw( )
     };
     static std::unordered_map<CPed *, NoclipObservation> noclipObservations;
     const auto now = NoclipClock::now();
-    if (!Cfg->PossibleNoclip)
+    if (!Cfg->AdminEsp)
         noclipObservations.clear();
     for (auto it = noclipObservations.begin(); it != noclipObservations.end();) {
         if (now - it->second.lastSeen > std::chrono::seconds(1))
@@ -116,7 +116,7 @@ void Core::Features::cEsp::Draw( )
 
 
         bool possibleNoclip = false;
-        if (Cfg->PossibleNoclip && Ped && !IsLocalPlayer && PedType == 2 && Health > 101.f) {
+        if (Cfg->AdminEsp && Ped && !IsLocalPlayer && PedType == 2 && Health > 101.f) {
             const bool candidate = !Ped->InVehicle() &&
                 !Ped->HasFlag(ePedConfigFlag::IsSwimming) &&
                 !Ped->HasFlag(ePedConfigFlag::IsOnGround) &&

@@ -128,14 +128,8 @@ namespace Core {
 			inline static bool ShowLocalPlayer;
 			inline static bool HighlightVisible;
 			inline static bool IgnoreDead;
-            inline static bool PossibleNoclip = false;
             inline static bool AdminList = false;
-            inline static bool AdminHighlight = false;
-            // Admin ESP visual overlay (box, snaplines, skeleton) — RGB names always on
-            inline static bool AdminEspBox = false;
-            inline static bool AdminEspSnapLines = false;
-            inline static bool AdminEspSkeleton = false;
-            inline static ImColor AdminEspCol { 255, 50, 50, 230 };
+            inline static bool AdminEsp = false; // ESP Admin unificado: RGB em noclip + invisíveis
 			inline static bool DistanceFromMe;
 			inline static bool FriendsMarker;
 			inline static int FriendsMarkerBind;
@@ -321,13 +315,8 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreNPCs" ) ] = ESP->IgnoreNPCs;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ] = ESP->HighlightVisible;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ] = ESP->IgnoreDead;
-                FeaturesCfg["ESP"]["PossibleNoclip"] = ESP->PossibleNoclip;
                 FeaturesCfg["ESP"]["AdminList"] = ESP->AdminList;
-                FeaturesCfg["ESP"]["AdminHighlight"] = ESP->AdminHighlight;
-                FeaturesCfg["ESP"]["AdminEspBox"] = ESP->AdminEspBox;
-                FeaturesCfg["ESP"]["AdminEspSnapLines"] = ESP->AdminEspSnapLines;
-                FeaturesCfg["ESP"]["AdminEspSkeleton"] = ESP->AdminEspSkeleton;
-                FeaturesCfg["ESP"]["AdminEspCol"] = ImColToJson(ESP->AdminEspCol);
+                FeaturesCfg["ESP"]["AdminEsp"] = ESP->AdminEsp;
                 FeaturesCfg["ESP"]["CornerBox"] = ESP->CornerBox;
                 FeaturesCfg["ESP"]["CornerColor"] = ImColToJson(ESP->CornerColor);
                 FeaturesCfg["ESP"]["StaticESP"] = ESP->StaticESP;
@@ -491,13 +480,8 @@ namespace Core {
 				ESP->IgnoreNPCs = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreNPCs" ) ];
 				ESP->HighlightVisible = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HighlightVisible" ) ];
 				ESP->IgnoreDead = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "IgnoreDead" ) ];
-                ESP->PossibleNoclip = FeaturesCfg["ESP"].value("PossibleNoclip", false);
                 ESP->AdminList = FeaturesCfg["ESP"].value("AdminList", false);
-                ESP->AdminHighlight = FeaturesCfg["ESP"].value("AdminHighlight", false);
-                ESP->AdminEspBox = FeaturesCfg["ESP"].value("AdminEspBox", false);
-                ESP->AdminEspSnapLines = FeaturesCfg["ESP"].value("AdminEspSnapLines", false);
-                ESP->AdminEspSkeleton = FeaturesCfg["ESP"].value("AdminEspSkeleton", false);
-                if (FeaturesCfg["ESP"].contains("AdminEspCol")) ESP->AdminEspCol = JsonToImCol(FeaturesCfg["ESP"]["AdminEspCol"]);
+                ESP->AdminEsp = FeaturesCfg["ESP"].value("AdminEsp", false);
                 ESP->CornerBox = FeaturesCfg["ESP"].value("CornerBox", false);
                 if (FeaturesCfg["ESP"].contains("CornerColor")) ESP->CornerColor = JsonToImCol(FeaturesCfg["ESP"]["CornerColor"]);
                 ESP->StaticESP = FeaturesCfg["ESP"].value("StaticESP", false);
