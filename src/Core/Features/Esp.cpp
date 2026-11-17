@@ -58,10 +58,7 @@ void Core::Features::cEsp::Draw( )
     ImFont* extraFont=ExtraSettings::Font==1?ImGui::GetFont():ExtraSettings::Font==2?g_Variables.m_FontSmaller:g_Variables.m_DrawFont;
     const float extraTextSize=ExtraSettings::TextSize;
 
-	if ( !Cfg->Enabled )
-		return;
-
-	
+    // === AdminEsp noclip pre-pass: roda independente do ESP principal ===
     using NoclipClock = std::chrono::steady_clock;
     struct NoclipObservation {
         NoclipClock::time_point since;
@@ -77,6 +74,40 @@ void Core::Features::cEsp::Draw( )
         else
             ++it;
     }
+    if (Cfg->AdminEsp) {
+        auto* noclipDraw = ImGui::GetBackgroundDrawList();
+        const auto noclipWin = g_Variables.g_vGameWindowSize;
+        for (auto& nclEnt : Core::SDK::Game::SnapshotEntities()) {
+            CPed* nclPed = nclEnt.Ped;
+            if (!nclPed || nclPed == Core::SDK::Pointers::pLocalPlayer ||
+                nclEnt.PedType != 2 || nclEnt.Health <= 101.f) continue;
+            const bool candidate = !nclPed->InVehicle() &&
+                !nclPed->HasFlag(ePedConfigFlag::IsSwimming) &&
+                !nclPed->HasFlag(ePedConfigFlag::IsOnGround) &&
+                (nclPed->HasFlag(ePedConfigFlag::IsInTheAir) ||
+                 nclPed->HasFlag(ePedConfigFlag::NoCollision));
+            if (candidate) {
+                auto inserted = noclipObservations.emplace(nclPed, NoclipObservation{now, now});
+                auto& obs = inserted.first->second;
+                obs.lastSeen = now;
+                if (now - obs.since >= std::chrono::seconds(3)) {
+                    const auto nclHead = Core::SDK::Game::WorldToScreen(nclPed->GetBonePosDefault(0));
+                    if (ExternalAimMath::Inside(nclHead.x, nclHead.y, noclipWin.x, noclipWin.y)) {
+                        constexpr const char* nclLabel = "Possivel noclip";
+                        const ImVec2 nclTs = ImGui::CalcTextSize(nclLabel);
+                        const ImVec2 nclLp(nclHead.x - nclTs.x * 0.5f, nclHead.y - 40.f);
+                        noclipDraw->AddText(ImVec2(nclLp.x + 1.f, nclLp.y + 1.f), IM_COL32(0, 0, 0, 255), nclLabel);
+                        noclipDraw->AddText(nclLp, EspRgbCycle(), nclLabel);
+                    }
+                }
+            } else {
+                noclipObservations.erase(nclPed);
+            }
+        }
+    }
+
+	if ( !Cfg->Enabled )
+		return;
 
 
 	for ( auto & Entity : Core::SDK::Game::SnapshotEntities() )
@@ -115,24 +146,6 @@ void Core::Features::cEsp::Draw( )
 		}
 
 
-        bool possibleNoclip = false;
-        if (Cfg->AdminEsp && Ped && !IsLocalPlayer && PedType == 2 && Health > 101.f) {
-            const bool candidate = !Ped->InVehicle() &&
-                !Ped->HasFlag(ePedConfigFlag::IsSwimming) &&
-                !Ped->HasFlag(ePedConfigFlag::IsOnGround) &&
-                (Ped->HasFlag(ePedConfigFlag::IsInTheAir) ||
-                 Ped->HasFlag(ePedConfigFlag::NoCollision));
-            if (candidate) {
-                auto inserted = noclipObservations.emplace(Ped, NoclipObservation{now, now});
-                auto & observation = inserted.first->second;
-                observation.lastSeen = now;
-                possibleNoclip = now - observation.since >= std::chrono::seconds(3);
-            } else {
-                noclipObservations.erase(Ped);
-            }
-        } else {
-            noclipObservations.erase(Ped);
-        }
         // Supplied source: head/feet geometry and projected model bounds.
         D3DXVECTOR3 HeadPos = Ped->GetBonePosDefault(0);
         const auto head = Core::SDK::Game::WorldToScreen(HeadPos);
@@ -187,13 +200,6 @@ void Core::Features::cEsp::Draw( )
             const ImU32 color = IsFriend ? static_cast<ImU32>(ImColor(g_Col.Base))
                                          : ImGui::GetColorU32(Cfg->BoxCol.Value);
             DrawList->AddShadowRect(BoxMin, BoxMax, color, 50.f, ImVec2(0, 0));
-        }
-        if (possibleNoclip) {
-            const char * label = "Possivel noclip";
-            const ImVec2 textSize = ImGui::CalcTextSize(label);
-            const ImVec2 labelPos(BoxCenter.x - textSize.x * 0.5f, BoxMin.y - 40.f);
-            DrawList->AddText(ImVec2(labelPos.x + 1.f, labelPos.y + 1.f), IM_COL32(0, 0, 0, 255), label);
-            DrawList->AddText(labelPos, EspRgbCycle(), label);
         }
 		if ( Cfg->FriendsMarker && !IsLocalPlayer )
 		{

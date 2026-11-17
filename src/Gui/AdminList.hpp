@@ -32,7 +32,8 @@ inline void Draw() {
     static VisibilityEvidence::Filter filter;
     static DWORD processId=0;
     if(processId!=Mem.ProcId){filter.Clear();processId=Mem.ProcId;}
-    if (!g_MenuInfo.IsLogged || (!cfg->Enabled && !ExtraSettings::InvisibleWarning) ||
+    // AdminEsp roda independente do toggle principal de ESP
+    if (!g_MenuInfo.IsLogged ||
         (!cfg->AdminList && !cfg->AdminEsp && !ExtraSettings::InvisibleWarning)) {
         filter.Clear();
         return;
@@ -55,7 +56,7 @@ inline void Draw() {
         const std::string name=entity.NetworkInfo.UserName.empty()?"Desconhecido":entity.NetworkInfo.UserName;
         entries.push_back(name+" | ID "+std::to_string(entity.Id)+" | "+std::to_string(int(entity.Distance))+" m");
 
-        if (!cfg->AdminEsp || !cfg->Enabled) continue;
+        if (!cfg->AdminEsp) continue;
         const auto screenFeet=Core::SDK::Game::WorldToScreen(pos);
         if (!Core::SDK::Game::IsOnScreen(screenFeet)) continue;
         D3DXVECTOR3 headPos=pos; headPos.z+=1.8f;
