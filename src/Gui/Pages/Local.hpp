@@ -231,7 +231,8 @@ namespace Local {
                             constexpr int nCommonVip = (int)(sizeof(commonVips)/sizeof(commonVips[0]));
                             ImGui::SetNextItemWidth(280.f);
                             const char* vipPreview = g_Config.ServerSpoof->VipName[0] ? g_Config.ServerSpoof->VipName : "Selecionar...";
-                            if (ImGui::BeginCombo("##npvipcombo", vipPreview, nCommonVip)) {
+                            ImGui::PushID("npvip");
+                            if (ImGui::BeginCombo("", vipPreview, nCommonVip)) {
                                 if (!discovVips.empty()) {
                                     ImGui::TextDisabled("-- Desta cidade --");
                                     for (const auto& vn : discovVips) {
@@ -251,6 +252,7 @@ namespace Local {
                                 }
                                 ImGui::EndCombo();
                             }
+                            ImGui::PopID();
                             ImGui::SetNextItemWidth(280.f);
                             ImGui::InputText("Personalizado##npviptxt", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
                         }
@@ -267,7 +269,8 @@ namespace Local {
                             constexpr int nRank = (int)(sizeof(rankOpts)/sizeof(rankOpts[0]));
                             ImGui::SetNextItemWidth(280.f);
                             const char* rankPreview = g_Config.ServerSpoof->RankName[0] ? g_Config.ServerSpoof->RankName : "Selecionar...";
-                            if (ImGui::BeginCombo("##nprankcombo", rankPreview, nRank)) {
+                            ImGui::PushID("nprank");
+                            if (ImGui::BeginCombo("", rankPreview, nRank)) {
                                 for (int i = 0; i < nRank; i++) {
                                     const bool sel = (strcmp(g_Config.ServerSpoof->RankName, rankOpts[i]) == 0);
                                     if (ImGui::Selectable(rankOpts[i], sel))
@@ -276,6 +279,7 @@ namespace Local {
                                 }
                                 ImGui::EndCombo();
                             }
+                            ImGui::PopID();
                             ImGui::SetNextItemWidth(280.f);
                             ImGui::InputText("Personalizado##npranktxt", g_Config.ServerSpoof->RankName, sizeof(g_Config.ServerSpoof->RankName));
                         }
@@ -291,7 +295,8 @@ namespace Local {
                             constexpr int nSocial = (int)(sizeof(socialOpts)/sizeof(socialOpts[0]));
                             ImGui::SetNextItemWidth(280.f);
                             const char* socPreview = g_Config.ServerSpoof->SocialClass[0] ? g_Config.ServerSpoof->SocialClass : "Selecionar...";
-                            if (ImGui::BeginCombo("##npsocialcombo", socPreview, nSocial)) {
+                            ImGui::PushID("npsocial");
+                            if (ImGui::BeginCombo("", socPreview, nSocial)) {
                                 for (int i = 0; i < nSocial; i++) {
                                     const bool sel = (strcmp(g_Config.ServerSpoof->SocialClass, socialOpts[i]) == 0);
                                     if (ImGui::Selectable(socialOpts[i], sel))
@@ -300,6 +305,7 @@ namespace Local {
                                 }
                                 ImGui::EndCombo();
                             }
+                            ImGui::PopID();
                             ImGui::SetNextItemWidth(280.f);
                             ImGui::InputText("Personalizado##npsocialtxt", g_Config.ServerSpoof->SocialClass, sizeof(g_Config.ServerSpoof->SocialClass));
                         }
@@ -389,7 +395,9 @@ namespace Local {
                                           || npStatus.find("chaves")    != std::string::npos;
                             const bool err = npStatus.find("invalido")  != std::string::npos
                                           || npStatus.find("Nada")      != std::string::npos
-                                          || npStatus.find("erro")      != std::string::npos;
+                                          || npStatus.find("erro")      != std::string::npos
+                                          || npStatus.find("falhou")    != std::string::npos
+                                          || npStatus.find("Native")    != std::string::npos;
                             ImGui::PushStyleColor(ImGuiCol_Text, err
                                 ? ImVec4(1.f,0.3f,0.3f,1.f)
                                 : ok ? ImVec4(0.4f,1.f,0.4f,1.f)
@@ -397,8 +405,8 @@ namespace Local {
                             ImGui::TextWrapped("%s", npStatus.c_str());
                             ImGui::PopStyleColor();
                         }
-                        ImGui::TextDisabled("O servidor sobrescreve state bags ~1s.");
-                        ImGui::TextDisabled("Use injecao continua para manter o valor.");
+                        ImGui::TextDisabled("Escrita local: servidor nao ve nem sobrescreve.");
+                        ImGui::TextDisabled("Use injecao continua caso o sync do servidor reponha.");
 					}
 					ImGui::EndChild( );
 				}

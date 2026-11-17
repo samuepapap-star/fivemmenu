@@ -165,14 +165,24 @@ void Tick(){
      return b;
     };
     // helper: SET_STATE_BAG_VALUE(bagName, key, data, len, replicate)
-    auto SetBag=[&](const std::string& bag,const std::string& key,const std::vector<uint8_t>& packed,bool replicate=true){
-     api.Call(Hash("SET_STATE_BAG_VALUE"),{
-      reinterpret_cast<std::uint64_t>(bag.c_str()),
-      reinterpret_cast<std::uint64_t>(key.c_str()),
-      reinterpret_cast<std::uint64_t>(packed.data()),
-      static_cast<std::uint64_t>(packed.size()),
-      replicate?1ULL:0ULL
-     });
+    // replicate=false → local-only write (server never sees it, can't overwrite from DB)
+    // Per-call try-catch: a fault in a CFX native must not kill the bridge thread.
+    int injected=0;std::string firstError;
+    auto SetBag=[&](const std::string& bag,const std::string& key,const std::vector<uint8_t>& packed,bool replicate=false){
+     try{
+      api.Call(Hash("SET_STATE_BAG_VALUE"),{
+       reinterpret_cast<std::uint64_t>(bag.c_str()),
+       reinterpret_cast<std::uint64_t>(key.c_str()),
+       reinterpret_cast<std::uint64_t>(packed.data()),
+       static_cast<std::uint64_t>(packed.size()),
+       replicate?1ULL:0ULL
+      });
+      ++injected;
+     }catch(const std::exception& e){
+      // Isolate: state-bag native faults must not kill the bridge
+      if(nativeFault)nativeFault=false;
+      if(firstError.empty())firstError=e.what();
+     }
     };
     // resolve local player server-id
     const auto playerIndex=api.Call(Hash("PLAYER_ID"),{});
@@ -182,7 +192,6 @@ void Tick(){
      Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Servidor ID invalido; conecte ao servidor primeiro");Publish(r);
     }else{
      const std::string bag="player:"+std::to_string(serverId);
-     int injected=0;
      // ── Parse pipe-delimited fields ───────────────────────────────────────
      // text  = "vipName|rankName"    text2 = "jobName|socialClass"
      auto SplitPipe=[](const std::string& s,std::string& a,std::string& b){
@@ -197,34 +206,37 @@ void Tick(){
      if(!vipName.empty()){
       auto packed=MsgStr(vipName);
       const char* vipKeys[]={"vipName","vip","vip_name","VipName","vipname","vip_tag","vipTag","vip_level","vipLevel","vipStatus","nivelVip"};
-      for(auto k:vipKeys){SetBag(bag,k,packed);++injected;}
+      for(auto k:vipKeys)SetBag(bag,k,packed);
      }
      // ── Rank / titulo ─────────────────────────────────────────────────────
      if(!rankName.empty()){
       auto packed=MsgStr(rankName);
       const char* rankKeys[]={"rank","nivel","playerRank","rankName","nivelRank","posicao","titulo","nivelPlayer","cargo","vip_rank","vipRank"};
-      for(auto k:rankKeys){SetBag(bag,k,packed);++injected;}
+      for(auto k:rankKeys)SetBag(bag,k,packed);
      }
      // ── Hours played ──────────────────────────────────────────────────────
      if(command.flags>0||!vipName.empty()){
       auto packed=MsgInt(static_cast<int64_t>(command.flags));
       const char* hrKeys[]={"playTime","play_time","horasJogadas","horas","hours","tempo","tempoJogado","play_hours","playtime","horasTotais"};
-      for(auto k:hrKeys){SetBag(bag,k,packed);++injected;}
+      for(auto k:hrKeys)SetBag(bag,k,packed);
      }
      // ── Job name ──────────────────────────────────────────────────────────
      if(!jobName.empty()){
       auto packed=MsgStr(jobName);
       const char* jobKeys[]={"job","jobName","job_name","trabalho","funcao","profession","emprego"};
-      for(auto k:jobKeys){SetBag(bag,k,packed);++injected;}
+      for(auto k:jobKeys)SetBag(bag,k,packed);
      }
      // ── Classe social ─────────────────────────────────────────────────────
      if(!socialClass.empty()){
       auto packed=MsgStr(socialClass);
       const char* socKeys[]={"social","classSocial","classe_social","social_class","socialLevel","socialClass","nivelSocial","classesSocial","social_level","classeSocial"};
-      for(auto k:socKeys){SetBag(bag,k,packed);++injected;}
+      for(auto k:socKeys)SetBag(bag,k,packed);
      }
      Reply r{};r.id=command.id;r.success=injected>0?1u:0u;r.value=static_cast<std::uint32_t>(injected);
-     const std::string msg=injected>0?"Nameplate injetado ("+std::to_string(injected)+" chaves) em player:"+std::to_string(serverId):"Nada a injetar; preencha os campos";
+     std::string msg;
+     if(injected>0)msg="Nameplate injetado ("+std::to_string(injected)+" chaves) em player:"+std::to_string(serverId);
+     else if(!firstError.empty())msg="Native falhou: "+firstError.substr(0,96);
+     else msg="Nada a injetar; preencha os campos";
      Copy(r.message,sizeof(r.message),msg);Publish(r);
     }
    }
