@@ -252,6 +252,16 @@ namespace Visuals {
                             ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImVec4(0.10f,0.40f,0.18f,1.0f));
                             if(ImGui::Button("Injetar na Rede##sbinject",ImVec2(-1,32))){
                                 injectStatus.clear();
+                                // Garante que o ESP está ligado e o jogador local visível
+                                g_Config.ESP->Enabled = true;
+                                g_Config.ESP->ShowLocalPlayer = true;
+                                // Ativa as flags de exibição para cada campo preenchido
+                                if(g_Config.ServerSpoof->VipName[0] != '\0')
+                                    g_Config.ESP->ShowVipStatus = true;
+                                if(g_Config.ServerSpoof->PlayTime > 0)
+                                    g_Config.ESP->ShowPlayTime = true;
+                                if(g_Config.ServerSpoof->JobName[0] != '\0')
+                                    g_Config.ESP->ShowJobName = true;
                                 BridgeFeatures::InjectStateBag(
                                     std::string(g_Config.ServerSpoof->VipName),
                                     g_Config.ServerSpoof->PlayTime,
