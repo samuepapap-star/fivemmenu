@@ -18,6 +18,40 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT ms
 
 namespace Gui
 {
+	// Low-level keyboard hook para engolir a tecla de toggle do menu
+	// antes que chegue no GTA5. Se GTA5 processar INSERT internamente
+	// (mapa pra minimize, phone, etc.) o jogo minimiza sem relação com focus.
+	static HHOOK   s_hKeyboardHook = nullptr;
+	static int     s_menuVkCode    = VK_INSERT; // atualizado em Render() antes do loop
+
+	static LRESULT CALLBACK LLKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam ) {
+		if ( nCode >= 0 && ( wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN ) ) {
+			const KBDLLHOOKSTRUCT * kb = reinterpret_cast< KBDLLHOOKSTRUCT * >( lParam );
+			if ( static_cast< int >( kb->vkCode ) == s_menuVkCode ) {
+				// Engole a tecla: não passa pro GTA5 nem pra nenhum outro processo.
+				// GetAsyncKeyState ainda lê o estado de hardware e funciona normalmente.
+				return 1;
+			}
+		}
+		return CallNextHookEx( s_hKeyboardHook, nCode, wParam, lParam );
+	}
+
+	// Restaurar foco para o jogo de forma confiável cross-process via AttachThreadInput.
+	// SetForegroundWindow simples é bloqueado pelo Windows quando chamado de um
+	// processo que não é foreground — AttachThreadInput contorna essa restrição.
+	static void RestoreGameFocus( ) {
+		if ( !g_Variables.g_hGameWindow ) return;
+		DWORD fgTid  = GetWindowThreadProcessId( g_Variables.g_hGameWindow, nullptr );
+		DWORD myTid  = GetCurrentThreadId( );
+		if ( fgTid && fgTid != myTid ) {
+			AttachThreadInput( myTid, fgTid, TRUE );
+			SetForegroundWindow( g_Variables.g_hGameWindow );
+			BringWindowToTop( g_Variables.g_hGameWindow );
+			AttachThreadInput( myTid, fgTid, FALSE );
+		} else {
+			SetForegroundWindow( g_Variables.g_hGameWindow );
+		}
+	}
 	typedef HWND( WINAPI * CreateWindowInBand )( _In_ DWORD dwExStyle, _In_opt_ ATOM atom, _In_opt_ LPCWSTR lpWindowName, _In_ DWORD dwStyle, _In_ int X, _In_ int Y, _In_ int nWidth, _In_ int nHeight, _In_opt_ HWND hWndParent, _In_opt_ HMENU hMenu, _In_opt_ HINSTANCE hInstance, _In_opt_ LPVOID lpParam, DWORD band );
 
 
@@ -86,6 +120,15 @@ namespace Gui
 
 		std::thread( [ & ] ( ) { NotifyManager::Send( xorstr( "We are here!" ), 4000 ); } ).detach( );
 
+		// Instala hook de teclado low-level para engolir o INSERT (ou tecla customizada)
+		// ANTES de chegar no GTA5. Se GTA5 tem INSERT mapeado para algo (minimize,
+		// phone, pause), ele minimizaria independente do nosso foco. O hook previne isso.
+		{
+			const int customKey = g_Config.General->MenuKey;
+			s_menuVkCode = ( customKey > 0 && customKey < 255 ) ? customKey : VK_INSERT;
+		}
+		s_hKeyboardHook = SetWindowsHookExW( WH_KEYBOARD_LL, LLKeyboardProc, GetModuleHandle( nullptr ), 0 );
+
 		static RECT old_rc;
 		ZeroMemory( &Message, sizeof( MSG ) );
 
@@ -109,9 +152,11 @@ namespace Gui
                 ( fgPid != 0 && fgPid == GetCurrentProcessId( ) );
 
             // Toggle once per key press, including while the overlay has focus.
+            // Atualiza s_menuVkCode para o hook de teclado ficar sincronizado.
             static unsigned previousMenuKeys = 0;
             unsigned menuKeys = 0;
             const int customKey = g_Config.General->MenuKey;
+            s_menuVkCode = ( customKey > 0 && customKey < 255 ) ? customKey : VK_INSERT;
             if (customKey > 0 && customKey < 255) {
                 if (GetAsyncKeyState(customKey) & 0x8000) menuKeys |= 4u;
             } else {
@@ -188,6 +233,8 @@ namespace Gui
                               SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE );
             }
 		}
+
+		if ( s_hKeyboardHook ) { UnhookWindowsHookEx( s_hKeyboardHook ); s_hKeyboardHook = nullptr; }
 
 		ImGui_ImplDX11_Shutdown( );
 		ImGui_ImplWin32_Shutdown( );
@@ -331,18 +378,19 @@ namespace Gui
 			return FALSE;
 
 		case WM_ACTIVATE:
-			// Se o Windows tentar ativar nossa janela, devolver o foco ao GTA5 imediatamente.
+			// Se o Windows tentar ativar nossa janela, devolver o foco ao GTA5.
+			// Usa AttachThreadInput para garantir que SetForegroundWindow funcione
+			// cross-process (SetForegroundWindow simples é bloqueado quando o
+			// processo chamador não é foreground).
 			if ( LOWORD( wParam ) != WA_INACTIVE ) {
-				if ( g_Variables.g_hGameWindow )
-					SetForegroundWindow( g_Variables.g_hGameWindow );
+				RestoreGameFocus( );
 				return 0;
 			}
 			break;
 
 		case WM_SETFOCUS:
 			// Se o foco vier para o overlay por qualquer razão, dar de volta ao jogo.
-			if ( g_Variables.g_hGameWindow )
-				SetForegroundWindow( g_Variables.g_hGameWindow );
+			RestoreGameFocus( );
 			return 0;
 		}
 
