@@ -350,18 +350,12 @@ public:
         const auto it=networkMap.find(id);
         auto info=it==networkMap.end()?SDK::Game::NetworkInfo{}:it->second;
         if(!nickname.empty())info.UserName=nickname;
-        // Spoof local player data if enabled
+        // Spoof local player job if enabled
         if (g_Config.ServerSpoof->Enabled && Core::SDK::Pointers::pLocalPlayer) {
             const int localId = Core::SDK::Pointers::pLocalPlayer->GetID();
             if (id == localId) {
-                if (g_Config.ServerSpoof->VipName[0] != '\0')
-                    info.VipName = g_Config.ServerSpoof->VipName;
-                if (g_Config.ServerSpoof->PlayTime > 0)
-                    info.PlayTime = g_Config.ServerSpoof->PlayTime;
                 if (g_Config.ServerSpoof->JobName[0] != '\0')
                     info.JobName = g_Config.ServerSpoof->JobName;
-                if (g_Config.ServerSpoof->RemoveNovato)
-                    info.VipName = info.VipName.empty() ? g_Config.ServerSpoof->VipName : info.VipName;
             }
         }
         return info;

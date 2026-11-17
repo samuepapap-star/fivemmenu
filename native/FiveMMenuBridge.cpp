@@ -198,32 +198,20 @@ void Tick(){
     }else{
      const std::string bag="player:"+std::to_string(serverId);
      // ── Parse pipe-delimited fields ───────────────────────────────────────
-     // text  = "vipName|rankName"    text2 = "jobName|socialClass"
+     // text  = rankName    text2 = "jobName|socialClass"
      auto SplitPipe=[](const std::string& s,std::string& a,std::string& b){
       const auto pos=s.find('|');
       if(pos==std::string::npos){a=s;b="";}
       else{a=s.substr(0,pos);b=s.substr(pos+1);}
      };
-     std::string vipName,rankName,jobName,socialClass;
-     if(command.text[0]) SplitPipe(std::string(command.text),vipName,rankName);
+     std::string rankName,jobName,socialClass;
+     if(command.text[0]) rankName=std::string(command.text);
      if(command.text2[0]) SplitPipe(std::string(command.text2),jobName,socialClass);
-     // ── VIP name ─────────────────────────────────────────────────────────
-     if(!vipName.empty()){
-      auto packed=MsgStr(vipName);
-      const char* vipKeys[]={"vipName","vip","vip_name","VipName","vipname","vip_tag","vipTag","vip_level","vipLevel","vipStatus","nivelVip"};
-      for(auto k:vipKeys)SetBag(bag,k,packed);
-     }
      // ── Rank / titulo ─────────────────────────────────────────────────────
      if(!rankName.empty()){
       auto packed=MsgStr(rankName);
       const char* rankKeys[]={"rank","nivel","playerRank","rankName","nivelRank","posicao","titulo","nivelPlayer","cargo","vip_rank","vipRank"};
       for(auto k:rankKeys)SetBag(bag,k,packed);
-     }
-     // ── Hours played ──────────────────────────────────────────────────────
-     if(command.flags>0||!vipName.empty()){
-      auto packed=MsgInt(static_cast<int64_t>(command.flags));
-      const char* hrKeys[]={"playTime","play_time","horasJogadas","horas","hours","tempo","tempoJogado","play_hours","playtime","horasTotais"};
-      for(auto k:hrKeys)SetBag(bag,k,packed);
      }
      // ── Job name ──────────────────────────────────────────────────────────
      if(!jobName.empty()){
@@ -275,30 +263,25 @@ void Tick(){
    }
    else if(command.action==Action::TriggerLocalEvent){
     std::string evtName(command.text);
-    // Parse 4-part pipe: charId|vipName|rankName|socialClass
+    // Parse 3-part pipe: charId|rankName|socialClass
     std::string remaining(command.text2);
-    std::string charId,vipName,rankName,socialClass;
+    std::string charId,rankName,socialClass;
     auto splitNext=[&](std::string& out)->bool{
      auto pos=remaining.find('|');
      if(pos==std::string::npos){out=remaining;remaining.clear();return false;}
      out=remaining.substr(0,pos);remaining=remaining.substr(pos+1);return true;
     };
-    splitNext(charId);splitNext(vipName);splitNext(rankName);socialClass=remaining;
-    int hours=(int)command.flags;
-    // Build msgpack fixarray(5): charId, vipName, rankName, hours(int), socialClass
+    splitNext(charId);splitNext(rankName);socialClass=remaining;
+    // Build msgpack fixarray(3): charId, rankName, socialClass
     std::vector<uint8_t> args;
-    args.push_back(0x95u); // fixarray(5)
+    args.push_back(0x93u); // fixarray(3)
     auto appendStr=[&](const std::string& s){
      if(s.size()<=31){args.push_back(0xa0u|(uint8_t)s.size());}
      else if(s.size()<=255){args.push_back(0xd9u);args.push_back((uint8_t)s.size());}
      else{args.push_back(0xdau);args.push_back((uint8_t)(s.size()>>8));args.push_back((uint8_t)s.size());}
      args.insert(args.end(),s.begin(),s.end());
     };
-    appendStr(charId);appendStr(vipName);appendStr(rankName);
-    if(hours>=0&&hours<=127){args.push_back((uint8_t)hours);}
-    else if(hours<=255){args.push_back(0xccu);args.push_back((uint8_t)hours);}
-    else{args.push_back(0xcdu);args.push_back((uint8_t)(hours>>8));args.push_back((uint8_t)hours);}
-    appendStr(socialClass);
+    appendStr(charId);appendStr(rankName);appendStr(socialClass);
     try{
      api.Call(Hash("TRIGGER_EVENT_INTERNAL"),{
       reinterpret_cast<std::uint64_t>(evtName.c_str()),

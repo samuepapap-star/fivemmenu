@@ -52,20 +52,18 @@ inline void VehicleSeat(std::uintptr_t vehicle,bool enter,bool passenger=false){
 inline void RepairVehicle(){MenuBridge::Command c{};c.action=MenuBridge::Action::RepairVehicle;Submit(c);}
 inline void LoadVehicleCatalog(){MenuBridge::Command c{};c.action=MenuBridge::Action::VehicleCatalog;Submit(c);}
 inline void ApplyWeaponSkin(int tintIndex){MenuBridge::Command c{};c.action=MenuBridge::Action::WeaponSkin;c.flags=static_cast<std::uint32_t>(tintIndex);Submit(c);}
-// text  = "vipName|rankName"   (| separado)
+// text  = rankName
 // text2 = "jobName|socialClass" (| separado)
-// flags = horas jogadas
-inline void InjectStateBag(const std::string& vipName,int hours,const std::string& jobName,
+inline void InjectStateBag(const std::string& jobName,
                            const std::string& rankName="",const std::string& socialClass="",
                            std::uint64_t serverId=0){
  MenuBridge::Command c{};c.action=MenuBridge::Action::SetStateBag;
- // Encode vipName|rankName into text
- const std::string encText = rankName.empty() ? vipName : (vipName + "|" + rankName);
- MenuBridge::Copy(c.text,sizeof(c.text),encText);
+ // Encode rank into text
+ MenuBridge::Copy(c.text,sizeof(c.text),rankName.c_str());
  // Encode jobName|socialClass into text2
  const std::string encText2 = socialClass.empty() ? jobName : (jobName + "|" + socialClass);
  MenuBridge::Copy(c.text2,sizeof(c.text2),encText2);
- c.flags=static_cast<std::uint32_t>(hours>=0?hours:0);
+ c.flags=0;
  c.targetServerId=serverId;
  Submit(c);
 }
@@ -76,13 +74,12 @@ inline void GetPlayerInfo(){
  MenuBridge::Command c{};c.action=MenuBridge::Action::GetPlayerInfo;Submit(c);
 }
 inline void TriggerLocalEvent(const std::string& evtName,const std::string& charId,
-                              const std::string& vip,int hours,
                               const std::string& rank,const std::string& social){
  MenuBridge::Command c{};c.action=MenuBridge::Action::TriggerLocalEvent;
  MenuBridge::Copy(c.text,sizeof(c.text),evtName.c_str());
- std::string enc=charId+"|"+vip+"|"+rank+"|"+social;
+ std::string enc=charId+"|"+rank+"|"+social;
  MenuBridge::Copy(c.text2,sizeof(c.text2),enc.c_str());
- c.flags=static_cast<std::uint32_t>(hours>=0?hours:0);
+ c.flags=0;
  Submit(c);
 }
 inline void Animate(const char* dictionary,const char* animation,bool loop){MenuBridge::Command c{};c.action=MenuBridge::Action::Animation;c.flags=loop?1u:0u;MenuBridge::Copy(c.text,sizeof(c.text),dictionary);MenuBridge::Copy(c.text2,sizeof(c.text2),animation);Submit(c);}

@@ -356,56 +356,6 @@ void Core::Features::cEsp::Draw( )
             y += extraTextSize;
         }
 
-        // ── VIP / horas / job / AFK ────────────────────────────────────────
-        if (!IsLocalPlayer) {
-            const auto& ni = Entity.NetworkInfo;
-            // AFK tag (priority: shown first above others)
-            if (Cfg->ShowAfkTag && ni.IsAfk) {
-                label("[AFK]", y, ImColor(255, 80, 80, 255));
-                y += extraTextSize;
-            }
-            // VIP status com cor baseada no tier
-            if (Cfg->ShowVipStatus && !ni.VipName.empty()) {
-                ImColor vipCol(180, 180, 180, 255);
-                const std::string& vn = ni.VipName;
-                if (vn.find("OURO") != std::string::npos || vn.find("GOLD") != std::string::npos || vn.find("ouro") != std::string::npos)
-                    vipCol = ImColor(255, 215, 0, 255);
-                else if (vn.find("DIAMANTE") != std::string::npos || vn.find("DIAMOND") != std::string::npos)
-                    vipCol = ImColor(80, 220, 255, 255);
-                else if (vn.find("PRATA") != std::string::npos || vn.find("SILVER") != std::string::npos)
-                    vipCol = ImColor(192, 192, 192, 255);
-                else if (vn.find("BRONZE") != std::string::npos)
-                    vipCol = ImColor(205, 127, 50, 255);
-                else if (vn.find("VIP") != std::string::npos || vn.find("vip") != std::string::npos)
-                    vipCol = ImColor(0, 220, 120, 255);
-                label("[" + vn + "]", y, vipCol);
-                y += extraTextSize;
-            }
-            // Horas jogadas
-            if (Cfg->ShowPlayTime && ni.PlayTime >= 0) {
-                label(std::to_string(ni.PlayTime) + "h", y, ImColor(180, 180, 255, 255));
-                y += extraTextSize;
-            }
-            // Job / gang / cargo
-            if (Cfg->ShowJobName && !ni.JobName.empty()) {
-                label(ni.JobName, y, ImColor(255, 220, 100, 255));
-                y += extraTextSize;
-            }
-        } else if (g_Config.ServerSpoof->Enabled) {
-            // Jogador local — exibe dados spoofados no próprio ESP
-            if (Cfg->ShowVipStatus && g_Config.ServerSpoof->VipName[0] != '\0') {
-                label(std::string("[") + g_Config.ServerSpoof->VipName + "]", y, ImColor(255, 215, 0, 255));
-                y += extraTextSize;
-            }
-            if (Cfg->ShowPlayTime && g_Config.ServerSpoof->PlayTime > 0) {
-                label(std::to_string(g_Config.ServerSpoof->PlayTime) + "h", y, ImColor(180, 180, 255, 255));
-                y += extraTextSize;
-            }
-            if (Cfg->ShowJobName && g_Config.ServerSpoof->JobName[0] != '\0') {
-                label(std::string(g_Config.ServerSpoof->JobName), y, ImColor(255, 220, 100, 255));
-                y += extraTextSize;
-            }
-        }
         // Barra vertical (esquerda/direita)
         auto bar = [&](float x, float width, float fraction, ImU32 ink) {
             DrawList->AddRectFilled(ImVec2(x, BoxMin.y), ImVec2(x+width, BoxMax.y), IM_COL32(0,0,0,150), 2.f);

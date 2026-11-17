@@ -218,45 +218,6 @@ namespace Local {
                         ImGui::TextDisabled("Altera os dados do nameplate (pressione ALT no servidor).");
                         ImGui::Spacing();
 
-                        // ── VIP select ───────────────────────────────────────
-                        ImGui::Text("VIP:");
-                        {
-                            const auto discovVips = Core::Threads::g_UpdateNames.GetDiscoveredVips();
-                            static const char* commonVips[] = {
-                                "SEM VIP","VIP BRONZE","VIP PRATA","VIP OURO",
-                                "VIP DIAMANTE","VIP PLATINA","VIP MASTER",
-                                "VIP ELITE","VIP PREMIUM","VIP PLUS","VIP MAX",
-                                "VIP VITALICIO","VIP LENDA","VIP STAFF","ADM","ADMIN","MODERADOR","FUNDADOR","DONO"
-                            };
-                            constexpr int nCommonVip = (int)(sizeof(commonVips)/sizeof(commonVips[0]));
-                            ImGui::SetNextItemWidth(280.f);
-                            const char* vipPreview = g_Config.ServerSpoof->VipName[0] ? g_Config.ServerSpoof->VipName : "Selecionar...";
-                            ImGui::PushID("npvip");
-                            if (ImGui::BeginCombo("", vipPreview, nCommonVip)) {
-                                if (!discovVips.empty()) {
-                                    ImGui::TextDisabled("-- Desta cidade --");
-                                    for (const auto& vn : discovVips) {
-                                        const bool sel = (vn == g_Config.ServerSpoof->VipName);
-                                        if (ImGui::Selectable(vn.c_str(), sel))
-                                            strncpy_s(g_Config.ServerSpoof->VipName, vn.c_str(), 63);
-                                        if (sel) ImGui::SetItemDefaultFocus();
-                                    }
-                                    ImGui::Separator();
-                                }
-                                ImGui::TextDisabled("-- Comuns --");
-                                for (int i = 0; i < nCommonVip; i++) {
-                                    const bool sel = (strcmp(g_Config.ServerSpoof->VipName, commonVips[i]) == 0);
-                                    if (ImGui::Selectable(commonVips[i], sel))
-                                        strncpy_s(g_Config.ServerSpoof->VipName, commonVips[i], 63);
-                                    if (sel) ImGui::SetItemDefaultFocus();
-                                }
-                                ImGui::EndCombo();
-                            }
-                            ImGui::PopID();
-                            ImGui::SetNextItemWidth(280.f);
-                            ImGui::InputText("Personalizado##npviptxt", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
-                        }
-
                         // ── Rank select ──────────────────────────────────────
                         ImGui::Spacing();
                         ImGui::Text("Rank:");
@@ -310,13 +271,6 @@ namespace Local {
                             ImGui::InputText("Personalizado##npsocialtxt", g_Config.ServerSpoof->SocialClass, sizeof(g_Config.ServerSpoof->SocialClass));
                         }
 
-                        // ── Horas jogadas ────────────────────────────────────
-                        ImGui::Spacing();
-                        ImGui::Text("Horas jogadas:");
-                        ImGui::SetNextItemWidth(200.f);
-                        ImGui::InputInt("##nphoras", &g_Config.ServerSpoof->PlayTime, 1, 100);
-                        if (g_Config.ServerSpoof->PlayTime < 0) g_Config.ServerSpoof->PlayTime = 0;
-
                         ImGui::Spacing();
                         ImGui::Separator();
                         ImGui::Spacing();
@@ -338,8 +292,6 @@ namespace Local {
                             const float now = static_cast<float>(ImGui::GetTime());
                             if (now - npLastInject >= 1.0f) {
                                 BridgeFeatures::InjectStateBag(
-                                    std::string(g_Config.ServerSpoof->VipName),
-                                    g_Config.ServerSpoof->PlayTime,
                                     std::string(g_Config.ServerSpoof->JobName),
                                     std::string(g_Config.ServerSpoof->RankName),
                                     std::string(g_Config.ServerSpoof->SocialClass)
@@ -379,8 +331,6 @@ namespace Local {
                             npStatus = "Enviando...";
                             npBusy   = true;
                             BridgeFeatures::InjectStateBag(
-                                std::string(g_Config.ServerSpoof->VipName),
-                                g_Config.ServerSpoof->PlayTime,
                                 std::string(g_Config.ServerSpoof->JobName),
                                 std::string(g_Config.ServerSpoof->RankName),
                                 std::string(g_Config.ServerSpoof->SocialClass)
@@ -506,8 +456,6 @@ namespace Local {
                             BridgeFeatures::TriggerLocalEvent(
                                 std::string(g_Config.ServerSpoof->EventName),
                                 std::string(g_Config.ServerSpoof->CharId),
-                                std::string(g_Config.ServerSpoof->VipName),
-                                g_Config.ServerSpoof->PlayTime,
                                 std::string(g_Config.ServerSpoof->RankName),
                                 std::string(g_Config.ServerSpoof->SocialClass)
                             );
@@ -519,8 +467,6 @@ namespace Local {
                                 BridgeFeatures::TriggerLocalEvent(
                                     std::string(kEventCandidates[i]),
                                     std::string(g_Config.ServerSpoof->CharId),
-                                    std::string(g_Config.ServerSpoof->VipName),
-                                    g_Config.ServerSpoof->PlayTime,
                                     std::string(g_Config.ServerSpoof->RankName),
                                     std::string(g_Config.ServerSpoof->SocialClass)
                                 );

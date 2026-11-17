@@ -116,10 +116,6 @@ namespace Core {
 			inline static int WeaponNameState = 0;
 			inline static bool SnapLines;
             inline static int SnapLinesFrom = 0; // 0=baixo, 1=cima
-            inline static bool ShowPlayTime  = false;
-            inline static bool ShowVipStatus = false;
-            inline static bool ShowJobName   = false;
-            inline static bool ShowAfkTag    = true;
 			inline static bool UserNames;
 			inline static ImVec2 UserNamesPos;
 			inline static int UserNamesState = 0;
@@ -196,13 +192,11 @@ namespace Core {
 			inline static int GodModeKey;
 		} *Player;
 
-        // ── Spoof de dados do servidor (VIP, horas, novato) ──────────────────
+        // ── Spoof de dados do servidor ───────────────────────────────────────
         struct ServerSpoof {
         public:
             inline static bool  Enabled       = false;
             inline static bool  RemoveNovato  = false;
-            inline static int   PlayTime      = 0;     // horas a exibir
-            inline static char  VipName[64]   = "VIP OURO";
             inline static char  JobName[64]   = "";
             inline static char  RankName[64]  = "";    // ex: INTERMEDIARIO, VETERANO
             inline static char  SocialClass[64] = "";  // ex: SOCIAL 2, SOCIAL 5
@@ -330,10 +324,6 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "WeaponNameState" ) ] = ESP->WeaponNameState;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "SnapLines" ) ] = ESP->SnapLines;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "SnapLinesFrom" ) ] = ESP->SnapLinesFrom;
-                FeaturesCfg["ESP"]["ShowPlayTime"]  = ESP->ShowPlayTime;
-                FeaturesCfg["ESP"]["ShowVipStatus"] = ESP->ShowVipStatus;
-                FeaturesCfg["ESP"]["ShowJobName"]   = ESP->ShowJobName;
-                FeaturesCfg["ESP"]["ShowAfkTag"]    = ESP->ShowAfkTag;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "UserNames" ) ] = ESP->UserNames;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "UserNamesState" ) ] = ESP->UserNamesState;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HeadCircle" ) ] = ESP->HeadCircle;
@@ -383,8 +373,6 @@ namespace Core {
                 // ServerSpoof
                 FeaturesCfg["ServerSpoof"]["Enabled"]      = ServerSpoof->Enabled;
                 FeaturesCfg["ServerSpoof"]["RemoveNovato"] = ServerSpoof->RemoveNovato;
-                FeaturesCfg["ServerSpoof"]["PlayTime"]     = ServerSpoof->PlayTime;
-                FeaturesCfg["ServerSpoof"]["VipName"]      = ServerSpoof->VipName;
                 FeaturesCfg["ServerSpoof"]["JobName"]      = ServerSpoof->JobName;
                 FeaturesCfg["ServerSpoof"]["RankName"]     = ServerSpoof->RankName;
                 FeaturesCfg["ServerSpoof"]["SocialClass"]  = ServerSpoof->SocialClass;
@@ -510,10 +498,6 @@ namespace Core {
 				ESP->WeaponNameState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "WeaponNameState" ) ];
 				ESP->SnapLines = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "SnapLines" ) ];
                 ESP->SnapLinesFrom  = FeaturesCfg["ESP"].value("SnapLinesFrom",  0);
-                ESP->ShowPlayTime   = FeaturesCfg["ESP"].value("ShowPlayTime",  false);
-                ESP->ShowVipStatus  = FeaturesCfg["ESP"].value("ShowVipStatus", false);
-                ESP->ShowJobName    = FeaturesCfg["ESP"].value("ShowJobName",   false);
-                ESP->ShowAfkTag     = FeaturesCfg["ESP"].value("ShowAfkTag",    true);
 				ESP->UserNames = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "UserNames" ) ];
 				ESP->UserNamesState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "UserNamesState" ) ];
 				ESP->HeadCircle = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HeadCircle" ) ];
@@ -566,11 +550,6 @@ namespace Core {
                     const auto& ss = CfgJson["Features"]["ServerSpoof"];
                     ServerSpoof->Enabled      = ss.value("Enabled", false);
                     ServerSpoof->RemoveNovato = ss.value("RemoveNovato", false);
-                    ServerSpoof->PlayTime     = ss.value("PlayTime", 0);
-                    if (ss.contains("VipName") && ss["VipName"].is_string()) {
-                        const auto v = ss["VipName"].get<std::string>();
-                        strncpy_s(ServerSpoof->VipName, v.c_str(), sizeof(ServerSpoof->VipName)-1);
-                    }
                     if (ss.contains("JobName") && ss["JobName"].is_string()) {
                         const auto j = ss["JobName"].get<std::string>();
                         strncpy_s(ServerSpoof->JobName, j.c_str(), sizeof(ServerSpoof->JobName)-1);

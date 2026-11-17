@@ -88,10 +88,6 @@ namespace Visuals {
                         ImGui::ColorEdit4("Cor do esqueleto", &g_Config.ESP->SkeletonCol.Value.x);
 						Custom::CheckBox( xorstr( "Nomes das armas" ), &g_Config.ESP->WeaponName );
 						Custom::CheckBox( xorstr( "Distância" ), &g_Config.ESP->DistanceFromMe );
-                        Custom::CheckBox("VIP / Rank", &g_Config.ESP->ShowVipStatus);
-                        Custom::CheckBox("Horas jogadas", &g_Config.ESP->ShowPlayTime);
-                        Custom::CheckBox("Job / Gang", &g_Config.ESP->ShowJobName);
-                        Custom::CheckBox("Tag AFK", &g_Config.ESP->ShowAfkTag);
                         // Debug: mostra chaves brutas do /players.json do servidor
                         {
                             static bool showDebugKeys = false;
