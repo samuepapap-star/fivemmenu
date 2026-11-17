@@ -11,6 +11,7 @@
 #include <dwmapi.h>
 #include <tchar.h>
 #include <thread>
+#include <fstream>
 
 //#define FULLSCREEN_EX
 
@@ -21,7 +22,28 @@ namespace Gui
 	typedef HWND( WINAPI * CreateWindowInBand )( _In_ DWORD dwExStyle, _In_opt_ ATOM atom, _In_opt_ LPCWSTR lpWindowName, _In_ DWORD dwStyle, _In_ int X, _In_ int Y, _In_ int nWidth, _In_ int nHeight, _In_opt_ HWND hWndParent, _In_opt_ HMENU hMenu, _In_opt_ HINSTANCE hInstance, _In_opt_ LPVOID lpParam, DWORD band );
 
 
-	void Overlay::Render( )
+    static void LogMenuFocus(const char* event)
+    {
+        char path[MAX_PATH]{};
+        const DWORD length = GetModuleFileNameA(nullptr, path, MAX_PATH);
+        if (!length || length >= MAX_PATH) return;
+        std::string output(path, length);
+        const auto slash = output.find_last_of("\\/");
+        if (slash == std::string::npos) return;
+        output.resize(slash + 1);
+        std::ofstream log(output + "Wexize-overlay-focus.log", std::ios::app);
+        const HWND foreground = GetForegroundWindow();
+        DWORD pid = 0;
+        if (foreground) GetWindowThreadProcessId(foreground, &pid);
+        log << GetTickCount64() << " event=" << event
+            << " foreground=" << foreground << " pid=" << pid
+            << " game=" << g_Variables.g_hGameWindow
+            << " overlay=" << g_Variables.g_hCheatWindow
+            << " game_minimized=" << IsIconic(g_Variables.g_hGameWindow)
+            << " menu_open=" << g_MenuInfo.IsOpen << '\n';
+    }
+
+    void Overlay::Render( )
 	{
 
 #ifdef FULLSCREEN_EX
@@ -134,7 +156,19 @@ namespace Gui
             previousMenuKeys = menuKeys;
             const bool editingShortcut = MenuShortcut::Poll(g_Config.General->MenuKey,
                 gameHasFocus);
+            static ULONGLONG focusTraceUntil = 0;
+            static HWND lastTraceForeground = nullptr;
+            if (focusTraceUntil && GetTickCount64() <= focusTraceUntil) {
+                const HWND foreground = GetForegroundWindow();
+                if (foreground != lastTraceForeground) {
+                    LogMenuFocus("focus_changed_after_toggle");
+                    lastTraceForeground = foreground;
+                }
+            }
             if (!editingShortcut && pressed && gameHasFocus) {
+                LogMenuFocus("before_toggle");
+                focusTraceUntil = GetTickCount64() + 5000;
+                lastTraceForeground = GetForegroundWindow();
                 g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
 
             }
@@ -155,6 +189,7 @@ namespace Gui
                     SetForegroundWindow(g_Variables.g_hGameWindow);
                 }
                 lastMenuOpen=g_MenuInfo.IsOpen;inputStateInitialized=true;
+                LogMenuFocus("after_input_style");
             }
 
 
@@ -329,6 +364,12 @@ namespace Gui
 	}
 
 	LRESULT CALLBACK Overlay::WndProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam ) {
+        if (msg == WM_MOUSEACTIVATE) {
+            LogMenuFocus("mouse_activate_blocked");
+            return MA_NOACTIVATE;
+        }
+        if (msg == WM_ACTIVATE || msg == WM_SETFOCUS || msg == WM_KILLFOCUS)
+            LogMenuFocus("overlay_activation_message");
 		if ( ImGui_ImplWin32_WndProcHandler( hWnd, msg, wParam, lParam ) )
 			return true;
 
