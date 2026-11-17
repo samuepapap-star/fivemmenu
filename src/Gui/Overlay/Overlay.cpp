@@ -53,7 +53,10 @@ namespace Gui
 
 		SetWindowDisplayAffinity( g_Variables.g_hCheatWindow, WDA_EXCLUDEFROMCAPTURE );
 
-		ShowWindow( g_Variables.g_hCheatWindow, SW_SHOWDEFAULT );
+		// SW_SHOWNOACTIVATE: mostra sem ativar a janela.
+		// SW_SHOWDEFAULT ativa a janela e rouba o foco do GTA5 imediatamente
+		// na injeção, causando minimize em fullscreen exclusivo.
+		ShowWindow( g_Variables.g_hCheatWindow, SW_SHOWNOACTIVATE );
 		UpdateWindow( g_Variables.g_hCheatWindow );
 
 		// Coloca o overlay na frente sem roubar foco do jogo (evita alt-tab em fullscreen)
