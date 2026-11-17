@@ -47,7 +47,7 @@ namespace Gui
 		g_Variables.g_hCheatWindow = pCreateWindowInBand( WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, RegClass, L" ", WS_POPUP, static_cast< int >( g_Variables.g_vGameWindowPos.x ), static_cast< int >( g_Variables.g_vGameWindowPos.y ), static_cast< int >( g_Variables.g_vGameWindowSize.x ), static_cast< int >( g_Variables.g_vGameWindowSize.y ), NULL, NULL, wc.hInstance, NULL, 2/*ZBID_UIACCESS*/ );
 
 		SetLayeredWindowAttributes( g_Variables.g_hCheatWindow, RGB( 0, 0, 0 ), 255, LWA_ALPHA );
-		MARGINS Margin = { -1, -1, -1, -1 };
+		MARGINS Margin = { g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y };
 		DwmExtendFrameIntoClientArea( g_Variables.g_hCheatWindow, &Margin );
 
 		if ( !CreateDeviceD3D( g_Variables.g_hCheatWindow ) )
@@ -89,31 +89,24 @@ namespace Gui
 
 			HWND ActiveWindow = GetForegroundWindow( );
 
-			const int menuKey = ( g_Config.General->MenuKey > 0 && g_Config.General->MenuKey < 255 )
-			                    ? g_Config.General->MenuKey : VK_INSERT;
-
-			DWORD fgPid = 0, gamePid = 0;
-			if ( ActiveWindow ) GetWindowThreadProcessId( ActiveWindow, &fgPid );
-			if ( g_Variables.g_hGameWindow ) GetWindowThreadProcessId( g_Variables.g_hGameWindow, &gamePid );
-			const bool gameHasFocus =
-			    ActiveWindow == g_Variables.g_hGameWindow  ||
-			    ActiveWindow == g_Variables.g_hCheatWindow ||
-			    ( fgPid != 0 && gamePid != 0 && fgPid == gamePid );
-
+			const bool gameHasFocus = ( ActiveWindow == g_Variables.g_hGameWindow );
 			const bool editingShortcut = MenuShortcut::Poll( g_Config.General->MenuKey, gameHasFocus );
 
-			if ( !editingShortcut && ( GetAsyncKeyState( menuKey ) & 1 ) ) {
+			if ( !editingShortcut && ( GetAsyncKeyState( g_Config.General->MenuKey ) & 1 ) ) {
+
 				if ( g_MenuInfo.IsOpen == false ) {
-					if ( gameHasFocus ) {
+					if ( ActiveWindow == g_Variables.g_hGameWindow ) {
 						g_MenuInfo.IsOpen = true;
-						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE,
-						               WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE );
+
+						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE );
+					}
+					else {
+						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT );
 					}
 				}
 				else {
 					g_MenuInfo.IsOpen = false;
-					SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE,
-					               WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE );
+					SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT );
 				}
 			}
 
