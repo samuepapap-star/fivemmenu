@@ -92,7 +92,24 @@ namespace Visuals {
                         Custom::CheckBox("Horas jogadas", &g_Config.ESP->ShowPlayTime);
                         Custom::CheckBox("Job / Gang", &g_Config.ESP->ShowJobName);
                         Custom::CheckBox("Tag AFK", &g_Config.ESP->ShowAfkTag);
-
+                        // Debug: mostra chaves brutas do /players.json do servidor
+                        {
+                            static bool showDebugKeys = false;
+                            ImGui::SameLine(); ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4);
+                            if (ImGui::SmallButton(showDebugKeys ? "X##dbg" : "?##dbg"))
+                                showDebugKeys = !showDebugKeys;
+                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Mostrar chaves JSON do servidor (debug)");
+                            if (showDebugKeys) {
+                                const auto keys = Core::Threads::g_UpdateNames.GetDebugKeys();
+                                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f,0.1f,0.1f,0.9f));
+                                ImGui::BeginChild("##dbgkeys", ImVec2(310, 68), true, 0);
+                                ImGui::PushTextWrapPos(300);
+                                ImGui::TextUnformatted(keys.empty() ? "Aguardando dados..." : keys.c_str());
+                                ImGui::PopTextWrapPos();
+                                ImGui::EndChild();
+                                ImGui::PopStyleColor();
+                            }
+                        }
 
 						Custom::CheckBox( xorstr( "Esqueleto" ), &g_Config.ESP->Skeleton );
 

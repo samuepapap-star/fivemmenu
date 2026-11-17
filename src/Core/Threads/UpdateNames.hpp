@@ -24,6 +24,7 @@ class cUpdateNames {
     std::set<std::string> discoveredVips;   // VIPs únicos vistos neste servidor
     std::string serverIdentity;
     std::string status="Aguardando consulta dos nomes.";
+    std::string debugRawKeys;   // chaves brutas do 1º player (para debug)
     struct Response {std::string body,url;long http=0;CURLcode result=CURLE_FAILED_INIT;};
     static size_t Receive(void* data,size_t size,size_t count,void* target) {
         const size_t bytes=size*count;
@@ -60,10 +61,173 @@ class cUpdateNames {
     static nlohmann::json Players(const Response& response) {
         if (response.result!=CURLE_OK || response.http<200 || response.http>=300) return nullptr;
         auto data=nlohmann::json::parse(response.body,nullptr,false);
+        if (data.is_discarded()) return nullptr;
+        // array direto
         if (data.is_array()) return data;
-        if (data.is_object() && data.contains("Data") && data["Data"].is_object() &&
-            data["Data"].contains("players") && data["Data"]["players"].is_array()) return data["Data"]["players"];
+        if (!data.is_object()) return nullptr;
+        // busca wrapper de players — vários servidores BR usam nomes diferentes
+        for(const auto& wrapKey:{"players","Players","jogadores","lista","list","result","results"}) {
+            if(data.contains(wrapKey) && data[wrapKey].is_array()) return data[wrapKey];
+        }
+        // wrapper aninhado: { "Data":{"players":[]} } ou { "data":{"players":[]} }
+        for(const auto& outerKey:{"Data","data","response","payload","body"}) {
+            if(!data.contains(outerKey) || !data[outerKey].is_object()) continue;
+            const auto& inner = data[outerKey];
+            for(const auto& wrapKey:{"players","Players","jogadores","lista","list","result","results"}) {
+                if(inner.contains(wrapKey) && inner[wrapKey].is_array()) return inner[wrapKey];
+            }
+            if(inner.is_array()) return inner;
+        }
         return nullptr;
+    }
+    // ----- helpers de extração -----
+    static int ExtractInt(const nlohmann::json& v) {
+        if(v.is_number_integer()) return v.get<int>();
+        if(v.is_number_float())   return static_cast<int>(v.get<double>());
+        if(v.is_string()) { try{ return std::stoi(v.get<std::string>()); }catch(...){} }
+        return -1;
+    }
+    static std::string ExtractStr(const nlohmann::json& v) {
+        if(v.is_string()) return v.get<std::string>();
+        if(v.is_number_integer()) return std::to_string(v.get<int>());
+        if(v.is_number_float()) return std::to_string(static_cast<int>(v.get<double>()));
+        return {};
+    }
+    // Tenta ler uma string de um objeto — aceita string direta ou objeto com sub-chave de label
+    static std::string TryStringFromObj(const nlohmann::json& obj, const char* key) {
+        if(!obj.contains(key)) return {};
+        const auto& v = obj[key];
+        if(v.is_string()) return v.get<std::string>();
+        // objeto aninhado: job = { "label":"Policia", "name":"police" }
+        if(v.is_object()) {
+            for(const auto& sub:{"label","name","titulo","nome","valor","tag","display"}) {
+                if(v.contains(sub) && v[sub].is_string()) return v[sub].get<std::string>();
+            }
+        }
+        return {};
+    }
+    static int TryIntFromObj(const nlohmann::json& obj, const char* key) {
+        if(!obj.contains(key)) return -1;
+        return ExtractInt(obj[key]);
+    }
+    static bool TryBoolFromObj(const nlohmann::json& obj, const char* key) {
+        if(!obj.contains(key)) return false;
+        const auto& v = obj[key];
+        if(v.is_boolean()) return v.get<bool>();
+        if(v.is_number())  return v.get<int>() != 0;
+        if(v.is_string())  { const auto s=v.get<std::string>(); return s=="1"||s=="true"||s=="sim"; }
+        return false;
+    }
+    // Varre um objeto genérico buscando VIP/horas/job/afk — retorna true se achou algo
+    static bool ScanObject(const nlohmann::json& obj, SDK::Game::NetworkInfo& info) {
+        bool found = false;
+        // ---- PlayTime ----
+        if(info.PlayTime < 0) {
+            static const char* hoursKeys[] = {
+                "playTime","playtime","play_time","hours","play_hours","time_played",
+                "horasJogadas","horas","horas_jogadas","horasServidor","horas_servidor",
+                "tempo","tempoJogado","tempo_jogado","tempoServidor","tempo_servidor",
+                "minutos","minutosJogados","minutos_jogados",
+                "totalHours","total_hours","totalTime","total_time",
+                "timePlayed","timeOnServer","time_on_server",
+                "hoursPlayed","hours_played",
+                nullptr
+            };
+            for(int i=0;hoursKeys[i];i++) {
+                int v=TryIntFromObj(obj,hoursKeys[i]);
+                if(v>=0){ info.PlayTime=v; found=true; break; }
+            }
+        }
+        // ---- VipName ----
+        if(info.VipName.empty()) {
+            static const char* vipKeys[] = {
+                "vip","vipStatus","vip_status","vipName","vip_name","vipNome","vip_nome",
+                "vipTipo","vip_tipo","tipoVip","tipo_vip",
+                "vipGrupo","vip_grupo","grupoVip","grupo_vip","grupo",
+                "rank","rankNome","rank_nome","rankName","rank_name",
+                "nivel","nivelVip","nivel_vip","nivelSocial","nivel_social",
+                "classe","classeVip","classe_vip",
+                "titulo","tituloVip","titulo_vip",
+                "status","statusVip","status_vip","vipStatus",
+                "tag","tagVip","tag_vip",
+                "plano","planoVip","plano_vip",
+                "categoria","categoriaVip",
+                "group","groupName","group_name",
+                "cargo","cargoVip","cargo_vip",
+                "nomeVip","nome_vip",
+                "social","socialLevel","social_level",
+                nullptr
+            };
+            for(int i=0;vipKeys[i];i++) {
+                auto s=TryStringFromObj(obj,vipKeys[i]);
+                if(!s.empty()){ info.VipName=s; found=true; break; }
+            }
+        }
+        // ---- JobName ----
+        if(info.JobName.empty()) {
+            static const char* jobKeys[] = {
+                "job","jobName","job_name","jobLabel","job_label",
+                "gang","gangName","gang_name","gangLabel","gang_label",
+                "faction","factionName","faction_name",
+                "cargo","cargoNome","cargo_nome","cargoName","cargo_name",
+                "profissao","profissão","profissaoNome",
+                "trabalho","trabalhoNome","trabalho_nome",
+                "emprego","empregoNome","emprego_nome",
+                "funcao","função","funcaoNome","funcao_nome",
+                "ocupacao","ocupacaoNome",
+                "trabalhoAtual","trabalho_atual",
+                "currentJob","current_job",
+                "work","workName","work_name",
+                nullptr
+            };
+            for(int i=0;jobKeys[i];i++) {
+                auto s=TryStringFromObj(obj,jobKeys[i]);
+                if(!s.empty()){ info.JobName=s; found=true; break; }
+            }
+        }
+        // ---- AFK ----
+        if(!info.IsAfk) {
+            static const char* afkKeys[] = {
+                "afk","isAfk","is_afk","idle","ausente","inativo",
+                "away","isAway","is_away",
+                nullptr
+            };
+            for(int i=0;afkKeys[i];i++) {
+                if(obj.contains(afkKeys[i])) {
+                    info.IsAfk=TryBoolFromObj(obj,afkKeys[i]);
+                    if(info.IsAfk){ found=true; break; }
+                }
+            }
+        }
+        return found;
+    }
+    // Varre o array "variables" do FiveM: [{"name":"vip","value":"GOLD"}, ...]
+    // ou objeto direto: {"vip":"GOLD","job":"police"}
+    static void ScanVariables(const nlohmann::json& player, SDK::Game::NetworkInfo& info) {
+        if(!player.contains("variables")) return;
+        const auto& vars = player["variables"];
+        if(vars.is_object()) {
+            ScanObject(vars, info);
+            return;
+        }
+        if(vars.is_array()) {
+            // array de {name:X, value:Y}
+            nlohmann::json flat = nlohmann::json::object();
+            for(const auto& entry:vars) {
+                if(!entry.is_object()) continue;
+                for(const auto& nameKey:{"name","key","k","campo"}) {
+                    if(!entry.contains(nameKey) || !entry[nameKey].is_string()) continue;
+                    const auto k = entry[nameKey].get<std::string>();
+                    for(const auto& valKey:{"value","val","v","valor","data"}) {
+                        if(!entry.contains(valKey)) continue;
+                        flat[k] = entry[valKey];
+                        break;
+                    }
+                    break;
+                }
+            }
+            if(!flat.empty()) ScanObject(flat, info);
+        }
     }
     bool Publish(const nlohmann::json& players) {
         if (!players.is_array()) return false;
@@ -79,7 +243,6 @@ class cUpdateNames {
                 id=std::stoi(value);
             } else continue;
             const auto name=player["name"].get<std::string>();
-            // Recent FXServer versions anonymize public payloads as id=0/name=Player.
             if(id<=0 || id>65535 || name.empty()) continue;
             SDK::Game::NetworkInfo info{name,"",""};
             if(player.contains("identifiers") && player["identifiers"].is_array()) {
@@ -90,44 +253,53 @@ class cUpdateNames {
                     if(value.rfind("steam:",0)==0)info.SteamId=value.substr(6);
                 }
             }
-            // Horas jogadas — servidores usam nomes diferentes
-            for(const auto& key:{"playTime","playtime","play_time","hours","horasJogadas","horas"}) {
-                if(player.contains(key)) {
-                    const auto& v=player[key];
-                    if(v.is_number_integer()) { info.PlayTime=v.get<int>(); break; }
-                    if(v.is_number_float())   { info.PlayTime=static_cast<int>(v.get<double>()); break; }
-                    if(v.is_string()) {
-                        try { info.PlayTime=std::stoi(v.get<std::string>()); } catch(...) {}
-                        break;
-                    }
-                }
-            }
-            // VIP / rank
-            for(const auto& key:{"vip","vipStatus","vip_status","rank","group","cargo","vipName","vip_name"}) {
-                if(player.contains(key) && player[key].is_string()) {
-                    info.VipName=player[key].get<std::string>(); break;
-                }
-            }
-            // Job / gang / cargo
-            for(const auto& key:{"job","gang","faction","jobName","job_name","gangName"}) {
-                if(player.contains(key) && player[key].is_string()) {
-                    info.JobName=player[key].get<std::string>(); break;
-                }
-            }
-            // AFK
-            for(const auto& key:{"afk","isAfk","is_afk","idle"}) {
-                if(player.contains(key)) {
-                    const auto& v=player[key];
-                    if(v.is_boolean()) { info.IsAfk=v.get<bool>(); break; }
-                    if(v.is_number())  { info.IsAfk=v.get<int>()!=0; break; }
+            // 1) Scan nível raiz do objeto player
+            ScanObject(player, info);
+            // 2) Scan variables array/object (FiveM built-in state)
+            ScanVariables(player, info);
+            // 3) Scan objetos aninhados comuns: metadata, data, extra, info, player_data, etc.
+            static const char* nestedKeys[] = {
+                "metadata","data","extra","info","playerData","player_data",
+                "userData","user_data","charData","char_data","characterData",
+                "dados","dadosJogador","dados_jogador",
+                "perfil","perfilJogador","perfil_jogador",
+                "stats","playerStats","player_stats",
+                "details","playerDetails","player_details",
+                "account","accountData","account_data",
+                "character","characterInfo","character_info",
+                nullptr
+            };
+            for(int i=0;nestedKeys[i];i++) {
+                if(player.contains(nestedKeys[i]) && player[nestedKeys[i]].is_object()) {
+                    ScanObject(player[nestedKeys[i]], info);
+                    // Também tenta variables dentro do nested
+                    ScanVariables(player[nestedKeys[i]], info);
                 }
             }
             next[id]=std::move(info);
         }
+        // Coleta chaves brutas do 1º player para debug
+        std::string rawKeys;
+        for(const auto& player:players) {
+            if(!player.is_object()) continue;
+            for(auto it=player.begin();it!=player.end();++it) {
+                rawKeys += it.key();
+                // mostra subchaves de objetos aninhados
+                if(it.value().is_object()) {
+                    rawKeys += "{";
+                    for(auto jt=it.value().begin();jt!=it.value().end();++jt)
+                        rawKeys += jt.key() + ",";
+                    if(!rawKeys.empty() && rawKeys.back()==',') rawKeys.pop_back();
+                    rawKeys += "}";
+                }
+                rawKeys += " | ";
+            }
+            break;
+        }
         if(next.empty())return false;
         std::lock_guard<std::mutex> lock(namesMutex);
         networkMap=std::move(next);
-        // Coleta VIPs únicos desta cidade (acumula enquanto no mesmo servidor)
+        debugRawKeys = rawKeys;
         for(const auto& [id,ni]:networkMap) {
             if(!ni.VipName.empty())
                 discoveredVips.insert(ni.VipName);
@@ -199,6 +371,11 @@ public:
     std::vector<std::string> GetDiscoveredVips() {
         std::lock_guard<std::mutex> lock(namesMutex);
         return std::vector<std::string>(discoveredVips.begin(), discoveredVips.end());
+    }
+    // Retorna chaves brutas do 1º player do último fetch (para debug)
+    std::string GetDebugKeys() {
+        std::lock_guard<std::mutex> lock(namesMutex);
+        return debugRawKeys;
     }
     void Update() {
         while(true) {
