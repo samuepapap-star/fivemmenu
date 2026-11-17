@@ -155,14 +155,18 @@ namespace Gui
 
 			HWND ActiveWindow = GetForegroundWindow( );
 
-            // In exclusive fullscreen GetForegroundWindow() may return a window other than
-            // grcWindow (e.g. an internal DX window).  Accept any HWND that belongs to our
-            // own process so the toggle key still works in fullscreen.
-            DWORD fgPid = 0;
+            // Em fullscreen exclusivo GetForegroundWindow() pode retornar uma janela DX
+            // interna do GTA5 (não "grcWindow"). Verificamos o PID da janela foreground
+            // contra o PID do processo do GTA5 (não do nosso processo) para cobrir isso.
+            // Também aceitamos nossa janela overlay em foreground (menu aberto).
+            DWORD fgPid   = 0;
+            DWORD gamePid = 0;
             if ( ActiveWindow ) GetWindowThreadProcessId( ActiveWindow, &fgPid );
+            if ( g_Variables.g_hGameWindow ) GetWindowThreadProcessId( g_Variables.g_hGameWindow, &gamePid );
             const bool gameHasFocus =
                 ActiveWindow == g_Variables.g_hGameWindow  ||
                 ActiveWindow == g_Variables.g_hCheatWindow ||
+                ( fgPid != 0 && gamePid != 0 && fgPid == gamePid ) ||
                 ( fgPid != 0 && fgPid == GetCurrentProcessId( ) );
 
             // Toggle once per key press, including while the overlay has focus.
@@ -188,7 +192,13 @@ namespace Gui
             const bool pressed = hookFired || ( !( customKey > 0 && customKey < 255 ) && pEdge );
             const bool editingShortcut = MenuShortcut::Poll(g_Config.General->MenuKey,
                 gameHasFocus);
-            if (!editingShortcut && pressed && gameHasFocus) {
+            // hookFired: INSERT/customKey engolida globalmente — se o hook disparou,
+            // o usuário pressionou a tecla. Não exige gameHasFocus pois o hook global
+            // só é relevante quando o mod está rodando. pEdge (tecla P) ainda exige
+            // gameHasFocus para não toggle acidental com outro app em foreground.
+            const bool hookToggle = !editingShortcut && hookFired;
+            const bool keyToggle  = !editingShortcut && ( !( customKey > 0 && customKey < 255 ) && pEdge ) && gameHasFocus;
+            if ( hookToggle || keyToggle ) {
                 g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
                 // Ao fechar o menu, devolve o foco ao jogo se o overlay ficou em foreground.
                 // Não usa SetWindowLong — isso triggera DWM reactivation e minimiza o GTA5.
