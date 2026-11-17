@@ -503,22 +503,28 @@ namespace Local {
 							CWeaponInfo * pCWeaponInfo = Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( )->GetWeaponInfo( );
 							if ( pCWeaponInfo )
 							{
-								//48 8b 43 ? 48 83 c4 ? 5b c3 cc 40 53
-								uintptr_t Lixo = Mem.FindSignature(
-									{ 0x48, 0x8b, 0x43, 0x00, 0x48, 0x83, 0xc4, 0x00, 0x5b, 0xc3, 0xcc, 0x40, 0x53 }
-								);
+								// Offset 0x60 = kWeapAmmoCount (AcBypass.hpp) — mesmo offset usado pelo FreezeAmmo.
+								// FindSignature era usado para descobrir esse byte dinamicamente, mas falha em
+								// builds novos. 0x60 e o valor correto para todos os builds suportados.
+								// Fallback: se sig scan achar offset diferente de 0, usa ele; senao usa 0x60.
+								static uintptr_t s_ammoOff = 0;
+								if (!s_ammoOff) {
+									uintptr_t lixo = Mem.FindSignature(
+										{ 0x48, 0x8b, 0x43, 0x00, 0x48, 0x83, 0xc4, 0x00, 0x5b, 0xc3, 0xcc, 0x40, 0x53 }
+									);
+									BYTE sigByte = lixo ? Mem.Read<BYTE>( lixo + 3 ) : 0;
+									s_ammoOff = (sigByte >= 0x40 && sigByte <= 0xA0) ? sigByte : 0x60;
+								}
 
-								uintptr_t AmmoInfo = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo + Mem.Read<BYTE>( Lixo + 3 ) );
+								uintptr_t AmmoInfo = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo + s_ammoOff );
 
 								if ( AmmoInfo )
 								{
 									uintptr_t pAmmoCount = Mem.Read<uintptr_t>( ( uintptr_t ) AmmoInfo + 0x8 );
 									if ( pAmmoCount )
 									{
-
 										uintptr_t CurrentAmmoAddr = Mem.Read<uintptr_t>( pAmmoCount + 0x0 ) + 0x18;
 										int CurrentAmmo = Mem.Read<int>( CurrentAmmoAddr );
-										
 										Mem.Write( CurrentAmmoAddr, CurrentAmmo + Ammo );
 									}
 								}
@@ -535,10 +541,17 @@ namespace Local {
 							CWeaponInfo * pCWeaponInfo200 = Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( )->GetWeaponInfo( );
 							if ( pCWeaponInfo200 )
 							{
-								uintptr_t Lixo200 = Mem.FindSignature(
-									{ 0x48, 0x8b, 0x43, 0x00, 0x48, 0x83, 0xc4, 0x00, 0x5b, 0xc3, 0xcc, 0x40, 0x53 }
-								);
-								uintptr_t AmmoInfo200 = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo200 + Mem.Read<BYTE>( Lixo200 + 3 ) );
+								// Mesmo offset cacheado do botao AddAmmo acima.
+								static uintptr_t s_ammoOff200 = 0;
+								if (!s_ammoOff200) {
+									uintptr_t lixo200 = Mem.FindSignature(
+										{ 0x48, 0x8b, 0x43, 0x00, 0x48, 0x83, 0xc4, 0x00, 0x5b, 0xc3, 0xcc, 0x40, 0x53 }
+									);
+									BYTE sigByte200 = lixo200 ? Mem.Read<BYTE>( lixo200 + 3 ) : 0;
+									s_ammoOff200 = (sigByte200 >= 0x40 && sigByte200 <= 0xA0) ? sigByte200 : 0x60;
+								}
+
+								uintptr_t AmmoInfo200 = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo200 + s_ammoOff200 );
 								if ( AmmoInfo200 )
 								{
 									uintptr_t pAmmoCount200 = Mem.Read<uintptr_t>( ( uintptr_t ) AmmoInfo200 + 0x8 );
