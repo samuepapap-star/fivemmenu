@@ -218,25 +218,94 @@ namespace Local {
                         ImGui::TextDisabled("Altera os dados do nameplate (pressione ALT no servidor).");
                         ImGui::Spacing();
 
-                        // ── VIP ──────────────────────────────────────────────
+                        // ── VIP select ───────────────────────────────────────
                         ImGui::Text("VIP:");
-                        ImGui::SetNextItemWidth(280.f);
-                        ImGui::InputText("##npvip", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
-                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ex: VIP ELITE, VIP OURO, SEM VIP");
+                        {
+                            const auto discovVips = Core::Threads::g_UpdateNames.GetDiscoveredVips();
+                            static const char* commonVips[] = {
+                                "SEM VIP","VIP BRONZE","VIP PRATA","VIP OURO",
+                                "VIP DIAMANTE","VIP PLATINA","VIP MASTER",
+                                "VIP ELITE","VIP PREMIUM","VIP PLUS","VIP MAX",
+                                "VIP VITALICIO","VIP LENDA","VIP STAFF","ADM","ADMIN","MODERADOR","FUNDADOR","DONO"
+                            };
+                            constexpr int nCommonVip = (int)(sizeof(commonVips)/sizeof(commonVips[0]));
+                            ImGui::SetNextItemWidth(280.f);
+                            const char* vipPreview = g_Config.ServerSpoof->VipName[0] ? g_Config.ServerSpoof->VipName : "Selecionar...";
+                            if (ImGui::BeginCombo("##npvipcombo", vipPreview, nCommonVip)) {
+                                if (!discovVips.empty()) {
+                                    ImGui::TextDisabled("-- Desta cidade --");
+                                    for (const auto& vn : discovVips) {
+                                        const bool sel = (vn == g_Config.ServerSpoof->VipName);
+                                        if (ImGui::Selectable(vn.c_str(), sel))
+                                            strncpy_s(g_Config.ServerSpoof->VipName, vn.c_str(), 63);
+                                        if (sel) ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::Separator();
+                                }
+                                ImGui::TextDisabled("-- Comuns --");
+                                for (int i = 0; i < nCommonVip; i++) {
+                                    const bool sel = (strcmp(g_Config.ServerSpoof->VipName, commonVips[i]) == 0);
+                                    if (ImGui::Selectable(commonVips[i], sel))
+                                        strncpy_s(g_Config.ServerSpoof->VipName, commonVips[i], 63);
+                                    if (sel) ImGui::SetItemDefaultFocus();
+                                }
+                                ImGui::EndCombo();
+                            }
+                            ImGui::SetNextItemWidth(280.f);
+                            ImGui::InputText("Personalizado##npviptxt", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
+                        }
 
-                        // ── Rank / Titulo ────────────────────────────────────
+                        // ── Rank select ──────────────────────────────────────
+                        ImGui::Spacing();
                         ImGui::Text("Rank:");
-                        ImGui::SetNextItemWidth(280.f);
-                        ImGui::InputText("##nprank", g_Config.ServerSpoof->RankName, sizeof(g_Config.ServerSpoof->RankName));
-                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ex: INICIANTE, INTERMEDIARIO, VETERANO");
+                        {
+                            static const char* rankOpts[] = {
+                                "INICIANTE","CALOURO","NOVATO","BASICO",
+                                "INTERMEDIARIO","REGULAR","EXPERIENTE","AVANCADO",
+                                "VETERANO","SENIOR","ELITE","MESTRE","LENDA","FUNDADOR"
+                            };
+                            constexpr int nRank = (int)(sizeof(rankOpts)/sizeof(rankOpts[0]));
+                            ImGui::SetNextItemWidth(280.f);
+                            const char* rankPreview = g_Config.ServerSpoof->RankName[0] ? g_Config.ServerSpoof->RankName : "Selecionar...";
+                            if (ImGui::BeginCombo("##nprankcombo", rankPreview, nRank)) {
+                                for (int i = 0; i < nRank; i++) {
+                                    const bool sel = (strcmp(g_Config.ServerSpoof->RankName, rankOpts[i]) == 0);
+                                    if (ImGui::Selectable(rankOpts[i], sel))
+                                        strncpy_s(g_Config.ServerSpoof->RankName, rankOpts[i], 63);
+                                    if (sel) ImGui::SetItemDefaultFocus();
+                                }
+                                ImGui::EndCombo();
+                            }
+                            ImGui::SetNextItemWidth(280.f);
+                            ImGui::InputText("Personalizado##npranktxt", g_Config.ServerSpoof->RankName, sizeof(g_Config.ServerSpoof->RankName));
+                        }
 
-                        // ── Classe Social ────────────────────────────────────
+                        // ── Classe Social select ─────────────────────────────
+                        ImGui::Spacing();
                         ImGui::Text("Classe Social:");
-                        ImGui::SetNextItemWidth(280.f);
-                        ImGui::InputText("##npsocial", g_Config.ServerSpoof->SocialClass, sizeof(g_Config.ServerSpoof->SocialClass));
-                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ex: SOCIAL 1, SOCIAL 3, SOCIAL 5");
+                        {
+                            static const char* socialOpts[] = {
+                                "SOCIAL 1","SOCIAL 2","SOCIAL 3","SOCIAL 4","SOCIAL 5",
+                                "SOCIAL 6","SOCIAL 7","SOCIAL 8","SOCIAL 9","SOCIAL 10"
+                            };
+                            constexpr int nSocial = (int)(sizeof(socialOpts)/sizeof(socialOpts[0]));
+                            ImGui::SetNextItemWidth(280.f);
+                            const char* socPreview = g_Config.ServerSpoof->SocialClass[0] ? g_Config.ServerSpoof->SocialClass : "Selecionar...";
+                            if (ImGui::BeginCombo("##npsocialcombo", socPreview, nSocial)) {
+                                for (int i = 0; i < nSocial; i++) {
+                                    const bool sel = (strcmp(g_Config.ServerSpoof->SocialClass, socialOpts[i]) == 0);
+                                    if (ImGui::Selectable(socialOpts[i], sel))
+                                        strncpy_s(g_Config.ServerSpoof->SocialClass, socialOpts[i], 63);
+                                    if (sel) ImGui::SetItemDefaultFocus();
+                                }
+                                ImGui::EndCombo();
+                            }
+                            ImGui::SetNextItemWidth(280.f);
+                            ImGui::InputText("Personalizado##npsocialtxt", g_Config.ServerSpoof->SocialClass, sizeof(g_Config.ServerSpoof->SocialClass));
+                        }
 
                         // ── Horas jogadas ────────────────────────────────────
+                        ImGui::Spacing();
                         ImGui::Text("Horas jogadas:");
                         ImGui::SetNextItemWidth(200.f);
                         ImGui::InputInt("##nphoras", &g_Config.ServerSpoof->PlayTime, 1, 100);
