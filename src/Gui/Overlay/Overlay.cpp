@@ -78,7 +78,11 @@ namespace Gui
 #ifdef FULLSCREEN_EX
 		g_Variables.g_hCheatWindow = pCreateWindowInBand( WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, RegClass, L" ", WS_POPUP, static_cast< int >( g_Variables.g_vGameWindowPos.x ), static_cast< int >( g_Variables.g_vGameWindowPos.y ), static_cast< int >( g_Variables.g_vGameWindowSize.x ), static_cast< int >( g_Variables.g_vGameWindowSize.y ), NULL, NULL, wc.hInstance, NULL, 2/*ZBID_UIACCESS*/ );
 #else
-		g_Variables.g_hCheatWindow = CreateWindowExW( WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, wc.lpszClassName, L" ", WS_POPUP, g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y, NULL, NULL, wc.hInstance, NULL );
+		// WS_EX_TRANSPARENT removido da criação — click-through controlado dinamicamente
+		// por WM_NCHITTEST no WndProc (retorna HTTRANSPARENT quando menu fechado).
+		// SetWindowLong(GWL_EXSTYLE) em runtime triggera DWM reactivation mesmo com
+		// WS_EX_NOACTIVATE, causando fullscreen minimize no GTA5.
+		g_Variables.g_hCheatWindow = CreateWindowExW( WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, wc.lpszClassName, L" ", WS_POPUP, g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y, NULL, NULL, wc.hInstance, NULL );
 #endif // FULLSCREEN_EX		
 		
 		SetLayeredWindowAttributes( g_Variables.g_hCheatWindow, RGB( 0, 0, 0 ), 255, LWA_ALPHA );
@@ -184,25 +188,11 @@ namespace Gui
                 gameHasFocus);
             if (!editingShortcut && pressed && gameHasFocus) {
                 g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
-
-            }
-            static bool inputStateInitialized=false,lastMenuOpen=false;
-            if(!inputStateInitialized||lastMenuOpen!=g_MenuInfo.IsOpen){
-                // WS_EX_NOACTIVATE em AMBOS os estilos para nunca roubar foco do jogo.
-                // Sem ele, o SetWindowLong remove o flag e o overlay pode ativar,
-                // causando minimize do GTA5 em fullscreen exclusivo.
-#ifdef FULLSCREEN_EX
-                const LONG openStyle   = WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
-#else
-                const LONG openStyle   = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
-#endif
-                const LONG closedStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
-                SetWindowLong(g_Variables.g_hCheatWindow, GWL_EXSTYLE,
-                    g_MenuInfo.IsOpen ? openStyle : closedStyle);
-                if (!g_MenuInfo.IsOpen && ( ActiveWindow == g_Variables.g_hCheatWindow ) ) {
-                    SetForegroundWindow(g_Variables.g_hGameWindow);
-                }
-                lastMenuOpen=g_MenuInfo.IsOpen;inputStateInitialized=true;
+                // Ao fechar o menu, devolve o foco ao jogo se o overlay ficou em foreground.
+                // Não usa SetWindowLong — isso triggera DWM reactivation e minimiza o GTA5.
+                // Click-through é controlado por WM_NCHITTEST no WndProc.
+                if ( !g_MenuInfo.IsOpen && ActiveWindow == g_Variables.g_hCheatWindow )
+                    RestoreGameFocus( );
             }
 
 
@@ -383,6 +373,17 @@ namespace Gui
 		// Se ImGui_ImplWin32_WndProcHandler processar WM_ACTIVATE antes de nós,
 		// ele pode retornar true e o overlay vira foreground → GTA5 minimiza.
 		switch ( msg ) {
+		case WM_NCHITTEST:
+			// Click-through dinâmico sem mudar estilo da janela.
+			// Quando menu fechado: retorna HTTRANSPARENT — todo input de mouse passa para
+			// a janela abaixo (GTA5). Quando menu aberto: deixa cair pro default (HTCLIENT)
+			// para o ImGui receber mouse. NUNCA usar SetWindowLong(GWL_EXSTYLE) para isso —
+			// trocar WS_EX_TRANSPARENT em runtime triggera DWM reactivation que minimiza
+			// o jogo em fullscreen exclusivo mesmo com WS_EX_NOACTIVATE setado.
+			if ( !g_MenuInfo.IsOpen )
+				return HTTRANSPARENT;
+			break;
+
 		case WM_MOUSEACTIVATE:
 			// Não ativar o overlay quando o mouse clicar nele.
 			// MA_NOACTIVATE: não ativa a janela MAS processa o clique normalmente (ImGui recebe).
