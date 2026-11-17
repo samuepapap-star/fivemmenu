@@ -8,7 +8,6 @@
 #include <Core/Core.hpp>
 #include <Gui/AdminList.hpp>
 #include <Core/ExtensionSettings.hpp>
-#include <Bridge/Features.hpp>
 
 using namespace std;
 
@@ -177,105 +176,6 @@ namespace Visuals {
 						if (g_Config.ESP->PreviewEnabled) {
                             Custom::g_EspPreview.DragDropHandler();
                             Custom::g_EspPreview.Draw();
-                        }
-                        // ---- Spoof de dados de servidor ----
-                        ImGui::Separator();
-                        ImGui::TextColored(ImVec4(0.6f,0.9f,1.f,1.f), "Spoof de dados de servidor");
-                        ImGui::Spacing();
-                        Custom::CheckBox("Ativar spoof##esp", &g_Config.ServerSpoof->Enabled);
-                        if (g_Config.ServerSpoof->Enabled) {
-                            ImGui::Spacing();
-                            // ── VIP selector ──────────────────────────────────
-                            ImGui::Text("VIP Name:");
-                            // Monta lista: VIPs comuns + VIPs descobertos no servidor
-                            static const char* commonVips[] = {
-                                "SEM VIP","VIP BRONZE","VIP PRATA","VIP OURO",
-                                "VIP DIAMANTE","VIP PLATINA","VIP MASTER",
-                                "VIP ELITE","VIP PREMIUM","VIP PLUS","VIP MAX",
-                                "VIP VITALICIO","VIP BASICO","VIP INICIANTE",
-                                "VIP LENDA","VIP STAFF","ADM","ADMIN","MODERADOR",
-                                "FUNDADOR","DONO","CO-DONO"
-                            };
-                            constexpr int nCommon = (int)(sizeof(commonVips)/sizeof(commonVips[0]));
-                            const auto discovVips = Core::Threads::g_UpdateNames.GetDiscoveredVips();
-                            // Combo usando o campo VipName como preview
-                            ImGui::SetNextItemWidth(280.f);
-                            if (ImGui::BeginCombo("##vipcombo", g_Config.ServerSpoof->VipName[0] ? g_Config.ServerSpoof->VipName : "Selecionar...", nCommon)) {
-                                // VIPs descobertos no servidor (topo da lista)
-                                if (!discovVips.empty()) {
-                                    ImGui::TextDisabled("-- Servidor atual --");
-                                    for (const auto& vn : discovVips) {
-                                        const bool sel = (vn == g_Config.ServerSpoof->VipName);
-                                        if (ImGui::Selectable(vn.c_str(), sel))
-                                            strncpy_s(g_Config.ServerSpoof->VipName, vn.c_str(), 63);
-                                        if (sel) ImGui::SetItemDefaultFocus();
-                                    }
-                                    ImGui::Separator();
-                                }
-                                ImGui::TextDisabled("-- Comuns --");
-                                for (int i = 0; i < nCommon; i++) {
-                                    const bool sel = (strcmp(g_Config.ServerSpoof->VipName, commonVips[i]) == 0);
-                                    if (ImGui::Selectable(commonVips[i], sel))
-                                        strncpy_s(g_Config.ServerSpoof->VipName, commonVips[i], 63);
-                                    if (sel) ImGui::SetItemDefaultFocus();
-                                }
-                                ImGui::EndCombo();
-                            }
-                            // Input customizado logo abaixo
-                            ImGui::SetNextItemWidth(280.f);
-                            ImGui::InputText("Personalizado##vip2", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
-                            ImGui::Spacing();
-                            // ── Horas jogadas ─────────────────────────────────
-                            ImGui::Text("Horas jogadas:");
-                            ImGui::SetNextItemWidth(200.f);
-                            ImGui::InputInt("##spoofhoras2", &g_Config.ServerSpoof->PlayTime, 1, 100);
-                            if (g_Config.ServerSpoof->PlayTime < 0) g_Config.ServerSpoof->PlayTime = 0;
-                            ImGui::Spacing();
-                            // ── Job / Gang ────────────────────────────────────
-                            ImGui::Text("Job / Gang:");
-                            ImGui::SetNextItemWidth(280.f);
-                            ImGui::InputText("##spoofjob2", g_Config.ServerSpoof->JobName, sizeof(g_Config.ServerSpoof->JobName));
-                            ImGui::Spacing();
-                            Custom::CheckBox("Remover modo novato##esp", &g_Config.ServerSpoof->RemoveNovato);
-                            ImGui::Spacing();
-                            ImGui::Separator();
-                            ImGui::Spacing();
-                            // ── Injeção de state bag na rede ───────────────
-                            static std::string injectStatus;
-                            static bool injectBusy=false;
-                            if(injectBusy&&!MenuBridge::Connection().Busy()){
-                                injectStatus=BridgeFeatures::localStatus.empty()?"Injetado":BridgeFeatures::localStatus;
-                                injectBusy=false;
-                            }
-                            ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.15f,0.55f,0.25f,1.0f));
-                            ImGui::PushStyleColor(ImGuiCol_ButtonHovered,ImVec4(0.20f,0.70f,0.35f,1.0f));
-                            ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImVec4(0.10f,0.40f,0.18f,1.0f));
-                            if(ImGui::Button("Injetar na Rede##sbinject",ImVec2(-1,32))){
-                                injectStatus.clear();
-                                // Garante que o ESP está ligado e o jogador local visível
-                                g_Config.ESP->Enabled = true;
-                                g_Config.ESP->ShowLocalPlayer = true;
-                                // Ativa as flags de exibição para cada campo preenchido
-                                if(g_Config.ServerSpoof->VipName[0] != '\0')
-                                    g_Config.ESP->ShowVipStatus = true;
-                                if(g_Config.ServerSpoof->PlayTime > 0)
-                                    g_Config.ESP->ShowPlayTime = true;
-                                if(g_Config.ServerSpoof->JobName[0] != '\0')
-                                    g_Config.ESP->ShowJobName = true;
-                                BridgeFeatures::InjectStateBag(
-                                    std::string(g_Config.ServerSpoof->VipName),
-                                    g_Config.ServerSpoof->PlayTime,
-                                    std::string(g_Config.ServerSpoof->JobName)
-                                );
-                                injectBusy=true;
-                                injectStatus="Enviando...";
-                            }
-                            ImGui::PopStyleColor(3);
-                            if(!injectStatus.empty()){
-                                ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0.6f,1.0f,0.6f,1.0f));
-                                ImGui::TextWrapped("%s",injectStatus.c_str());
-                                ImGui::PopStyleColor();
-                            }
                         }
 					}
 					ImGui::EndChild( );

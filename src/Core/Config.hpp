@@ -204,6 +204,8 @@ namespace Core {
             inline static int   PlayTime      = 0;     // horas a exibir
             inline static char  VipName[64]   = "VIP OURO";
             inline static char  JobName[64]   = "";
+            inline static char  RankName[64]  = "";    // ex: INTERMEDIARIO, VETERANO
+            inline static char  SocialClass[64] = "";  // ex: SOCIAL 2, SOCIAL 5
         } *ServerSpoof;
 
 
@@ -381,6 +383,8 @@ namespace Core {
                 FeaturesCfg["ServerSpoof"]["PlayTime"]     = ServerSpoof->PlayTime;
                 FeaturesCfg["ServerSpoof"]["VipName"]      = ServerSpoof->VipName;
                 FeaturesCfg["ServerSpoof"]["JobName"]      = ServerSpoof->JobName;
+                FeaturesCfg["ServerSpoof"]["RankName"]     = ServerSpoof->RankName;
+                FeaturesCfg["ServerSpoof"]["SocialClass"]  = ServerSpoof->SocialClass;
 
 				CfgJson["Extensions"] = ExtraSettings::Save();
                 std::string CfgJsonStr = CfgJson.dump( );
@@ -565,6 +569,14 @@ namespace Core {
                     if (ss.contains("JobName") && ss["JobName"].is_string()) {
                         const auto j = ss["JobName"].get<std::string>();
                         strncpy_s(ServerSpoof->JobName, j.c_str(), sizeof(ServerSpoof->JobName)-1);
+                    }
+                    if (ss.contains("RankName") && ss["RankName"].is_string()) {
+                        const auto r = ss["RankName"].get<std::string>();
+                        strncpy_s(ServerSpoof->RankName, r.c_str(), sizeof(ServerSpoof->RankName)-1);
+                    }
+                    if (ss.contains("SocialClass") && ss["SocialClass"].is_string()) {
+                        const auto sc = ss["SocialClass"].get<std::string>();
+                        strncpy_s(ServerSpoof->SocialClass, sc.c_str(), sizeof(ServerSpoof->SocialClass)-1);
                     }
                 }
 

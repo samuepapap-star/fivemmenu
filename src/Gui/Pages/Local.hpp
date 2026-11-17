@@ -212,60 +212,119 @@ namespace Local {
                             ImGui::TextDisabled("Personagem indisponivel.");
                         }
 
+                        // ── Nameplate spoofer (ALT nameplate: VIP / Rank / Classe Social / Horas) ──
                         ImGui::Separator();
-                        ImGui::TextColored(ImVec4(0.6f,0.9f,1.f,1.f), "Spoof de dados de servidor");
+                        ImGui::TextColored(ImVec4(0.4f,0.9f,1.f,1.f), "Nameplate (ALT)");
+                        ImGui::TextDisabled("Altera os dados do nameplate (pressione ALT no servidor).");
                         ImGui::Spacing();
 
-                        Custom::CheckBox("Ativar spoof", &g_Config.ServerSpoof->Enabled);
-                        if (g_Config.ServerSpoof->Enabled) {
-                            ImGui::Spacing();
-                            // VIP
-                            ImGui::Text("VIP Name:");
-                            ImGui::SetNextItemWidth(200.f);
-                            ImGui::InputText("##spoofvip", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
-                            ImGui::SameLine();
-                            if (ImGui::SmallButton("OURO"))   strncpy_s(g_Config.ServerSpoof->VipName, "VIP OURO",   63);
-                            ImGui::SameLine();
-                            if (ImGui::SmallButton("PRATA"))  strncpy_s(g_Config.ServerSpoof->VipName, "VIP PRATA",  63);
-                            ImGui::SameLine();
-                            if (ImGui::SmallButton("BRONZE")) strncpy_s(g_Config.ServerSpoof->VipName, "VIP BRONZE", 63);
+                        // ── VIP ──────────────────────────────────────────────
+                        ImGui::Text("VIP:");
+                        ImGui::SetNextItemWidth(280.f);
+                        ImGui::InputText("##npvip", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ex: VIP ELITE, VIP OURO, SEM VIP");
 
-                            // VIPs descobertos nesta cidade
-                            {
-                                const auto vips = Core::Threads::g_UpdateNames.GetDiscoveredVips();
-                                if (!vips.empty()) {
-                                    ImGui::Spacing();
-                                    ImGui::TextColored(ImVec4(0.4f,1.f,0.6f,1.f), "VIPs desta cidade (%d):", (int)vips.size());
-                                    const int vipRows = (int)vips.size() < 5 ? (int)vips.size() : 5;
-                                    ImGui::BeginChild("##viplist", ImVec2(310.f, (float)(vipRows * 22) + 4.f), true);
-                                    for (const auto& vn : vips) {
-                                        const bool sel = (vn == g_Config.ServerSpoof->VipName);
-                                        if (ImGui::Selectable(vn.c_str(), sel)) {
-                                            strncpy_s(g_Config.ServerSpoof->VipName, vn.c_str(), 63);
-                                        }
-                                        if (sel) ImGui::SetItemDefaultFocus();
-                                    }
-                                    ImGui::EndChild();
-                                } else {
-                                    ImGui::TextDisabled("Aguardando jogadores com VIP...");
-                                }
-                            }
-                            // Horas — InputInt sem limite máximo
-                            ImGui::Text("Horas jogadas:");
-                            ImGui::SetNextItemWidth(220.f);
-                            ImGui::InputInt("##spoofhoras", &g_Config.ServerSpoof->PlayTime, 1, 100);
-                            if (g_Config.ServerSpoof->PlayTime < 0) g_Config.ServerSpoof->PlayTime = 0;
-                            // Job
-                            ImGui::Text("Job / Cargo:");
-                            ImGui::SetNextItemWidth(220.f);
-                            ImGui::InputText("##spoofjob", g_Config.ServerSpoof->JobName, sizeof(g_Config.ServerSpoof->JobName));
-                            // Novato
-                            ImGui::Spacing();
-                            Custom::CheckBox("Remover modo novato", &g_Config.ServerSpoof->RemoveNovato);
-                            ImGui::Spacing();
-                            ImGui::TextDisabled("Os dados acima sao exibidos");
-                            ImGui::TextDisabled("no seu ESP local.");
+                        // ── Rank / Titulo ────────────────────────────────────
+                        ImGui::Text("Rank:");
+                        ImGui::SetNextItemWidth(280.f);
+                        ImGui::InputText("##nprank", g_Config.ServerSpoof->RankName, sizeof(g_Config.ServerSpoof->RankName));
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ex: INICIANTE, INTERMEDIARIO, VETERANO");
+
+                        // ── Classe Social ────────────────────────────────────
+                        ImGui::Text("Classe Social:");
+                        ImGui::SetNextItemWidth(280.f);
+                        ImGui::InputText("##npsocial", g_Config.ServerSpoof->SocialClass, sizeof(g_Config.ServerSpoof->SocialClass));
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ex: SOCIAL 1, SOCIAL 3, SOCIAL 5");
+
+                        // ── Horas jogadas ────────────────────────────────────
+                        ImGui::Text("Horas jogadas:");
+                        ImGui::SetNextItemWidth(200.f);
+                        ImGui::InputInt("##nphoras", &g_Config.ServerSpoof->PlayTime, 1, 100);
+                        if (g_Config.ServerSpoof->PlayTime < 0) g_Config.ServerSpoof->PlayTime = 0;
+
+                        ImGui::Spacing();
+                        ImGui::Separator();
+                        ImGui::Spacing();
+
+                        // ── Continuous injection state ───────────────────────
+                        static bool  npContinuous   = false;
+                        static float npLastInject   = -999.f;
+                        static std::string npStatus;
+                        static bool  npBusy         = false;
+
+                        // Poll bridge reply
+                        if (npBusy && !MenuBridge::Connection().Busy()) {
+                            npStatus = BridgeFeatures::localStatus.empty() ? "Injetado" : BridgeFeatures::localStatus;
+                            npBusy   = false;
                         }
+
+                        // Continuous injection tick (every 1 s)
+                        if (npContinuous) {
+                            const float now = static_cast<float>(ImGui::GetTime());
+                            if (now - npLastInject >= 1.0f) {
+                                BridgeFeatures::InjectStateBag(
+                                    std::string(g_Config.ServerSpoof->VipName),
+                                    g_Config.ServerSpoof->PlayTime,
+                                    std::string(g_Config.ServerSpoof->JobName),
+                                    std::string(g_Config.ServerSpoof->RankName),
+                                    std::string(g_Config.ServerSpoof->SocialClass)
+                                );
+                                npLastInject = now;
+                                npStatus = "Reinjetando...";
+                            }
+                        }
+
+                        // ── Continuous toggle button ─────────────────────────
+                        if (npContinuous) {
+                            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.6f,0.1f,0.1f,1.f));
+                            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f,0.15f,0.15f,1.f));
+                            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.4f,0.05f,0.05f,1.f));
+                            if (ImGui::Button("Parar Injecao Continua##npcont", ImVec2(-1, 32))) {
+                                npContinuous = false;
+                                npStatus = "Injecao continua pausada";
+                            }
+                            ImGui::PopStyleColor(3);
+                        } else {
+                            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.1f,0.45f,0.65f,1.f));
+                            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f,0.60f,0.85f,1.f));
+                            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.07f,0.30f,0.45f,1.f));
+                            if (ImGui::Button("Injecao Continua (1s)##npcont", ImVec2(-1, 32))) {
+                                npContinuous  = true;
+                                npLastInject  = -999.f; // força injeção imediata
+                                npStatus      = "Iniciando...";
+                            }
+                            ImGui::PopStyleColor(3);
+                        }
+
+                        // ── Single-shot inject button ────────────────────────
+                        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.15f,0.55f,0.25f,1.f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f,0.70f,0.35f,1.f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.10f,0.40f,0.18f,1.f));
+                        if (ImGui::Button("Injetar Agora##nponce", ImVec2(-1, 28))) {
+                            npStatus = "Enviando...";
+                            npBusy   = true;
+                            BridgeFeatures::InjectStateBag(
+                                std::string(g_Config.ServerSpoof->VipName),
+                                g_Config.ServerSpoof->PlayTime,
+                                std::string(g_Config.ServerSpoof->JobName),
+                                std::string(g_Config.ServerSpoof->RankName),
+                                std::string(g_Config.ServerSpoof->SocialClass)
+                            );
+                        }
+                        ImGui::PopStyleColor(3);
+
+                        // ── Status line ──────────────────────────────────────
+                        if (!npStatus.empty()) {
+                            const bool ok = (npStatus.find("Injetado") != std::string::npos ||
+                                             npStatus.find("Reinjetando") != std::string::npos);
+                            ImGui::PushStyleColor(ImGuiCol_Text, ok
+                                ? ImVec4(0.5f,1.0f,0.5f,1.f)
+                                : ImVec4(1.f,0.75f,0.3f,1.f));
+                            ImGui::TextWrapped("%s", npStatus.c_str());
+                            ImGui::PopStyleColor();
+                        }
+                        ImGui::TextDisabled("O servidor sobrescreve state bags ~1s.");
+                        ImGui::TextDisabled("Use injecao continua para manter o valor.");
 					}
 					ImGui::EndChild( );
 				}

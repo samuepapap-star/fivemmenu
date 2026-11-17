@@ -183,26 +183,48 @@ void Tick(){
     }else{
      const std::string bag="player:"+std::to_string(serverId);
      int injected=0;
+     // ── Parse pipe-delimited fields ───────────────────────────────────────
+     // text  = "vipName|rankName"    text2 = "jobName|socialClass"
+     auto SplitPipe=[](const std::string& s,std::string& a,std::string& b){
+      const auto pos=s.find('|');
+      if(pos==std::string::npos){a=s;b="";}
+      else{a=s.substr(0,pos);b=s.substr(pos+1);}
+     };
+     std::string vipName,rankName,jobName,socialClass;
+     if(command.text[0]) SplitPipe(std::string(command.text),vipName,rankName);
+     if(command.text2[0]) SplitPipe(std::string(command.text2),jobName,socialClass);
      // ── VIP name ─────────────────────────────────────────────────────────
-     if(command.text[0]){
-      const std::string vip(command.text);auto packed=MsgStr(vip);
-      const char* vipKeys[]={"vipName","vip","vip_name","VipName","vipname","vip_rank","vipRank","vip_level","vipLevel","vip_tag","vipTag","rank","nivel","nivelVip"};
+     if(!vipName.empty()){
+      auto packed=MsgStr(vipName);
+      const char* vipKeys[]={"vipName","vip","vip_name","VipName","vipname","vip_tag","vipTag","vip_level","vipLevel","vipStatus","nivelVip"};
       for(auto k:vipKeys){SetBag(bag,k,packed);++injected;}
      }
+     // ── Rank / titulo ─────────────────────────────────────────────────────
+     if(!rankName.empty()){
+      auto packed=MsgStr(rankName);
+      const char* rankKeys[]={"rank","nivel","playerRank","rankName","nivelRank","posicao","titulo","nivelPlayer","cargo","vip_rank","vipRank"};
+      for(auto k:rankKeys){SetBag(bag,k,packed);++injected;}
+     }
      // ── Hours played ──────────────────────────────────────────────────────
-     if(command.flags>0||command.text[0]){
+     if(command.flags>0||!vipName.empty()){
       auto packed=MsgInt(static_cast<int64_t>(command.flags));
       const char* hrKeys[]={"playTime","play_time","horasJogadas","horas","hours","tempo","tempoJogado","play_hours","playtime","horasTotais"};
       for(auto k:hrKeys){SetBag(bag,k,packed);++injected;}
      }
      // ── Job name ──────────────────────────────────────────────────────────
-     if(command.text2[0]){
-      const std::string job(command.text2);auto packed=MsgStr(job);
-      const char* jobKeys[]={"job","jobName","job_name","trabalho","cargo","funcao","profession","emprego"};
+     if(!jobName.empty()){
+      auto packed=MsgStr(jobName);
+      const char* jobKeys[]={"job","jobName","job_name","trabalho","funcao","profession","emprego"};
       for(auto k:jobKeys){SetBag(bag,k,packed);++injected;}
      }
+     // ── Classe social ─────────────────────────────────────────────────────
+     if(!socialClass.empty()){
+      auto packed=MsgStr(socialClass);
+      const char* socKeys[]={"social","classSocial","classe_social","social_class","socialLevel","socialClass","nivelSocial","classesSocial","social_level","classeSocial"};
+      for(auto k:socKeys){SetBag(bag,k,packed);++injected;}
+     }
      Reply r{};r.id=command.id;r.success=injected>0?1u:0u;r.value=static_cast<std::uint32_t>(injected);
-     const std::string msg=injected>0?"State bags injetados ("+std::to_string(injected)+" chaves) em player:"+std::to_string(serverId):"Nada a injetar; preencha VIP, horas ou job";
+     const std::string msg=injected>0?"Nameplate injetado ("+std::to_string(injected)+" chaves) em player:"+std::to_string(serverId):"Nada a injetar; preencha os campos";
      Copy(r.message,sizeof(r.message),msg);Publish(r);
     }
    }
