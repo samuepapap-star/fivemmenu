@@ -89,6 +89,16 @@ namespace Gui
 
 			HWND ActiveWindow = GetForegroundWindow( );
 
+            // In exclusive fullscreen GetForegroundWindow() may return a window other than
+            // grcWindow (e.g. an internal DX window).  Accept any HWND that belongs to our
+            // own process so the toggle key still works in fullscreen.
+            DWORD fgPid = 0;
+            if ( ActiveWindow ) GetWindowThreadProcessId( ActiveWindow, &fgPid );
+            const bool gameHasFocus =
+                ActiveWindow == g_Variables.g_hGameWindow  ||
+                ActiveWindow == g_Variables.g_hCheatWindow ||
+                ( fgPid != 0 && fgPid == GetCurrentProcessId( ) );
+
             // Toggle once per key press, including while the overlay has focus.
             static unsigned previousMenuKeys = 0;
             unsigned menuKeys = 0;
@@ -102,10 +112,8 @@ namespace Gui
             const bool pressed = (menuKeys & ~previousMenuKeys) != 0;
             previousMenuKeys = menuKeys;
             const bool editingShortcut = MenuShortcut::Poll(g_Config.General->MenuKey,
-                ActiveWindow == g_Variables.g_hCheatWindow || ActiveWindow == g_Variables.g_hGameWindow);
-            if (!editingShortcut && pressed &&
-                (ActiveWindow == g_Variables.g_hGameWindow ||
-                 ActiveWindow == g_Variables.g_hCheatWindow)) {
+                gameHasFocus);
+            if (!editingShortcut && pressed && gameHasFocus) {
                 g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
 
             }
@@ -119,7 +127,7 @@ namespace Gui
                 const LONG closedStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
                 SetWindowLong(g_Variables.g_hCheatWindow, GWL_EXSTYLE,
                     g_MenuInfo.IsOpen ? openStyle : closedStyle);
-                if (!g_MenuInfo.IsOpen && ActiveWindow == g_Variables.g_hCheatWindow) {
+                if (!g_MenuInfo.IsOpen && ( ActiveWindow == g_Variables.g_hCheatWindow ) ) {
                     SetForegroundWindow(g_Variables.g_hGameWindow);
                 }
                 lastMenuOpen=g_MenuInfo.IsOpen;inputStateInitialized=true;
@@ -157,6 +165,16 @@ namespace Gui
 			ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData( ) );
 
 			g_pSwapChain->Present( g_Config.General->VSync, 0U ); //VSync
+
+            // Re-assert HWND_TOPMOST every ~60 frames so the overlay survives
+            // fullscreen transitions (flip-model exclusive fullscreen on W10/11
+            // still composites TOPMOST layered windows over the game).
+            static int s_topmostCounter = 0;
+            if ( ++s_topmostCounter >= 60 ) {
+                s_topmostCounter = 0;
+                SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST, 0, 0, 0, 0,
+                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE );
+            }
 		}
 
 		ImGui_ImplDX11_Shutdown( );

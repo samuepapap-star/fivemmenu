@@ -44,7 +44,13 @@ namespace Core
                     },reinterpret_cast<LPARAM>(&target));
                     if(target.found){overlayX=target.area.left;overlayY=target.area.top;}
                 }
-                MoveWindow( g_Variables.g_hCheatWindow, overlayX, overlayY, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y, true );
+                // Use SetWindowPos instead of MoveWindow so we re-assert HWND_TOPMOST every
+                // 300 ms — this keeps the overlay above the game after fullscreen transitions.
+                SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST,
+                              overlayX, overlayY,
+                              static_cast<int>( g_Variables.g_vGameWindowSize.x ),
+                              static_cast<int>( g_Variables.g_vGameWindowSize.y ),
+                              SWP_NOACTIVATE | SWP_SHOWWINDOW );
 			}
 
 			void Update( )
