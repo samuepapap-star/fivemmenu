@@ -108,6 +108,7 @@ inline void Tick(){
    f.vehicleArmor=vehicleArmor?1u:0u;
    f.valid=1;f.localAddress=(uintptr_t)p;f.position={pos.x,pos.y,pos.z};f.forward={direction.x,direction.y,direction.z};
    f.input=!g_MenuInfo.IsOpen&&GetForegroundWindow()==g_Variables.g_hGameWindow;
+   if(ImGui::GetIO().WantCaptureKeyboard)f.input|=MenuBridge::FrameInput_SuppressControls;
    f.shoot=f.input&&(GetAsyncKeyState(VK_LBUTTON)&0x8000);f.rpg=silentRpg&&!cameraRequested?1u:0u;
    f.camera=cameraRequested?1u:0u;f.cameraSpeed=Core::Features::ExtraCamera::speed;
    if(f.camera&&f.input){

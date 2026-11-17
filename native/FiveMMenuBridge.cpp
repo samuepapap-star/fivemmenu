@@ -119,6 +119,11 @@ void Tick(){
    }
   }else if(!ReadState(shared->runtimeBuild))return;
   armor.Tick(Fresh(frame,now) && frame.vehicleArmor, now);
+  // Suprimir controles do jogo enquanto menu precisa do teclado (bit 31 de frame.input)
+  if(Fresh(frame,now) && (frame.input & FrameInput_SuppressControls)){
+   try{ api.Call(Hash("DISABLE_ALL_CONTROL_ACTIONS"),{static_cast<uint64_t>(0)}); }
+   catch(const std::exception&){if(nativeFault)nativeFault=false;}
+  }
   if(!Fresh(frame,now)&&!actions.Pending()&&!vehicleTransfer.Pending()&&!waypoint.Pending()&&actions.rpgState==0&&!cameraActions.Active())return;
   if(!actions.Pending()&&!vehicleTransfer.Pending()&&!waypoint.Pending()&&InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&shared->commandState),Busy,Ready)==Ready){
    Command command=shared->command;MemoryBarrier();
@@ -312,19 +317,24 @@ void Tick(){
    }
    else if(command.action==Action::GetPlayerInfo){
     try{
-     // Get local player index (0-based, always 0 for local)
+     // PLAYER_ID: pure RAGE native, always index 0 for local player
      uint64_t pid=api.Call(Hash("PLAYER_ID"),{});
-     // Get server-assigned player ID (the numeric ID the server assigned)
-     uint64_t sid=api.Call(Hash("PLAYER_SERVER_ID"),{pid});
-     // Convert server ID to hex string
-     char hexId[16]={};
-     snprintf(hexId,sizeof(hexId),"%X",(uint32_t)sid);
-     // Get player name
+     // GET_PLAYER_NAME: pure RAGE native, returns display name
      std::string pname;
      try{ pname=api.String(Hash("GET_PLAYER_NAME"),{pid}); }catch(const std::exception&){if(nativeFault)nativeFault=false;}
+     // GET_PLAYER_PED: get the local ped handle
+     uint64_t ped=0;
+     try{ ped=api.Call(Hash("GET_PLAYER_PED"),{pid}); }catch(const std::exception&){if(nativeFault)nativeFault=false;}
+     // NETWORK_GET_NETWORK_ID_FROM_ENTITY: network object ID of local ped
+     uint64_t netId=0;
+     try{ if(ped) netId=api.Call(Hash("NETWORK_GET_NETWORK_ID_FROM_ENTITY"),{ped}); }catch(const std::exception&){if(nativeFault)nativeFault=false;}
+     // Convert net ID to hex as best-effort charId hint
+     char hexId[16]={};
+     if(netId) snprintf(hexId,sizeof(hexId),"%X",(uint32_t)netId);
+     else       snprintf(hexId,sizeof(hexId),"%llu",(unsigned long long)pid);
      // Build response: "auto:HEXID|PlayerName"
      std::string info="auto:";info+=hexId;info+="|";info+=pname;
-     Reply r{};r.id=command.id;r.success=1u;r.value=(uint32_t)sid;
+     Reply r{};r.id=command.id;r.success=1u;r.value=(uint32_t)netId;
      Copy(r.message,sizeof(r.message),info.c_str());Publish(r);
     }catch(const std::exception& e){
      if(nativeFault)nativeFault=false;

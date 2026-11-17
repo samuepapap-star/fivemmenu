@@ -39,6 +39,8 @@ struct alignas(8) Shared {
 inline bool Sane(Vec p){return std::isfinite(p.x)&&std::isfinite(p.y)&&std::isfinite(p.z)&&
  std::fabs(p.x)<100000.f&&std::fabs(p.y)<100000.f&&std::fabs(p.z)<100000.f;}
 inline bool Fresh(const Frame& f,std::uint64_t now){return f.valid&&f.heartbeat<=now&&now-f.heartbeat<2000&&Sane(f.position)&&Sane(f.forward);}
+// Bit flag in Frame::input that tells bridge to call DISABLE_ALL_CONTROL_ACTIONS
+inline constexpr std::uint32_t FrameInput_SuppressControls = (1u<<31);
 inline bool Text(const char* s,std::size_t capacity,bool model=false){
  const char* end=static_cast<const char*>(std::memchr(s,0,capacity));if(!end||end==s)return false;
  for(auto p=s;p!=end;p++){unsigned char c=static_cast<unsigned char>(*p);
