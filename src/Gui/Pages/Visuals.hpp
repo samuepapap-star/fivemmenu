@@ -200,7 +200,7 @@ namespace Visuals {
                             const auto discovVips = Core::Threads::g_UpdateNames.GetDiscoveredVips();
                             // Combo usando o campo VipName como preview
                             ImGui::SetNextItemWidth(280.f);
-                            if (ImGui::BeginCombo("##vipcombo", g_Config.ServerSpoof->VipName[0] ? g_Config.ServerSpoof->VipName : "Selecionar...")) {
+                            if (ImGui::BeginCombo("##vipcombo", g_Config.ServerSpoof->VipName[0] ? g_Config.ServerSpoof->VipName : "Selecionar...", nCommon)) {
                                 // VIPs descobertos no servidor (topo da lista)
                                 if (!discovVips.empty()) {
                                     ImGui::TextDisabled("-- Servidor atual --");
