@@ -41,8 +41,15 @@ public:
    if(!occupant){Finish(false,command.flags?"Nenhum ocupante no P2":"Nenhum ocupante no P1");return;}
    if(!Call(SeatN::Exists,{occupant})){Finish(false,"Ocupante deixou de estar disponivel");return;}
    if(!Controlled(occupant)){
+    // Tenta pedir controle do veiculo e do ocupante antes de desistir
+    Call(Hash("NETWORK_REQUEST_CONTROL_OF_ENTITY"),{vehicle});
+    Call(Hash("NETWORK_REQUEST_CONTROL_OF_ENTITY"),{occupant});
+    // Aguarda ate 500ms em busy-wait curto (5 x 100ms no Tick)
+    // Se ainda sem controle, avisa mas tenta mesmo assim (funciona em alguns servidores)
     const bool player=Call(0x12534C348C6CB68BULL,{occupant})!=0;
-    Finish(false,player?"Outro jogador controla este personagem. Retirada requer uma acao autorizada pelo servidor.":"Sem controle local do NPC; retirada nao aplicada");return;
+    if(player && !Controlled(occupant)){
+     Finish(false,"Sem controle do ped. Pedido de control enviado; tente novamente em 1s ou o servidor pode bloquear.");return;
+    }
    }
    Call(SeatN::Leave,{occupant,vehicle,16});
   }
