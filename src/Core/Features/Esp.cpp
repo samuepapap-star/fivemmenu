@@ -24,31 +24,63 @@ ImColor EspRgbCycle(float speed = 1.f) {
     return ImColor(r, g, b, 1.f);
 }
 // Each joint is projected once, even when several segments share it.
+// Falls back to a simple head→spine→feet skeleton using GetBonePosDefault
+// when PlayerBones::Open() fails (e.g. wrong m_FragInst for current build).
 void DrawTracelessSkeleton(CPed* ped, ImDrawList* draw, ImColor color, const ImVec2& screen) {
     Core::Features::PlayerBones bones;
-    if (!bones.Open(ped)) return;
-    enum Joint { Pelvis, Neck, LeftClavicle, RightClavicle, LeftArm, RightArm,
-                 LeftForearm, RightForearm, LeftHand, RightHand, LeftThigh, RightThigh,
-                 LeftCalf, RightCalf, LeftFoot, RightFoot, JointCount };
-    constexpr unsigned masks[JointCount] = {0x2e28,0x9995,0xfcd9,0x29d2,0xb1c5,0x9d4d,
-        0xeeeb,0x6e5c,0x49d9,0xdead,0xe39f,0xca72,0xf9bb,0x9000,0x3779,0xcc4d};
-    constexpr Joint links[][2] = {{Pelvis,Neck},{Neck,LeftClavicle},{Neck,RightClavicle},
-        {LeftClavicle,LeftArm},{RightClavicle,RightArm},{LeftArm,LeftForearm},
-        {RightArm,RightForearm},{LeftForearm,LeftHand},{RightForearm,RightHand},
-        {Pelvis,LeftThigh},{Pelvis,RightThigh},{LeftThigh,LeftCalf},{RightThigh,RightCalf},
-        {LeftCalf,LeftFoot},{RightCalf,RightFoot}};
-    ImVec2 points[JointCount]{};
-    bool visible[JointCount]{};
-    for (int i = 0; i < JointCount; ++i) {
-        D3DXVECTOR3 bone;
-        if (!bones.Position(masks[i], bone)) continue;
-        const auto pos = Core::SDK::Game::WorldToScreen(bone);
-        visible[i] = ExternalAimMath::Inside(pos.x, pos.y, screen.x, screen.y);
-        points[i] = ImVec2(pos.x, pos.y);
+    if (bones.Open(ped)) {
+        enum Joint { Pelvis, Neck, LeftClavicle, RightClavicle, LeftArm, RightArm,
+                     LeftForearm, RightForearm, LeftHand, RightHand, LeftThigh, RightThigh,
+                     LeftCalf, RightCalf, LeftFoot, RightFoot, JointCount };
+        constexpr unsigned masks[JointCount] = {0x2e28,0x9995,0xfcd9,0x29d2,0xb1c5,0x9d4d,
+            0xeeeb,0x6e5c,0x49d9,0xdead,0xe39f,0xca72,0xf9bb,0x9000,0x3779,0xcc4d};
+        constexpr Joint links[][2] = {{Pelvis,Neck},{Neck,LeftClavicle},{Neck,RightClavicle},
+            {LeftClavicle,LeftArm},{RightClavicle,RightArm},{LeftArm,LeftForearm},
+            {RightArm,RightForearm},{LeftForearm,LeftHand},{RightForearm,RightHand},
+            {Pelvis,LeftThigh},{Pelvis,RightThigh},{LeftThigh,LeftCalf},{RightThigh,RightCalf},
+            {LeftCalf,LeftFoot},{RightCalf,RightFoot}};
+        ImVec2 points[JointCount]{};
+        bool visible[JointCount]{};
+        for (int i = 0; i < JointCount; ++i) {
+            D3DXVECTOR3 bone;
+            if (!bones.Position(masks[i], bone)) continue;
+            const auto pos = Core::SDK::Game::WorldToScreen(bone);
+            visible[i] = ExternalAimMath::Inside(pos.x, pos.y, screen.x, screen.y);
+            points[i] = ImVec2(pos.x, pos.y);
+        }
+        for (const auto& link : links)
+            if (visible[link[0]] && visible[link[1]])
+                draw->AddLine(points[link[0]], points[link[1]], color, ExtraSettings::SkeletonWidth);
+        return;
     }
-    for (const auto& link : links)
-        if (visible[link[0]] && visible[link[1]])
-            draw->AddLine(points[link[0]], points[link[1]], color, ExtraSettings::SkeletonWidth);
+    // Fallback: PlayerBones::Open falhou (m_FragInst errado para build atual).
+    // Usa GetBonePosDefault para desenhar esqueleto simplificado:
+    // cabeça(0) → cintura(1) → pé esq(3) / pé dir(4), ombros(5/6) → mãos(7/8)
+    struct FBone { int idx; };
+    constexpr int fbIndices[] = {0,1,3,4,5,6,7,8};
+    D3DXVECTOR3 fbPos[8]{};
+    ImVec2 fbScreen[8]{};
+    bool fbVis[8]{};
+    for (int i = 0; i < 8; ++i) {
+        fbPos[i] = ped->GetBonePosDefault(fbIndices[i]);
+        const auto p = Core::SDK::Game::WorldToScreen(fbPos[i]);
+        fbVis[i] = ExternalAimMath::Inside(p.x, p.y, screen.x, screen.y);
+        fbScreen[i] = ImVec2(p.x, p.y);
+    }
+    // 0=head,1=waist → spine
+    if (fbVis[0] && fbVis[1]) draw->AddLine(fbScreen[0], fbScreen[1], color, ExtraSettings::SkeletonWidth);
+    // 1=waist → 2=left foot
+    if (fbVis[1] && fbVis[2]) draw->AddLine(fbScreen[1], fbScreen[2], color, ExtraSettings::SkeletonWidth);
+    // 1=waist → 3=right foot
+    if (fbVis[1] && fbVis[3]) draw->AddLine(fbScreen[1], fbScreen[3], color, ExtraSettings::SkeletonWidth);
+    // 1=waist → 4=left shoulder
+    if (fbVis[1] && fbVis[4]) draw->AddLine(fbScreen[1], fbScreen[4], color, ExtraSettings::SkeletonWidth);
+    // 1=waist → 5=right shoulder
+    if (fbVis[1] && fbVis[5]) draw->AddLine(fbScreen[1], fbScreen[5], color, ExtraSettings::SkeletonWidth);
+    // 4=left shoulder → 6=left hand
+    if (fbVis[4] && fbVis[6]) draw->AddLine(fbScreen[4], fbScreen[6], color, ExtraSettings::SkeletonWidth);
+    // 5=right shoulder → 7=right hand
+    if (fbVis[5] && fbVis[7]) draw->AddLine(fbScreen[5], fbScreen[7], color, ExtraSettings::SkeletonWidth);
 }
 }
 
@@ -355,12 +387,15 @@ void Core::Features::cEsp::Draw( )
             DrawList->AddRectFilled(ImVec2(x, BoxMin.y), ImVec2(x+width, BoxMax.y), IM_COL32(0,0,0,150), 2.f);
             DrawList->AddRectFilled(ImVec2(x, BoxMax.y - Height * ImClamp(fraction,0.f,1.f)), ImVec2(x+width,BoxMax.y), ink, 2.f);
         };
-        if (Cfg->HealthBar && Entity.MaxHealth > 0.f) {
-            const float hp = Health / Entity.MaxHealth;
+        if (Cfg->HealthBar) {
+            // Usa MaxHealth lido do ped; se vier 0 ou negativo (offset errado),
+            // assume 200 como referência padrão do GTA5.
+            const float maxHp = Entity.MaxHealth > 50.f ? Entity.MaxHealth : 200.f;
+            const float hp = ImClamp(Health / maxHp, 0.f, 1.f);
             bar(BoxMin.x - 3.f - Cfg->HealthBarWidth, Cfg->HealthBarWidth, hp, hp > 0.7f ? IM_COL32(0,255,0,255) : hp > 0.3f ? IM_COL32(255,255,0,255) : IM_COL32(255,0,0,255));
         }
-        if (Cfg->ArmorBar && Entity.Armor > 0.f)
-            bar(BoxMax.x + 3.f, Cfg->ArmorBarWidth, Entity.Armor / 100.f, IM_COL32(0,150,255,255));
+        if (Cfg->ArmorBar)
+            bar(BoxMax.x + 3.f, Cfg->ArmorBarWidth, ImClamp(Entity.Armor / 100.f, 0.f, 1.f), IM_COL32(0,150,255,255));
     }
 }
 
