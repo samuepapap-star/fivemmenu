@@ -120,6 +120,18 @@ namespace Visuals {
                         if (g_Config.ESP->HeadCircle) ImGui::SliderFloat("Raio da cabeça", &g_Config.ESP->HeadSize, 1.f, 20.f);
 						Custom::CheckBox( xorstr( "Ignorar NPCs" ), &g_Config.ESP->IgnoreNPCs );
 
+                        ImGui::Separator();
+                        ImGui::TextDisabled("Aparencia do ESP");
+                        Custom::CheckBox("Brilho ao redor do jogador", &ExtraSettings::PlayerGlow);
+                        Custom::CheckBox("Icone da arma", &ExtraSettings::WeaponIcon);
+                        Custom::CheckBox("Chapeu conico (China Hat)", &ExtraSettings::ChinaHat);
+                        if (ExtraSettings::ChinaHat) ImGui::SliderFloat("Tamanho do chapeu", &ExtraSettings::HatSize, 0.1f, 1.f, "%.2f");
+                        Custom::CheckBox("Aviso de possiveis invisiveis", &ExtraSettings::InvisibleWarning);
+                        ImGui::SliderFloat("Tamanho dos textos ESP", &ExtraSettings::TextSize, 8.f, 24.f, "%.0f px");
+                        ImGui::SliderFloat("Espessura do esqueleto", &ExtraSettings::SkeletonWidth, 0.5f, 5.f, "%.1f");
+                        ImGui::SliderFloat("Espessura das caixas", &ExtraSettings::BoxWidth, 0.5f, 4.f, "%.1f");
+                        ImGui::Combo("Fonte do ESP", &ExtraSettings::Font, "Atual\0Fonte do menu\0Compacta\0");
+
 						ImGui::SliderInt( xorstr( "Distância máxima" ), &g_Config.ESP->MaxDistance, 0, g_Config.ESP->DistanceLimit, xorstr( "%dm" ), 0 );
 					}
 					ImGui::EndChild( );
