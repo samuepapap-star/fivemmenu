@@ -141,6 +141,71 @@ void Tick(){
     Reply r{};r.id=command.id;r.success=1u;
     Copy(r.message,sizeof(r.message),"Skin aplicada (somente voce ve)");Publish(r);
    }
+   else if(command.action==Action::SetStateBag){
+    // ── State-bag injection ─────────────────────────────────────────────────
+    // Packs VIP name, hours and job into FiveM state bags for the local player.
+    // Values are MessagePack-encoded; common key variants are written so the
+    // server/other clients pick up whichever key their resource reads.
+    // -------------------------------------------------------------------------
+    // msgpack helpers (inline, no external deps)
+    auto MsgStr=[](const std::string& s)->std::vector<uint8_t>{
+     std::vector<uint8_t> b;
+     if(s.size()<=31){b.push_back(static_cast<uint8_t>(0xa0u|s.size()));}
+     else if(s.size()<=255){b.push_back(0xd9u);b.push_back(static_cast<uint8_t>(s.size()));}
+     else{b.push_back(0xdau);b.push_back(static_cast<uint8_t>(s.size()>>8));b.push_back(static_cast<uint8_t>(s.size()));}
+     b.insert(b.end(),s.begin(),s.end());return b;
+    };
+    auto MsgInt=[](int64_t v)->std::vector<uint8_t>{
+     std::vector<uint8_t> b;
+     if(v>=0&&v<=127){b.push_back(static_cast<uint8_t>(v));}
+     else if(v>=0&&v<=255){b.push_back(0xccu);b.push_back(static_cast<uint8_t>(v));}
+     else if(v>=0&&v<=65535){b.push_back(0xcdu);b.push_back(static_cast<uint8_t>(v>>8));b.push_back(static_cast<uint8_t>(v));}
+     else if(v>=0){b.push_back(0xceu);b.push_back(static_cast<uint8_t>(v>>24));b.push_back(static_cast<uint8_t>(v>>16));b.push_back(static_cast<uint8_t>(v>>8));b.push_back(static_cast<uint8_t>(v));}
+     else{b.push_back(0xd2u);b.push_back(static_cast<uint8_t>(v>>24));b.push_back(static_cast<uint8_t>(v>>16));b.push_back(static_cast<uint8_t>(v>>8));b.push_back(static_cast<uint8_t>(v));}
+     return b;
+    };
+    // helper: SET_STATE_BAG_VALUE(bagName, key, data, len, replicate)
+    auto SetBag=[&](const std::string& bag,const std::string& key,const std::vector<uint8_t>& packed,bool replicate=true){
+     api.Call(Hash("SET_STATE_BAG_VALUE"),{
+      reinterpret_cast<std::uint64_t>(bag.c_str()),
+      reinterpret_cast<std::uint64_t>(key.c_str()),
+      reinterpret_cast<std::uint64_t>(packed.data()),
+      static_cast<std::uint64_t>(packed.size()),
+      replicate?1ULL:0ULL
+     });
+    };
+    // resolve local player server-id
+    const auto playerIndex=api.Call(Hash("PLAYER_ID"),{});
+    std::uint64_t serverId=command.targetServerId;
+    if(!serverId)serverId=api.Call(Hash("GET_PLAYER_SERVER_ID"),{playerIndex});
+    if(!serverId||serverId>0x7fffffffULL){
+     Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Servidor ID invalido; conecte ao servidor primeiro");Publish(r);
+    }else{
+     const std::string bag="player:"+std::to_string(serverId);
+     int injected=0;
+     // ── VIP name ─────────────────────────────────────────────────────────
+     if(command.text[0]){
+      const std::string vip(command.text);auto packed=MsgStr(vip);
+      const char* vipKeys[]={"vipName","vip","vip_name","VipName","vipname","vip_rank","vipRank","vip_level","vipLevel","vip_tag","vipTag","rank","nivel","nivelVip"};
+      for(auto k:vipKeys){SetBag(bag,k,packed);++injected;}
+     }
+     // ── Hours played ──────────────────────────────────────────────────────
+     if(command.flags>0||command.text[0]){
+      auto packed=MsgInt(static_cast<int64_t>(command.flags));
+      const char* hrKeys[]={"playTime","play_time","horasJogadas","horas","hours","tempo","tempoJogado","play_hours","playtime","horasTotais"};
+      for(auto k:hrKeys){SetBag(bag,k,packed);++injected;}
+     }
+     // ── Job name ──────────────────────────────────────────────────────────
+     if(command.text2[0]){
+      const std::string job(command.text2);auto packed=MsgStr(job);
+      const char* jobKeys[]={"job","jobName","job_name","trabalho","cargo","funcao","profession","emprego"};
+      for(auto k:jobKeys){SetBag(bag,k,packed);++injected;}
+     }
+     Reply r{};r.id=command.id;r.success=injected>0?1u:0u;r.value=static_cast<std::uint32_t>(injected);
+     const std::string msg=injected>0?"State bags injetados ("+std::to_string(injected)+" chaves) em player:"+std::to_string(serverId):"Nada a injetar; preencha VIP, horas ou job";
+     Copy(r.message,sizeof(r.message),msg);Publish(r);
+    }
+   }
    else if(command.action==Action::TeleportWaypoint){
     if(cameraActions.Active()){Reply r{};r.id=command.id;Copy(r.message,sizeof(r.message),"Desative a camera antes de teleportar");Publish(r);}
     else waypoint.Submit(command,frame,now);

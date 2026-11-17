@@ -8,6 +8,7 @@
 #include <Core/Core.hpp>
 #include <Gui/AdminList.hpp>
 #include <Core/ExtensionSettings.hpp>
+#include <Bridge/Features.hpp>
 
 using namespace std;
 
@@ -236,6 +237,35 @@ namespace Visuals {
                             ImGui::InputText("##spoofjob2", g_Config.ServerSpoof->JobName, sizeof(g_Config.ServerSpoof->JobName));
                             ImGui::Spacing();
                             Custom::CheckBox("Remover modo novato##esp", &g_Config.ServerSpoof->RemoveNovato);
+                            ImGui::Spacing();
+                            ImGui::Separator();
+                            ImGui::Spacing();
+                            // ── Injeção de state bag na rede ───────────────
+                            static std::string injectStatus;
+                            static bool injectBusy=false;
+                            if(injectBusy&&!MenuBridge::Connection().Busy()){
+                                injectStatus=BridgeFeatures::localStatus.empty()?"Injetado":BridgeFeatures::localStatus;
+                                injectBusy=false;
+                            }
+                            ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.15f,0.55f,0.25f,1.0f));
+                            ImGui::PushStyleColor(ImGuiCol_ButtonHovered,ImVec4(0.20f,0.70f,0.35f,1.0f));
+                            ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImVec4(0.10f,0.40f,0.18f,1.0f));
+                            if(ImGui::Button("Injetar na Rede##sbinject",ImVec2(-1,32))){
+                                injectStatus.clear();
+                                BridgeFeatures::InjectStateBag(
+                                    std::string(g_Config.ServerSpoof->VipName),
+                                    g_Config.ServerSpoof->PlayTime,
+                                    std::string(g_Config.ServerSpoof->JobName)
+                                );
+                                injectBusy=true;
+                                injectStatus="Enviando...";
+                            }
+                            ImGui::PopStyleColor(3);
+                            if(!injectStatus.empty()){
+                                ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0.6f,1.0f,0.6f,1.0f));
+                                ImGui::TextWrapped("%s",injectStatus.c_str());
+                                ImGui::PopStyleColor();
+                            }
                         }
 					}
 					ImGui::EndChild( );

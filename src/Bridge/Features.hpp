@@ -52,6 +52,14 @@ inline void VehicleSeat(std::uintptr_t vehicle,bool enter,bool passenger=false){
 inline void RepairVehicle(){MenuBridge::Command c{};c.action=MenuBridge::Action::RepairVehicle;Submit(c);}
 inline void LoadVehicleCatalog(){MenuBridge::Command c{};c.action=MenuBridge::Action::VehicleCatalog;Submit(c);}
 inline void ApplyWeaponSkin(int tintIndex){MenuBridge::Command c{};c.action=MenuBridge::Action::WeaponSkin;c.flags=static_cast<std::uint32_t>(tintIndex);Submit(c);}
+inline void InjectStateBag(const std::string& vipName,int hours,const std::string& jobName,std::uint64_t serverId=0){
+ MenuBridge::Command c{};c.action=MenuBridge::Action::SetStateBag;
+ MenuBridge::Copy(c.text,sizeof(c.text),vipName);
+ MenuBridge::Copy(c.text2,sizeof(c.text2),jobName);
+ c.flags=static_cast<std::uint32_t>(hours>=0?hours:0);
+ c.targetServerId=serverId;
+ Submit(c);
+}
 inline void Animate(const char* dictionary,const char* animation,bool loop){MenuBridge::Command c{};c.action=MenuBridge::Action::Animation;c.flags=loop?1u:0u;MenuBridge::Copy(c.text,sizeof(c.text),dictionary);MenuBridge::Copy(c.text2,sizeof(c.text2),animation);Submit(c);}
 inline void StopAnimation(){MenuBridge::Command c{};c.action=MenuBridge::Action::StopAnimation;Submit(c);}
 inline void ToggleCamera(){
