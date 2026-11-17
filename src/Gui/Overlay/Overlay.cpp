@@ -36,7 +36,7 @@ namespace Gui
 #ifdef FULLSCREEN_EX
 		g_Variables.g_hCheatWindow = pCreateWindowInBand( WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, RegClass, L" ", WS_POPUP, static_cast< int >( g_Variables.g_vGameWindowPos.x ), static_cast< int >( g_Variables.g_vGameWindowPos.y ), static_cast< int >( g_Variables.g_vGameWindowSize.x ), static_cast< int >( g_Variables.g_vGameWindowSize.y ), NULL, NULL, wc.hInstance, NULL, 2/*ZBID_UIACCESS*/ );
 #else
-		g_Variables.g_hCheatWindow = CreateWindowExW( WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT, wc.lpszClassName, L" ", WS_POPUP, g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y, NULL, NULL, wc.hInstance, NULL );
+		g_Variables.g_hCheatWindow = CreateWindowExW( WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE, wc.lpszClassName, L" ", WS_POPUP, g_Variables.g_vGameWindowPos.x, g_Variables.g_vGameWindowPos.y, g_Variables.g_vGameWindowSize.x, g_Variables.g_vGameWindowSize.y, NULL, NULL, wc.hInstance, NULL );
 #endif // FULLSCREEN_EX		
 		
 		SetLayeredWindowAttributes( g_Variables.g_hCheatWindow, RGB( 0, 0, 0 ), 255, LWA_ALPHA );
@@ -56,10 +56,10 @@ namespace Gui
 		ShowWindow( g_Variables.g_hCheatWindow, SW_SHOWDEFAULT );
 		UpdateWindow( g_Variables.g_hCheatWindow );
 
-		// Força a janela do overlay na frente de tudo
-		SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW );
-		BringWindowToTop( g_Variables.g_hCheatWindow );
-		SetForegroundWindow( g_Variables.g_hCheatWindow );
+		// Coloca o overlay na frente sem roubar foco do jogo (evita alt-tab em fullscreen)
+		SetWindowPos( g_Variables.g_hCheatWindow, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE );
+		// NÃO chamar BringWindowToTop nem SetForegroundWindow aqui — roubaria o foco
+		// do GTA5 e causaria minimize em fullscreen exclusivo.
 
 
 		ImGui::CreateContext( );
@@ -119,12 +119,15 @@ namespace Gui
             }
             static bool inputStateInitialized=false,lastMenuOpen=false;
             if(!inputStateInitialized||lastMenuOpen!=g_MenuInfo.IsOpen){
+                // WS_EX_NOACTIVATE em AMBOS os estilos para nunca roubar foco do jogo.
+                // Sem ele, o SetWindowLong remove o flag e o overlay pode ativar,
+                // causando minimize do GTA5 em fullscreen exclusivo.
 #ifdef FULLSCREEN_EX
-                const LONG openStyle = WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
+                const LONG openStyle   = WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
 #else
-                const LONG openStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW;
+                const LONG openStyle   = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
 #endif
-                const LONG closedStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
+                const LONG closedStyle = WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
                 SetWindowLong(g_Variables.g_hCheatWindow, GWL_EXSTYLE,
                     g_MenuInfo.IsOpen ? openStyle : closedStyle);
                 if (!g_MenuInfo.IsOpen && ( ActiveWindow == g_Variables.g_hCheatWindow ) ) {
