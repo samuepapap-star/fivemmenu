@@ -251,8 +251,10 @@ void Core::Features::cEsp::Draw( )
 		}
 
 		const auto color = [&](ImColor normal) -> ImColor { return IsFriend ? Cfg->FriendCol : normal; };
-        if (Cfg->SnapLines && !IsLocalPlayer)
-            DrawList->AddLine(ImVec2(window.x * 0.5f, window.y), ImVec2(BoxCenter.x, BoxMax.y), color(Cfg->SnapLinesCol), 1.f);
+        if (Cfg->SnapLines && !IsLocalPlayer) {
+            const float snapY = Cfg->SnapLinesFrom == 1 ? 0.f : window.y;
+            DrawList->AddLine(ImVec2(window.x * 0.5f, snapY), ImVec2(BoxCenter.x, Cfg->SnapLinesFrom == 1 ? BoxMin.y : BoxMax.y), color(Cfg->SnapLinesCol), 1.f);
+        }
         if (Cfg->Box3D) {
             const float bottom = (std::min)(Ped->GetBonePosDefault(3).z, Ped->GetBonePosDefault(4).z);
             const float top = HeadPos.z + 0.2f;
@@ -351,19 +353,41 @@ void Core::Features::cEsp::Draw( )
         }
         if (Cfg->DistanceFromMe && !IsLocalPlayer)
             label(std::to_string(static_cast<int>(Distance)) + "m", y, Cfg->DistanceCol);
+        // Barra vertical (esquerda/direita)
         auto bar = [&](float x, float width, float fraction, ImU32 ink) {
             DrawList->AddRectFilled(ImVec2(x, BoxMin.y), ImVec2(x+width, BoxMax.y), IM_COL32(0,0,0,150), 2.f);
             DrawList->AddRectFilled(ImVec2(x, BoxMax.y - Height * ImClamp(fraction,0.f,1.f)), ImVec2(x+width,BoxMax.y), ink, 2.f);
+        };
+        // Barra horizontal (cima/baixo)
+        auto hbar = [&](float y, float barH, float fraction, ImU32 ink) {
+            DrawList->AddRectFilled(ImVec2(BoxMin.x, y), ImVec2(BoxMax.x, y+barH), IM_COL32(0,0,0,150), 2.f);
+            DrawList->AddRectFilled(ImVec2(BoxMin.x, y), ImVec2(BoxMin.x + (BoxMax.x - BoxMin.x) * ImClamp(fraction,0.f,1.f), y+barH), ink, 2.f);
         };
         if (Cfg->HealthBar) {
             // Usa MaxHealth lido do ped; se vier 0 ou negativo (offset errado),
             // assume 200 como referência padrão do GTA5.
             const float maxHp = Entity.MaxHealth > 50.f ? Entity.MaxHealth : 200.f;
             const float hp = ImClamp(Health / maxHp, 0.f, 1.f);
-            bar(BoxMin.x - 3.f - Cfg->HealthBarWidth, Cfg->HealthBarWidth, hp, hp > 0.7f ? IM_COL32(0,255,0,255) : hp > 0.3f ? IM_COL32(255,255,0,255) : IM_COL32(255,0,0,255));
+            const ImU32 hpCol = hp > 0.7f ? IM_COL32(0,255,0,255) : hp > 0.3f ? IM_COL32(255,255,0,255) : IM_COL32(255,0,0,255);
+            switch (Cfg->HealthBarState) {
+                default:
+                case 0: bar(BoxMin.x - 3.f - Cfg->HealthBarWidth, Cfg->HealthBarWidth, hp, hpCol); break; // esquerda
+                case 1: bar(BoxMax.x + 3.f, Cfg->HealthBarWidth, hp, hpCol); break;                       // direita
+                case 2: hbar(BoxMin.y - 3.f - Cfg->HealthBarWidth, Cfg->HealthBarWidth, hp, hpCol); break; // cima
+                case 3: hbar(BoxMax.y + 3.f, Cfg->HealthBarWidth, hp, hpCol); break;                       // baixo
+            }
         }
-        if (Cfg->ArmorBar)
-            bar(BoxMax.x + 3.f, Cfg->ArmorBarWidth, ImClamp(Entity.Armor / 100.f, 0.f, 1.f), IM_COL32(0,150,255,255));
+        if (Cfg->ArmorBar) {
+            const float arm = ImClamp(Entity.Armor / 100.f, 0.f, 1.f);
+            const ImU32 armCol = IM_COL32(0,150,255,255);
+            switch (Cfg->ArmorBarState) {
+                default:
+                case 0: bar(BoxMin.x - 3.f - Cfg->ArmorBarWidth - (Cfg->HealthBar && Cfg->HealthBarState == 0 ? Cfg->HealthBarWidth + 2.f : 0.f), Cfg->ArmorBarWidth, arm, armCol); break; // esquerda
+                case 1: bar(BoxMax.x + 3.f + (Cfg->HealthBar && Cfg->HealthBarState == 1 ? Cfg->HealthBarWidth + 2.f : 0.f), Cfg->ArmorBarWidth, arm, armCol); break; // direita
+                case 2: hbar(BoxMin.y - 3.f - Cfg->ArmorBarWidth - (Cfg->HealthBar && Cfg->HealthBarState == 2 ? Cfg->HealthBarWidth + 2.f : 0.f), Cfg->ArmorBarWidth, arm, armCol); break; // cima
+                case 3: hbar(BoxMax.y + 3.f + (Cfg->HealthBar && Cfg->HealthBarState == 3 ? Cfg->HealthBarWidth + 2.f : 0.f), Cfg->ArmorBarWidth, arm, armCol); break; // baixo
+            }
+        }
     }
 }
 

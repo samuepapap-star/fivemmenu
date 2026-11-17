@@ -94,12 +94,22 @@ namespace Visuals {
 
 						Custom::CheckBox( xorstr( "Círculo na cabeça" ), &g_Config.ESP->HeadCircle );
 						Custom::CheckBox( xorstr( "Barra de vida" ), &g_Config.ESP->HealthBar );
-                        if (g_Config.ESP->HealthBar)
+                        if (g_Config.ESP->HealthBar) {
                             ImGui::SliderInt("Espessura vida", &g_Config.ESP->HealthBarWidth, 1, 6, "%d px");
+                            static const char* barPositions[] = { "Esquerda", "Direita", "Cima", "Baixo" };
+                            ImGui::Combo("Posição vida##hp", &g_Config.ESP->HealthBarState, barPositions, IM_ARRAYSIZE(barPositions));
+                        }
 						Custom::CheckBox( xorstr( "Barra de colete" ), &g_Config.ESP->ArmorBar );
-                        if (g_Config.ESP->ArmorBar)
+                        if (g_Config.ESP->ArmorBar) {
                             ImGui::SliderInt("Espessura colete", &g_Config.ESP->ArmorBarWidth, 1, 6, "%d px");
+                            static const char* barPositions2[] = { "Esquerda", "Direita", "Cima", "Baixo" };
+                            ImGui::Combo("Posição colete##arm", &g_Config.ESP->ArmorBarState, barPositions2, IM_ARRAYSIZE(barPositions2));
+                        }
 						Custom::CheckBox( xorstr( "Linhas" ), &g_Config.ESP->SnapLines );
+                        if (g_Config.ESP->SnapLines) {
+                            static const char* snapFromOpts[] = { "De baixo", "De cima" };
+                            ImGui::Combo("Âncora das linhas", &g_Config.ESP->SnapLinesFrom, snapFromOpts, IM_ARRAYSIZE(snapFromOpts));
+                        }
 						Custom::CheckBox( xorstr( "Somente visíveis" ), &g_Config.ESP->HighlightVisible );
 						Custom::CheckBoxCfg( xorstr( "Marcar amigo" ), &g_Config.ESP->FriendsMarker, [ ]
 							{

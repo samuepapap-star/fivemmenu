@@ -115,6 +115,7 @@ namespace Core {
 			inline static ImVec2 WeaponNamePos;
 			inline static int WeaponNameState = 0;
 			inline static bool SnapLines;
+            inline static int SnapLinesFrom = 0; // 0=baixo, 1=cima
 			inline static bool UserNames;
 			inline static ImVec2 UserNamesPos;
 			inline static int UserNamesState = 0;
@@ -309,6 +310,7 @@ namespace Core {
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "WeaponName" ) ] = ESP->WeaponName;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "WeaponNameState" ) ] = ESP->WeaponNameState;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "SnapLines" ) ] = ESP->SnapLines;
+				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "SnapLinesFrom" ) ] = ESP->SnapLinesFrom;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "UserNames" ) ] = ESP->UserNames;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "UserNamesState" ) ] = ESP->UserNamesState;
 				FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HeadCircle" ) ] = ESP->HeadCircle;
@@ -474,6 +476,7 @@ namespace Core {
 				ESP->WeaponName = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "WeaponName" ) ];
 				ESP->WeaponNameState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "WeaponNameState" ) ];
 				ESP->SnapLines = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "SnapLines" ) ];
+                ESP->SnapLinesFrom = FeaturesCfg["ESP"].value("SnapLinesFrom", 0);
 				ESP->UserNames = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "UserNames" ) ];
 				ESP->UserNamesState = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "UserNamesState" ) ];
 				ESP->HeadCircle = FeaturesCfg[ xorstr( "ESP" ) ][ xorstr( "HeadCircle" ) ];
