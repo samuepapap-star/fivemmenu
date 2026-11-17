@@ -29,19 +29,35 @@ namespace Gui
 	// inclusive GetAsyncKeyState(key)&0x8000 nunca fica setado para teclas engolidas.
 	// Usamos uma flag atômica setada DENTRO do hook para sinalizar o toggle.
 	static std::atomic<bool> s_menuKeyTriggered { false };
+	static DWORD             s_hookThreadId     = 0; // TID da thread dedicada ao hook
 
 	static LRESULT CALLBACK LLKeyboardProc( int nCode, WPARAM wParam, LPARAM lParam ) {
 		if ( nCode >= 0 && ( wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN ) ) {
 			const KBDLLHOOKSTRUCT * kb = reinterpret_cast< KBDLLHOOKSTRUCT * >( lParam );
 			if ( static_cast< int >( kb->vkCode ) == s_menuVkCode ) {
-				// Sinaliza toggle antes de engolir, pois após retornar 1
-				// o kernel NÃO atualiza o key state table — GetAsyncKeyState
-				// nunca veria essa tecla. A flag é o único canal seguro.
 				s_menuKeyTriggered.store( true, std::memory_order_release );
 				return 1; // Engole: não passa pro GTA5
 			}
 		}
 		return CallNextHookEx( s_hKeyboardHook, nCode, wParam, lParam );
+	}
+
+	// Thread dedicada ao WH_KEYBOARD_LL.
+	// WH_KEYBOARD_LL callbacks são entregues na thread que instalou o hook,
+	// via mensagens do sistema. A thread precisa de um GetMessage blocking loop
+	// para processar essas notificações. Separar em thread dedicada garante
+	// que o hook nunca fica sem message pump, independente do render loop.
+	static DWORD WINAPI HookPumpThread( LPVOID ) {
+		s_hKeyboardHook = SetWindowsHookExW( WH_KEYBOARD_LL, LLKeyboardProc,
+		                                     GetModuleHandle( nullptr ), 0 );
+		MSG msg{};
+		// GetMessage bloqueia até chegar mensagem — processa callbacks do hook
+		while ( GetMessage( &msg, NULL, 0, 0 ) > 0 ) {
+			TranslateMessage( &msg );
+			DispatchMessage( &msg );
+		}
+		if ( s_hKeyboardHook ) { UnhookWindowsHookEx( s_hKeyboardHook ); s_hKeyboardHook = nullptr; }
+		return 0;
 	}
 
 	// Restaurar foco para o jogo de forma confiável cross-process via AttachThreadInput.
@@ -134,14 +150,15 @@ namespace Gui
 
 		std::thread( [ & ] ( ) { NotifyManager::Send( xorstr( "We are here!" ), 4000 ); } ).detach( );
 
-		// Instala hook de teclado low-level para engolir o INSERT (ou tecla customizada)
-		// ANTES de chegar no GTA5. Se GTA5 tem INSERT mapeado para algo (minimize,
-		// phone, pause), ele minimizaria independente do nosso foco. O hook previne isso.
+		// Inicia thread dedicada para WH_KEYBOARD_LL.
+		// A thread instala o hook e roda GetMessage blocking loop — garante
+		// que os callbacks do hook são processados mesmo que o render loop esteja ocupado.
 		{
 			const int customKey = g_Config.General->MenuKey;
 			s_menuVkCode = ( customKey > 0 && customKey < 255 ) ? customKey : VK_INSERT;
 		}
-		s_hKeyboardHook = SetWindowsHookExW( WH_KEYBOARD_LL, LLKeyboardProc, GetModuleHandle( nullptr ), 0 );
+		HANDLE hHookThread = CreateThread( nullptr, 0, HookPumpThread, nullptr, 0, &s_hookThreadId );
+		if ( hHookThread ) CloseHandle( hHookThread ); // não precisamos do handle
 
 		static RECT old_rc;
 		ZeroMemory( &Message, sizeof( MSG ) );
@@ -205,6 +222,7 @@ namespace Gui
             const bool keyToggle  = !editingShortcut && ( !( customKey > 0 && customKey < 255 ) && pEdge ) && gameHasFocus;
             if ( hookToggle || keyToggle ) {
                 g_MenuInfo.IsOpen = !g_MenuInfo.IsOpen;
+                std::thread( [ & ] ( ) { NotifyManager::Send( g_MenuInfo.IsOpen ? xorstr( "Menu aberto" ) : xorstr( "Menu fechado" ), 1500 ); } ).detach( );
                 // Ao fechar o menu, devolve o foco ao jogo se o overlay ficou em foreground.
                 // Não usa SetWindowLong — isso triggera DWM reactivation e minimiza o GTA5.
                 // Click-through é controlado por WM_NCHITTEST no WndProc.
@@ -256,7 +274,9 @@ namespace Gui
             }
 		}
 
-		if ( s_hKeyboardHook ) { UnhookWindowsHookEx( s_hKeyboardHook ); s_hKeyboardHook = nullptr; }
+		// Finaliza a thread do hook postando WM_QUIT na message queue dela.
+		// A thread desinstala o hook e termina sozinha no GetMessage loop.
+		if ( s_hookThreadId ) { PostThreadMessageW( s_hookThreadId, WM_QUIT, 0, 0 ); s_hookThreadId = 0; }
 
 		ImGui_ImplDX11_Shutdown( );
 		ImGui_ImplWin32_Shutdown( );
