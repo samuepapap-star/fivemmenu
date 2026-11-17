@@ -65,9 +65,12 @@ namespace Local {
 
                         if (Custom::Button("Restaurar vida e colete", ImVec2(-1, 33), 0)) {
                             auto ped = Core::SDK::Pointers::pLocalPlayer;
-                            const float maxHealth = ped ? ped->GetMaxHealth() : 0.f;
-                            if (ped && std::isfinite(maxHealth) && maxHealth > 100.f && maxHealth <= 10000.f) {
-                                ped->SetHealth(maxHealth);
+                            if (ped) {
+                                // Se m_MaxHealth retornar valor invalido (offset errado para build atual),
+                                // usa 200.f como fallback (valor padrao do jogador no GTA5).
+                                const float rawMax = ped->GetMaxHealth();
+                                const float hp = (std::isfinite(rawMax) && rawMax > 50.f && rawMax <= 10000.f) ? rawMax : 200.f;
+                                ped->SetHealth(hp);
                                 ped->SetArmor(100.f);
                             } else {
                                 NotifyManager::Send("Personagem indisponivel para restaurar vida e colete.", 4000);
