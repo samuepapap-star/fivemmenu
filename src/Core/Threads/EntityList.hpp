@@ -109,8 +109,12 @@ namespace Core
                                 Entity.NetworkInfo.UserName = "Jogador #" + std::to_string(Entity.Id);
                             }
 
-                            Entity.NetworkInfo.SteamId = NetworkInfo.SteamId;
+                            Entity.NetworkInfo.SteamId   = NetworkInfo.SteamId;
                             Entity.NetworkInfo.DiscordId = NetworkInfo.DiscordId;
+                            Entity.NetworkInfo.PlayTime  = NetworkInfo.PlayTime;
+                            Entity.NetworkInfo.VipName   = NetworkInfo.VipName;
+                            Entity.NetworkInfo.JobName   = NetworkInfo.JobName;
+                            Entity.NetworkInfo.IsAfk     = NetworkInfo.IsAfk;
 
                             if ( Index < Size )
                                 Core::SDK::Game::EntityList[ Index ] = Entity;

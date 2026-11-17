@@ -211,6 +211,39 @@ namespace Local {
                         } else {
                             ImGui::TextDisabled("Personagem indisponivel.");
                         }
+
+                        ImGui::Separator();
+                        ImGui::TextColored(ImVec4(0.6f,0.9f,1.f,1.f), "Spoof de dados de servidor");
+                        ImGui::Spacing();
+
+                        Custom::CheckBox("Ativar spoof", &g_Config.ServerSpoof->Enabled);
+                        if (g_Config.ServerSpoof->Enabled) {
+                            ImGui::Spacing();
+                            // VIP
+                            ImGui::Text("VIP Name:");
+                            ImGui::SetNextItemWidth(200.f);
+                            ImGui::InputText("##spoofvip", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
+                            ImGui::SameLine();
+                            if (ImGui::SmallButton("OURO"))   strncpy_s(g_Config.ServerSpoof->VipName, "VIP OURO",   63);
+                            ImGui::SameLine();
+                            if (ImGui::SmallButton("PRATA"))  strncpy_s(g_Config.ServerSpoof->VipName, "VIP PRATA",  63);
+                            ImGui::SameLine();
+                            if (ImGui::SmallButton("BRONZE")) strncpy_s(g_Config.ServerSpoof->VipName, "VIP BRONZE", 63);
+                            // Horas
+                            ImGui::Text("Horas jogadas:");
+                            ImGui::SetNextItemWidth(220.f);
+                            ImGui::SliderInt("##spoofhoras", &g_Config.ServerSpoof->PlayTime, 0, 9999, "%d h");
+                            // Job
+                            ImGui::Text("Job / Cargo:");
+                            ImGui::SetNextItemWidth(220.f);
+                            ImGui::InputText("##spoofjob", g_Config.ServerSpoof->JobName, sizeof(g_Config.ServerSpoof->JobName));
+                            // Novato
+                            ImGui::Spacing();
+                            Custom::CheckBox("Remover modo novato", &g_Config.ServerSpoof->RemoveNovato);
+                            ImGui::Spacing();
+                            ImGui::TextDisabled("Os dados acima sao exibidos");
+                            ImGui::TextDisabled("no seu ESP local.");
+                        }
 					}
 					ImGui::EndChild( );
 				}

@@ -46,6 +46,11 @@ namespace Core {
 				std::string UserName;
 				std::string DiscordId;
 				std::string SteamId;
+                // Dados do servidor
+                int         PlayTime  = -1;   // horas jogadas (-1 = não disponível)
+                std::string VipName;           // ex: "VIP OURO", "SEM VIP"
+                std::string JobName;           // cargo/gang/job
+                bool        IsAfk     = false;
 			};
 
 			struct EntityStruct {

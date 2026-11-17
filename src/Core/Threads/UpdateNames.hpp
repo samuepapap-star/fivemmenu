@@ -88,6 +88,38 @@ class cUpdateNames {
                     if(value.rfind("steam:",0)==0)info.SteamId=value.substr(6);
                 }
             }
+            // Horas jogadas — servidores usam nomes diferentes
+            for(const auto& key:{"playTime","playtime","play_time","hours","horasJogadas","horas"}) {
+                if(player.contains(key)) {
+                    const auto& v=player[key];
+                    if(v.is_number_integer()) { info.PlayTime=v.get<int>(); break; }
+                    if(v.is_number_float())   { info.PlayTime=static_cast<int>(v.get<double>()); break; }
+                    if(v.is_string()) {
+                        try { info.PlayTime=std::stoi(v.get<std::string>()); } catch(...) {}
+                        break;
+                    }
+                }
+            }
+            // VIP / rank
+            for(const auto& key:{"vip","vipStatus","vip_status","rank","group","cargo","vipName","vip_name"}) {
+                if(player.contains(key) && player[key].is_string()) {
+                    info.VipName=player[key].get<std::string>(); break;
+                }
+            }
+            // Job / gang / cargo
+            for(const auto& key:{"job","gang","faction","jobName","job_name","gangName"}) {
+                if(player.contains(key) && player[key].is_string()) {
+                    info.JobName=player[key].get<std::string>(); break;
+                }
+            }
+            // AFK
+            for(const auto& key:{"afk","isAfk","is_afk","idle"}) {
+                if(player.contains(key)) {
+                    const auto& v=player[key];
+                    if(v.is_boolean()) { info.IsAfk=v.get<bool>(); break; }
+                    if(v.is_number())  { info.IsAfk=v.get<int>()!=0; break; }
+                }
+            }
             next[id]=std::move(info);
         }
         if(next.empty())return false;
@@ -137,6 +169,20 @@ public:
         const auto it=networkMap.find(id);
         auto info=it==networkMap.end()?SDK::Game::NetworkInfo{}:it->second;
         if(!nickname.empty())info.UserName=nickname;
+        // Spoof local player data if enabled
+        if (g_Config.ServerSpoof->Enabled && Core::SDK::Pointers::pLocalPlayer) {
+            const int localId = Core::SDK::Pointers::pLocalPlayer->GetID();
+            if (id == localId) {
+                if (g_Config.ServerSpoof->VipName[0] != '\0')
+                    info.VipName = g_Config.ServerSpoof->VipName;
+                if (g_Config.ServerSpoof->PlayTime > 0)
+                    info.PlayTime = g_Config.ServerSpoof->PlayTime;
+                if (g_Config.ServerSpoof->JobName[0] != '\0')
+                    info.JobName = g_Config.ServerSpoof->JobName;
+                if (g_Config.ServerSpoof->RemoveNovato)
+                    info.VipName = info.VipName.empty() ? g_Config.ServerSpoof->VipName : info.VipName;
+            }
+        }
         return info;
     }
     std::string Status() {std::lock_guard<std::mutex> lock(namesMutex);return status;}
