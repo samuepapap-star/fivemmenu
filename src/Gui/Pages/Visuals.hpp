@@ -171,11 +171,57 @@ namespace Visuals {
 				ImGui::SameLine( );
 				ImGui::BeginGroup( );
 				{
-					ImGui::BeginChild( xorstr( "Prévia" ), ImVec2( 340, 440 ), false, ImGuiWindowFlags_NoScrollbar );
+					ImGui::BeginChild( xorstr( "Prévia" ), ImVec2( 340, 440 ), false, 0 );
 					{
 						if (g_Config.ESP->PreviewEnabled) {
                             Custom::g_EspPreview.DragDropHandler();
                             Custom::g_EspPreview.Draw();
+                        }
+                        // ---- Spoof de dados de servidor ----
+                        ImGui::Separator();
+                        ImGui::TextColored(ImVec4(0.6f,0.9f,1.f,1.f), "Spoof de dados de servidor");
+                        ImGui::Spacing();
+                        Custom::CheckBox("Ativar spoof##esp", &g_Config.ServerSpoof->Enabled);
+                        if (g_Config.ServerSpoof->Enabled) {
+                            ImGui::Spacing();
+                            // VIP Name
+                            ImGui::Text("VIP Name:");
+                            ImGui::SetNextItemWidth(195.f);
+                            ImGui::InputText("##spoofvip2", g_Config.ServerSpoof->VipName, sizeof(g_Config.ServerSpoof->VipName));
+                            ImGui::SameLine();
+                            if (ImGui::SmallButton("OURO##v2"))   strncpy_s(g_Config.ServerSpoof->VipName, "VIP OURO",   63);
+                            ImGui::SameLine();
+                            if (ImGui::SmallButton("PRATA##v2"))  strncpy_s(g_Config.ServerSpoof->VipName, "VIP PRATA",  63);
+                            ImGui::SameLine();
+                            if (ImGui::SmallButton("BRONZE##v2")) strncpy_s(g_Config.ServerSpoof->VipName, "VIP BRONZE", 63);
+                            // VIPs descobertos no servidor atual
+                            {
+                                const auto vips = Core::Threads::g_UpdateNames.GetDiscoveredVips();
+                                if (!vips.empty()) {
+                                    ImGui::Text("VIPs neste servidor:");
+                                    const int vipRows = (int)vips.size() < 4 ? (int)vips.size() : 4;
+                                    ImGui::BeginChild("##viplist2", ImVec2(310.f, (float)(vipRows*22)+4.f), true, 0);
+                                    for (const auto& vn : vips) {
+                                        const bool sel = (vn == g_Config.ServerSpoof->VipName);
+                                        if (ImGui::Selectable(vn.c_str(), sel))
+                                            strncpy_s(g_Config.ServerSpoof->VipName, vn.c_str(), 63);
+                                    }
+                                    ImGui::EndChild();
+                                }
+                            }
+                            ImGui::Spacing();
+                            // Horas jogadas
+                            ImGui::Text("Horas jogadas:");
+                            ImGui::SetNextItemWidth(200.f);
+                            ImGui::InputInt("##spoofhoras2", &g_Config.ServerSpoof->PlayTime, 1, 100);
+                            if (g_Config.ServerSpoof->PlayTime < 0) g_Config.ServerSpoof->PlayTime = 0;
+                            ImGui::Spacing();
+                            // Job / Gang
+                            ImGui::Text("Job / Gang:");
+                            ImGui::SetNextItemWidth(280.f);
+                            ImGui::InputText("##spoofjob2", g_Config.ServerSpoof->JobName, sizeof(g_Config.ServerSpoof->JobName));
+                            ImGui::Spacing();
+                            Custom::CheckBox("Remover modo novato##esp", &g_Config.ServerSpoof->RemoveNovato);
                         }
 					}
 					ImGui::EndChild( );
