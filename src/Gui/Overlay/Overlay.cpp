@@ -148,9 +148,14 @@ namespace Gui
 
 		while ( Message.message != WM_QUIT )
 		{
-			while ( PeekMessage( &Message, g_Variables.g_hCheatWindow, 0, 0, PM_REMOVE ) ) {
+			// hwnd=NULL: processa mensagens de janela E thread messages.
+			// WH_KEYBOARD_LL callbacks chegam como thread messages (hwnd=NULL) —
+			// filtrar por g_hCheatWindow bloqueia essas mensagens na queue
+			// e o LLKeyboardProc nunca é chamado de volta pela thread.
+			while ( PeekMessage( &Message, NULL, 0, 0, PM_REMOVE ) ) {
 				TranslateMessage( &Message );
 				DispatchMessage( &Message );
+				if ( Message.message == WM_QUIT ) break;
 			}
 
 			HWND ActiveWindow = GetForegroundWindow( );
