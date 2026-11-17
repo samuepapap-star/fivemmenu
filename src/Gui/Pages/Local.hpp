@@ -328,7 +328,7 @@ namespace Local {
                         }
 
                         // Continuous injection tick (every 1 s)
-                        if (npContinuous) {
+                        if (npContinuous && !npBusy) {
                             const float now = static_cast<float>(ImGui::GetTime());
                             if (now - npLastInject >= 1.0f) {
                                 BridgeFeatures::InjectStateBag(
@@ -339,7 +339,7 @@ namespace Local {
                                     std::string(g_Config.ServerSpoof->SocialClass)
                                 );
                                 npLastInject = now;
-                                npStatus = "Reinjetando...";
+                                npBusy       = true; // captura resposta da bridge
                             }
                         }
 
@@ -382,13 +382,18 @@ namespace Local {
                         }
                         ImGui::PopStyleColor(3);
 
-                        // ── Status line ──────────────────────────────────────
+                        // ── Status line (resposta real da bridge) ────────────
                         if (!npStatus.empty()) {
-                            const bool ok = (npStatus.find("Injetado") != std::string::npos ||
-                                             npStatus.find("Reinjetando") != std::string::npos);
-                            ImGui::PushStyleColor(ImGuiCol_Text, ok
-                                ? ImVec4(0.5f,1.0f,0.5f,1.f)
-                                : ImVec4(1.f,0.75f,0.3f,1.f));
+                            const bool ok  = npStatus.find("injetado") != std::string::npos
+                                          || npStatus.find("Nameplate") != std::string::npos
+                                          || npStatus.find("chaves")    != std::string::npos;
+                            const bool err = npStatus.find("invalido")  != std::string::npos
+                                          || npStatus.find("Nada")      != std::string::npos
+                                          || npStatus.find("erro")      != std::string::npos;
+                            ImGui::PushStyleColor(ImGuiCol_Text, err
+                                ? ImVec4(1.f,0.3f,0.3f,1.f)
+                                : ok ? ImVec4(0.4f,1.f,0.4f,1.f)
+                                     : ImVec4(1.f,0.85f,0.3f,1.f));
                             ImGui::TextWrapped("%s", npStatus.c_str());
                             ImGui::PopStyleColor();
                         }
