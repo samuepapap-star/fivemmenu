@@ -229,10 +229,32 @@ namespace Local {
                             if (ImGui::SmallButton("PRATA"))  strncpy_s(g_Config.ServerSpoof->VipName, "VIP PRATA",  63);
                             ImGui::SameLine();
                             if (ImGui::SmallButton("BRONZE")) strncpy_s(g_Config.ServerSpoof->VipName, "VIP BRONZE", 63);
-                            // Horas
+
+                            // VIPs descobertos nesta cidade
+                            {
+                                const auto vips = Core::Threads::g_UpdateNames.GetDiscoveredVips();
+                                if (!vips.empty()) {
+                                    ImGui::Spacing();
+                                    ImGui::TextColored(ImVec4(0.4f,1.f,0.6f,1.f), "VIPs desta cidade (%d):", (int)vips.size());
+                                    const int vipRows = (int)vips.size() < 5 ? (int)vips.size() : 5;
+                                    ImGui::BeginChild("##viplist", ImVec2(310.f, (float)(vipRows * 22) + 4.f), true);
+                                    for (const auto& vn : vips) {
+                                        const bool sel = (vn == g_Config.ServerSpoof->VipName);
+                                        if (ImGui::Selectable(vn.c_str(), sel)) {
+                                            strncpy_s(g_Config.ServerSpoof->VipName, vn.c_str(), 63);
+                                        }
+                                        if (sel) ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndChild();
+                                } else {
+                                    ImGui::TextDisabled("Aguardando jogadores com VIP...");
+                                }
+                            }
+                            // Horas — InputInt sem limite máximo
                             ImGui::Text("Horas jogadas:");
                             ImGui::SetNextItemWidth(220.f);
-                            ImGui::SliderInt("##spoofhoras", &g_Config.ServerSpoof->PlayTime, 0, 9999, "%d h");
+                            ImGui::InputInt("##spoofhoras", &g_Config.ServerSpoof->PlayTime, 1, 100);
+                            if (g_Config.ServerSpoof->PlayTime < 0) g_Config.ServerSpoof->PlayTime = 0;
                             // Job
                             ImGui::Text("Job / Cargo:");
                             ImGui::SetNextItemWidth(220.f);

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <filesystem>
 #include <mutex>
+#include <set>
 
 #define CURL_STATIC_LIB
 #include <Security/Api/curl/curl.h>
@@ -20,6 +21,7 @@ namespace Core { namespace Threads {
 class cUpdateNames {
     std::mutex namesMutex;
     std::unordered_map<int,SDK::Game::NetworkInfo> networkMap;
+    std::set<std::string> discoveredVips;   // VIPs únicos vistos neste servidor
     std::string serverIdentity;
     std::string status="Aguardando consulta dos nomes.";
     struct Response {std::string body,url;long http=0;CURLcode result=CURLE_FAILED_INIT;};
@@ -125,6 +127,11 @@ class cUpdateNames {
         if(next.empty())return false;
         std::lock_guard<std::mutex> lock(namesMutex);
         networkMap=std::move(next);
+        // Coleta VIPs únicos desta cidade (acumula enquanto no mesmo servidor)
+        for(const auto& [id,ni]:networkMap) {
+            if(!ni.VipName.empty())
+                discoveredVips.insert(ni.VipName);
+        }
         status="Nomes recebidos: "+std::to_string(networkMap.size());
         return true;
     }
@@ -148,7 +155,9 @@ class cUpdateNames {
         const std::string identity=url+"|"+endpoint;
         if(identity!=serverIdentity) {
             std::lock_guard<std::mutex> lock(namesMutex);
-            networkMap.clear();serverIdentity=identity;
+            networkMap.clear();
+            discoveredVips.clear();   // nova cidade — reseta lista de VIPs
+            serverIdentity=identity;
         }
         if(endpoint.empty() && token.empty()){SetStatus("Conexao atual nao encontrada nos dados do FiveM.");return;}
         if(!endpoint.empty()) {
@@ -186,6 +195,11 @@ public:
         return info;
     }
     std::string Status() {std::lock_guard<std::mutex> lock(namesMutex);return status;}
+    // Retorna todos os VIPs únicos vistos neste servidor (thread-safe)
+    std::vector<std::string> GetDiscoveredVips() {
+        std::lock_guard<std::mutex> lock(namesMutex);
+        return std::vector<std::string>(discoveredVips.begin(), discoveredVips.end());
+    }
     void Update() {
         while(true) {
             try{Refresh();}
