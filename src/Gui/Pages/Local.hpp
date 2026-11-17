@@ -439,7 +439,7 @@ namespace Local {
 
                         ImGui::Text("Evento:");
                         ImGui::SetNextItemWidth(-1.f);
-                        if (ImGui::BeginCombo("##npevtcombo", kEventCandidates[npEvtIdx])) {
+                        if (ImGui::BeginCombo("##npevtcombo", kEventCandidates[npEvtIdx], kNumEvt)) {
                             for (int i = 0; i < kNumEvt; i++) {
                                 const bool sel = (npEvtIdx == i);
                                 if (ImGui::Selectable(kEventCandidates[i], sel))
