@@ -89,13 +89,22 @@ namespace Gui
 
 			HWND ActiveWindow = GetForegroundWindow( );
 
-			const bool gameHasFocus = ( ActiveWindow == g_Variables.g_hGameWindow );
+			// Em fullscreen exclusivo GetForegroundWindow pode retornar handle DX interno
+			// do GTA5 (não "grcWindow"). Verificamos o PID para cobrir esse caso.
+			DWORD fgPid = 0, gamePid = 0;
+			if ( ActiveWindow ) GetWindowThreadProcessId( ActiveWindow, &fgPid );
+			if ( g_Variables.g_hGameWindow ) GetWindowThreadProcessId( g_Variables.g_hGameWindow, &gamePid );
+			const bool gameHasFocus =
+			    ActiveWindow == g_Variables.g_hGameWindow  ||
+			    ActiveWindow == g_Variables.g_hCheatWindow ||
+			    ( fgPid != 0 && gamePid != 0 && fgPid == gamePid );
+
 			const bool editingShortcut = MenuShortcut::Poll( g_Config.General->MenuKey, gameHasFocus );
 
 			if ( !editingShortcut && ( GetAsyncKeyState( g_Config.General->MenuKey ) & 1 ) ) {
 
 				if ( g_MenuInfo.IsOpen == false ) {
-					if ( ActiveWindow == g_Variables.g_hGameWindow ) {
+					if ( gameHasFocus ) {
 						g_MenuInfo.IsOpen = true;
 
 						SetWindowLong( g_Variables.g_hCheatWindow, GWL_EXSTYLE, WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE );
