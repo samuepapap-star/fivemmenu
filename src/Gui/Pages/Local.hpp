@@ -790,13 +790,29 @@ namespace Local {
 										uintptr_t CurrentAmmoAddr = Mem.Read<uintptr_t>( pAmmoCount + 0x0 ) + 0x18;
 										int CurrentAmmo = Mem.Read<int>( CurrentAmmoAddr );
 										Mem.Write( CurrentAmmoAddr, CurrentAmmo + Ammo );
+										// DEBUG: confirma o write
+										char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("Ammo: %d->%d"), CurrentAmmo, CurrentAmmo + Ammo);
+										std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 3000); }); t.detach();
+									}
+									else
+									{
+										// DEBUG: pAmmoCount = 0
+										char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG: pAmmoCount=0 AmmoInfo=0x%llX"), (unsigned long long)AmmoInfo);
+										std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
 									}
 								}
 								else
 								{
-									std::thread AmmoAlert( [ ] ( ) {  NotifyManager::Send( xorstr( "Equipe uma arma primeiro!" ), 4000 );  } );
-									AmmoAlert.detach( );
+									// DEBUG: AmmoInfo = 0 (mostra tambem o ptr do CWeapon)
+									char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG: AmmoInfo=0 CWeap=0x%llX"), (unsigned long long)(uintptr_t)pCWeaponInfo);
+									std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
 								}
+							}
+							else
+							{
+								// DEBUG: pCWeaponInfo = null
+								char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG: CWeap=null pMgr=0x%llX"), (unsigned long long)(uintptr_t)pWeapMgr);
+								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
 							}
 						}
 
@@ -817,13 +833,24 @@ namespace Local {
 									{
 										uintptr_t CurrentAmmoAddr200 = Mem.Read<uintptr_t>( pAmmoCount200 + 0x0 ) + 0x18;
 										Mem.Write( CurrentAmmoAddr200, 200 );
+										{ std::thread t([](){ NotifyManager::Send(xorstr("200 munições definidas!"), 2000); }); t.detach(); }
+									}
+									else
+									{
+										char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG: pAmmoCount200=0 AmmoInfo=0x%llX"), (unsigned long long)AmmoInfo200);
+										std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
 									}
 								}
 								else
 								{
-									std::thread AmmoAlert200( [ ] ( ) { NotifyManager::Send( xorstr( "Equipe uma arma primeiro!" ), 4000 ); } );
-									AmmoAlert200.detach( );
+									char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG200: AmmoInfo=0 CWeap=0x%llX"), (unsigned long long)(uintptr_t)pCWeaponInfo200);
+									std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
 								}
+							}
+							else
+							{
+								char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG200: CWeap=null Mgr=0x%llX"), (unsigned long long)(uintptr_t)pWeapMgr200);
+								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
 							}
 						}
 
