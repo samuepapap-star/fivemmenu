@@ -818,6 +818,16 @@ namespace Local {
 
 						if ( Custom::Button( xorstr( "Definir 200 munições" ), ImVec2( -1, 33 ), 0, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
+							// DBG D1: ped addr + offset em uso + leitura direta com 0x10B4 hardcoded
+							{
+								uintptr_t pedAddr = (uintptr_t)Core::SDK::Pointers::pLocalPlayer;
+								uintptr_t mgrDirect = pedAddr ? Mem.Read<uintptr_t>(pedAddr + 0x10B4) : 0;
+								char dbg[128];
+								snprintf(dbg, sizeof(dbg), xorstr("D1 ped=%llX off=%X mgr=%llX build=%u"),
+									(unsigned long long)pedAddr, (unsigned)g_Offsets.m_WeaponManager,
+									(unsigned long long)mgrDirect, (unsigned)g_Offsets.CurrentBuild);
+								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 7000); }); t.detach();
+							}
 							auto pWeapMgr200 = Core::SDK::Pointers::pLocalPlayer ? Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( ) : nullptr;
 							CWeaponInfo * pCWeaponInfo200 = pWeapMgr200 ? pWeapMgr200->GetWeaponInfo( ) : nullptr;
 							if ( pCWeaponInfo200 )
@@ -849,7 +859,8 @@ namespace Local {
 							}
 							else
 							{
-								char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG200: CWeap=null Mgr=0x%llX"), (unsigned long long)(uintptr_t)pWeapMgr200);
+								char dbg[80]; snprintf(dbg, sizeof(dbg), xorstr("D2 weap=null mgr=%llX build=%u"),
+									(unsigned long long)(uintptr_t)pWeapMgr200, (unsigned)g_Offsets.CurrentBuild);
 								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
 							}
 						}
