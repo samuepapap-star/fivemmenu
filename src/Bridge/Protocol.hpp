@@ -53,7 +53,9 @@ inline bool Valid(const Command& c){
  switch(c.action){
  case Action::Model:case Action::SpawnVehicle:return Text(c.text,sizeof(c.text),true);
  case Action::Animation:return Text(c.text,sizeof(c.text))&&Text(c.text2,sizeof(c.text2));
- case Action::CloneAppearance:case Action::ObservePlayer:case Action::TransferVehicles:return c.targetServerId>0&&c.targetServerId<=0x7fffffffULL;
+ // targetServerId now holds a GTA5 player slot index (0-255), not a FiveM server ID.
+ // Player slot 0 is valid — the old ">0" guard was for server IDs (which start at 1).
+ case Action::CloneAppearance:case Action::ObservePlayer:case Action::TransferVehicles:return c.targetServerId<=255;
  case Action::Restore:case Action::StopAnimation:case Action::StopAll:case Action::Connect:case Action::StartCamera:case Action::StopCamera:case Action::VehicleCatalog:case Action::RepairVehicle:case Action::DeleteClosestVehicle:case Action::TeleportWaypoint:return true;
  case Action::EnterDriver:return c.targetEntityAddress!=0&&c.flags==0;
  case Action::EjectSeat:return c.targetEntityAddress!=0&&c.flags<=1;
