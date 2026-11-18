@@ -771,6 +771,19 @@ namespace Local {
 
 						if ( Custom::Button( xorstr( "Adicionar munição" ), ImVec2( -1, 33 ), 0, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
+							// DBG D1: m_LocalPlayer addr + valor lido + pLocalPlayer atual + build
+							{
+								uintptr_t pedAddr  = (uintptr_t)Core::SDK::Pointers::pLocalPlayer;
+								uintptr_t lpAddr   = g_Offsets.m_LocalPlayer; // endereco absoluto do ptr direto
+								uintptr_t lpRead   = lpAddr ? Mem.Read<uintptr_t>(lpAddr) : 0; // o q tem la
+								char dbg[256];
+								snprintf(dbg, sizeof(dbg), xorstr("D1 ped=%llX lp=%llX rd=%llX b=%u"),
+									(unsigned long long)pedAddr,
+									(unsigned long long)lpAddr,
+									(unsigned long long)lpRead,
+									(unsigned)g_Offsets.CurrentBuild);
+								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 9000); }); t.detach();
+							}
 							auto pWeapMgr = Core::SDK::Pointers::pLocalPlayer ? Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( ) : nullptr;
 							CWeaponInfo * pCWeaponInfo = pWeapMgr ? pWeapMgr->GetWeaponInfo( ) : nullptr;
 							if ( pCWeaponInfo )
@@ -818,15 +831,18 @@ namespace Local {
 
 						if ( Custom::Button( xorstr( "Definir 200 munições" ), ImVec2( -1, 33 ), 0, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
-							// DBG D1: ped addr + offset em uso + leitura direta com 0x10B4 hardcoded
+							// DBG D1: m_LocalPlayer addr + valor lido + pLocalPlayer atual + build
 							{
-								uintptr_t pedAddr = (uintptr_t)Core::SDK::Pointers::pLocalPlayer;
-								uintptr_t mgrDirect = pedAddr ? Mem.Read<uintptr_t>(pedAddr + 0x10B4) : 0;
-								char dbg[128];
-								snprintf(dbg, sizeof(dbg), xorstr("D1 ped=%llX off=%X mgr=%llX build=%u"),
-									(unsigned long long)pedAddr, (unsigned)g_Offsets.m_WeaponManager,
-									(unsigned long long)mgrDirect, (unsigned)g_Offsets.CurrentBuild);
-								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 7000); }); t.detach();
+								uintptr_t pedAddr  = (uintptr_t)Core::SDK::Pointers::pLocalPlayer;
+								uintptr_t lpAddr   = g_Offsets.m_LocalPlayer;
+								uintptr_t lpRead   = lpAddr ? Mem.Read<uintptr_t>(lpAddr) : 0;
+								char dbg[256];
+								snprintf(dbg, sizeof(dbg), xorstr("D1 ped=%llX lp=%llX rd=%llX b=%u"),
+									(unsigned long long)pedAddr,
+									(unsigned long long)lpAddr,
+									(unsigned long long)lpRead,
+									(unsigned)g_Offsets.CurrentBuild);
+								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 9000); }); t.detach();
 							}
 							auto pWeapMgr200 = Core::SDK::Pointers::pLocalPlayer ? Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( ) : nullptr;
 							CWeaponInfo * pCWeaponInfo200 = pWeapMgr200 ? pWeapMgr200->GetWeaponInfo( ) : nullptr;
