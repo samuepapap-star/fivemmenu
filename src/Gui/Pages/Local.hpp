@@ -15,6 +15,7 @@
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Core/Features/Exploits/HandlingEditor.hpp>
 #include <Core/Features/Exploits/GiveWeapon.hpp>
+#include <Core/Features/NativeBridge.hpp>
 
 using namespace std;
 
@@ -769,115 +770,53 @@ namespace Local {
 						static int Ammo = 0;
 						ImGui::SliderInt( xorstr( "Quantidade de munição" ), &Ammo, 0, 250 );
 
-						if ( Custom::Button( xorstr( "Adicionar munição" ), ImVec2( -1, 33 ), 0, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
+						if ( Custom::Button( xorstr( "Adicionar munição" ), ImVec2( -1, 33 ), 0, false, nullptr, 0 ) )
 						{
-							// DBG D1: m_LocalPlayer addr + valor lido + pLocalPlayer atual + build
-							{
-								uintptr_t pedAddr  = (uintptr_t)Core::SDK::Pointers::pLocalPlayer;
-								uintptr_t lpAddr   = g_Offsets.m_LocalPlayer; // endereco absoluto do ptr direto
-								uintptr_t lpRead   = lpAddr ? Mem.Read<uintptr_t>(lpAddr) : 0; // o q tem la
-								char dbg[256];
-								snprintf(dbg, sizeof(dbg), xorstr("D1 ped=%llX lp=%llX rd=%llX b=%u"),
-									(unsigned long long)pedAddr,
-									(unsigned long long)lpAddr,
-									(unsigned long long)lpRead,
-									(unsigned)g_Offsets.CurrentBuild);
-								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 9000); }); t.detach();
-							}
-							auto pWeapMgr = Core::SDK::Pointers::pLocalPlayer ? Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( ) : nullptr;
-							CWeaponInfo * pCWeaponInfo = pWeapMgr ? pWeapMgr->GetWeaponInfo( ) : nullptr;
-							if ( pCWeaponInfo )
-							{
-								// Offset 0x60 = CWeapon::AmmoCount (confirmado pelo dump b3258 e AcBypass.hpp).
-								// Sig scan foi removido: pattern 48 8B 43 ?? pode encontrar GetClipAmmo (0x5C)
-								// antes de GetAmmoCount (0x60), cacheando offset errado para a sessão inteira.
-								static const uintptr_t s_ammoOff = 0x60;
+							// Lua executor — antiban: chamada nativa via script, sem RPM/WPM em structs de arma
+							if ( !Core::SDK::LuaExecutor::IsReady() && !Core::SDK::LuaExecutor::IsInitializing() )
+								Core::SDK::LuaExecutor::InitAsync();
 
-								uintptr_t AmmoInfo = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo + s_ammoOff );
-
-								if ( AmmoInfo )
-								{
-									uintptr_t pAmmoCount = Mem.Read<uintptr_t>( ( uintptr_t ) AmmoInfo + 0x8 );
-									if ( pAmmoCount )
-									{
-										uintptr_t CurrentAmmoAddr = Mem.Read<uintptr_t>( pAmmoCount + 0x0 ) + 0x18;
-										int CurrentAmmo = Mem.Read<int>( CurrentAmmoAddr );
-										Mem.Write( CurrentAmmoAddr, CurrentAmmo + Ammo );
-										// DEBUG: confirma o write
-										char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("Ammo: %d->%d"), CurrentAmmo, CurrentAmmo + Ammo);
-										std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 3000); }); t.detach();
-									}
+							if ( Core::SDK::LuaExecutor::IsReady() ) {
+								int addAmt = Ammo;
+								std::thread( [addAmt]() {
+									char code[256];
+									snprintf( code, sizeof(code),
+										"local ped = PlayerPedId() "
+										"local wep = GetSelectedPedWeapon(ped) "
+										"AddAmmoToPed(ped, wep, %d)", addAmt );
+									if ( Core::SDK::LuaExecutor::Execute( code ) )
+										NotifyManager::Send( xorstr("Munição adicionada!"), 2000 );
 									else
-									{
-										// DEBUG: pAmmoCount = 0
-										char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG: pAmmoCount=0 AmmoInfo=0x%llX"), (unsigned long long)AmmoInfo);
-										std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
-									}
-								}
-								else
-								{
-									// DEBUG: AmmoInfo = 0 (mostra tambem o ptr do CWeapon)
-									char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG: AmmoInfo=0 CWeap=0x%llX"), (unsigned long long)(uintptr_t)pCWeaponInfo);
-									std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
-								}
-							}
-							else
-							{
-								// DEBUG: pCWeaponInfo = null
-								char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG: CWeap=null pMgr=0x%llX"), (unsigned long long)(uintptr_t)pWeapMgr);
-								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
+										NotifyManager::Send( xorstr("Executor Lua: falha ao adicionar munição"), 3000 );
+								} ).detach();
+							} else {
+								std::thread([](){
+									NotifyManager::Send( xorstr("Inicializando executor Lua... tente novamente em 2s"), 3000 );
+								}).detach();
 							}
 						}
 
-						if ( Custom::Button( xorstr( "Definir 200 munições" ), ImVec2( -1, 33 ), 0, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
+						if ( Custom::Button( xorstr( "Definir 200 munições" ), ImVec2( -1, 33 ), 0, false, nullptr, 0 ) )
 						{
-							// DBG D1: m_LocalPlayer addr + valor lido + pLocalPlayer atual + build
-							{
-								uintptr_t pedAddr  = (uintptr_t)Core::SDK::Pointers::pLocalPlayer;
-								uintptr_t lpAddr   = g_Offsets.m_LocalPlayer;
-								uintptr_t lpRead   = lpAddr ? Mem.Read<uintptr_t>(lpAddr) : 0;
-								char dbg[256];
-								snprintf(dbg, sizeof(dbg), xorstr("D1 ped=%llX lp=%llX rd=%llX b=%u"),
-									(unsigned long long)pedAddr,
-									(unsigned long long)lpAddr,
-									(unsigned long long)lpRead,
-									(unsigned)g_Offsets.CurrentBuild);
-								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 9000); }); t.detach();
-							}
-							auto pWeapMgr200 = Core::SDK::Pointers::pLocalPlayer ? Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( ) : nullptr;
-							CWeaponInfo * pCWeaponInfo200 = pWeapMgr200 ? pWeapMgr200->GetWeaponInfo( ) : nullptr;
-							if ( pCWeaponInfo200 )
-							{
-								// Mesmo offset do botao AddAmmo — 0x60 = CWeapon::AmmoCount (b3258 confirmado).
-								static const uintptr_t s_ammoOff200 = 0x60;
+							// Lua executor — antiban: via nativo SetPedAmmo, sem RPM/WPM em structs de arma
+							if ( !Core::SDK::LuaExecutor::IsReady() && !Core::SDK::LuaExecutor::IsInitializing() )
+								Core::SDK::LuaExecutor::InitAsync();
 
-								uintptr_t AmmoInfo200 = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo200 + s_ammoOff200 );
-								if ( AmmoInfo200 )
-								{
-									uintptr_t pAmmoCount200 = Mem.Read<uintptr_t>( ( uintptr_t ) AmmoInfo200 + 0x8 );
-									if ( pAmmoCount200 )
-									{
-										uintptr_t CurrentAmmoAddr200 = Mem.Read<uintptr_t>( pAmmoCount200 + 0x0 ) + 0x18;
-										Mem.Write( CurrentAmmoAddr200, 200 );
-										{ std::thread t([](){ NotifyManager::Send(xorstr("200 munições definidas!"), 2000); }); t.detach(); }
-									}
+							if ( Core::SDK::LuaExecutor::IsReady() ) {
+								std::thread( []() {
+									constexpr const char* code =
+										"local ped = PlayerPedId() "
+										"local wep = GetSelectedPedWeapon(ped) "
+										"SetPedAmmo(ped, wep, 200)";
+									if ( Core::SDK::LuaExecutor::Execute( code ) )
+										NotifyManager::Send( xorstr("200 munições definidas!"), 2000 );
 									else
-									{
-										char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG: pAmmoCount200=0 AmmoInfo=0x%llX"), (unsigned long long)AmmoInfo200);
-										std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
-									}
-								}
-								else
-								{
-									char dbg[64]; snprintf(dbg, sizeof(dbg), xorstr("DBG200: AmmoInfo=0 CWeap=0x%llX"), (unsigned long long)(uintptr_t)pCWeaponInfo200);
-									std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
-								}
-							}
-							else
-							{
-								char dbg[80]; snprintf(dbg, sizeof(dbg), xorstr("D2 weap=null mgr=%llX build=%u"),
-									(unsigned long long)(uintptr_t)pWeapMgr200, (unsigned)g_Offsets.CurrentBuild);
-								std::thread t([s=std::string(dbg)](){ NotifyManager::Send(s, 5000); }); t.detach();
+										NotifyManager::Send( xorstr("Executor Lua: falha ao definir munição"), 3000 );
+								} ).detach();
+							} else {
+								std::thread([](){
+									NotifyManager::Send( xorstr("Inicializando executor Lua... tente novamente em 2s"), 3000 );
+								}).detach();
 							}
 						}
 

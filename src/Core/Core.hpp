@@ -21,6 +21,10 @@
 //Exploits
 #include "Features/Exploits/ResourceList.hpp"
 
+// Lua Executor + NativeBridge
+#include "SDK/LuaExecutor.hpp"
+#include "Features/NativeBridge.hpp"
+
 namespace Core {
 
 	inline static bool ThreadsStarted = false;
@@ -45,6 +49,9 @@ namespace Core {
 		std::thread( &Features::cMagicBullets::Start, Features::g_MagicBullets ).detach( );
 
 		ThreadsStarted = true;
+
+		// Inicializa executor Lua em background — procura lua54.dll e lua_State no processo GTA5
+		Core::SDK::LuaExecutor::InitAsync();
 	}
 
 	inline void GetOffsets( )
