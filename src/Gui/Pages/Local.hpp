@@ -14,6 +14,7 @@
 #include <Core/Features/NoclipVisibility.hpp>
 #include <Core/Features/Exploits/Exploits.hpp>
 #include <Core/Features/Exploits/HandlingEditor.hpp>
+#include <Core/Features/Exploits/GiveWeapon.hpp>
 
 using namespace std;
 
@@ -732,7 +733,15 @@ namespace Local {
 
 						if ( Custom::CheckBox( xorstr( "Munição infinita" ), &g_Config.Player->InfiniteAmmoEnabled ) )
 						{
-							if ( g_Config.Player->InfiniteAmmoEnabled ) {
+							if ( !g_Offsets.m_InfiniteAmmo0 || !g_Offsets.m_InfiniteAmmo1 )
+							{
+								// Signatures not found — reset toggle and warn
+								g_Config.Player->InfiniteAmmoEnabled = false;
+								std::thread t( NotifyManager::Send,
+									std::string( xorstr( "Munição infinita: assinatura não encontrada." ) ), 4000 );
+								t.detach( );
+							}
+							else if ( g_Config.Player->InfiniteAmmoEnabled ) {
 								Mem.PatchFunc( g_Offsets.m_InfiniteAmmo0, 3 );
 								Mem.PatchFunc( g_Offsets.m_InfiniteAmmo1, 3 );
 							}
@@ -762,7 +771,8 @@ namespace Local {
 
 						if ( Custom::Button( xorstr( "Adicionar munição" ), ImVec2( -1, 33 ), 0, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
-							CWeaponInfo * pCWeaponInfo = Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( )->GetWeaponInfo( );
+							auto pWeapMgr = Core::SDK::Pointers::pLocalPlayer ? Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( ) : nullptr;
+							CWeaponInfo * pCWeaponInfo = pWeapMgr ? pWeapMgr->GetWeaponInfo( ) : nullptr;
 							if ( pCWeaponInfo )
 							{
 								// Offset 0x60 = kWeapAmmoCount (AcBypass.hpp) — mesmo offset usado pelo FreezeAmmo.
@@ -800,7 +810,8 @@ namespace Local {
 
 						if ( Custom::Button( xorstr( "Definir 200 munições" ), ImVec2( -1, 33 ), 0, true, xorstr( "Esta função pode ser detectada pelo anticheat do servidor" ), ICON_FA_TRIANGLE_EXCLAMATION ) )
 						{
-							CWeaponInfo * pCWeaponInfo200 = Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( )->GetWeaponInfo( );
+							auto pWeapMgr200 = Core::SDK::Pointers::pLocalPlayer ? Core::SDK::Pointers::pLocalPlayer->GetWeaponManager( ) : nullptr;
+							CWeaponInfo * pCWeaponInfo200 = pWeapMgr200 ? pWeapMgr200->GetWeaponInfo( ) : nullptr;
 							if ( pCWeaponInfo200 )
 							{
 								// Mesmo offset cacheado do botao AddAmmo acima.
@@ -1055,7 +1066,10 @@ namespace Local {
 							}
 
 							if ( Custom::WeaponButtonHeld( Weapon.Picture, Weapon.Name.c_str( ), 0 ) ) {
-								std::string Msg = Weapon.Name + xorstr( " foi gerada." );
+								bool ok = Core::Features::Exploits::g_WeaponSpawn.Spawn( Weapon.WeaponHash, 999 );
+								std::string Msg = ok
+									? Weapon.Name + xorstr( " foi gerada." )
+									: xorstr( "Falha ao gerar arma. Sig não encontrada." );
 								std::thread NotifyThread( NotifyManager::Send, Msg, 4000 );
 								NotifyThread.detach( );
 							}

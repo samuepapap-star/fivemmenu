@@ -141,11 +141,19 @@ inline const char* EjectFromVehicle(uintptr_t target){
 inline const char* PullPlayer(uintptr_t target){
  auto p=Player();if(!p||target==(uintptr_t)p)return "Alvo indisponivel";
  bool listed=false;{for(const auto&e:SDK::Game::SnapshotEntities())if((uintptr_t)e.Ped==target&&e.PedType==2){listed=true;break;}}
- auto pos=p->GetPos();D3DXVECTOR3 forward;
- if(!listed||!Sane(pos)||!Read((uintptr_t)p+0x70,forward)||!Sane(forward))return "Alvo ou posicao indisponivel";
- forward.z=0;float length=std::hypot(forward.x,forward.y);if(length<0.1f||length>2.f)return "Direcao indisponivel";forward*=1.f/length;
- auto reader=[](uintptr_t a,auto&v){return Read(a,v);};auto writer=[](uintptr_t a,const auto&v){return Write(a,v);};
- return XrcVehiclePull::Apply(target,(uintptr_t)p,pos+forward*3.f,reader,writer,[](){std::this_thread::sleep_for(std::chrono::milliseconds(40));})?"Posicao do jogador atualizada localmente":"Falha ao puxar jogador";
+ if(!listed)return "Alvo indisponivel";
+ auto pos=p->GetPos();D3DXVECTOR3 forward{};
+ if(!Sane(pos)||!Read((uintptr_t)p+0x70,forward)||!Sane(forward))return "Posicao indisponivel";
+ forward.z=0;float length=std::hypot(forward.x,forward.y);
+ if(length<0.1f||length>2.f)return "Direcao indisponivel";
+ forward*=1.f/length;
+ D3DXVECTOR3 dest=pos+forward*3.f;
+ // Direct ped teleport — write visual pos (+0x90), nav pos (+0x30 → +0x50), zero velocity (+0x320)
+ uintptr_t nav=0;Read(target+0x30,nav);
+ bool moved=Write(target+0x90,dest);
+ if(nav>0x10000)moved=Write(nav+0x50,dest)&&moved;
+ D3DXVECTOR3 zero{0,0,0};Write(target+0x320,zero);
+ return moved?"Jogador puxado localmente":"Falha ao puxar jogador";
 }
 inline void SetMaximumHealth(float maximum){auto p=Player();if(p&&g_Offsets.m_MaxHealth&&std::isfinite(maximum)&&maximum>=100.f&&maximum<=1000.f){float current=0;if(Read((uintptr_t)p+g_Offsets.m_MaxHealth,current)&&std::isfinite(current)&&current>=100.f&&current<=10000.f){if(Write((uintptr_t)p+g_Offsets.m_MaxHealth,maximum)){if(p->GetHealth()>maximum)p->SetHealth(maximum);status="Vida maxima atualizada localmente";return;}}}status="Falha ao alterar vida maxima";}
 inline void SetDoors(bool unlock,bool closest){
