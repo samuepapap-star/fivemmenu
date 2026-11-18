@@ -42,8 +42,10 @@ class Actions {
  std::uint64_t Call(std::uint64_t hash,std::initializer_list<std::uint64_t> args={}){return api.Call(hash,std::vector<std::uint64_t>(args));}
  bool Exists(int entity){return entity>0&&Call(N::EntityExists,{static_cast<std::uint64_t>(entity)})!=0;}
  void Delete(int& entity){if(Exists(entity))Call(N::DeleteEntity,{reinterpret_cast<std::uint64_t>(&entity)});entity=0;}
- int Target(std::uint64_t serverId){
-  const int index=static_cast<int>(Call(Hash("GET_PLAYER_FROM_SERVER_ID"),{serverId}));
+ int Target(std::uint64_t playerIndex){
+  // playerIndex is the GTA5 player slot (0-255) read from m_PlayerId in the external menu.
+  // GET_PLAYER_FROM_SERVER_ID expects a FiveM server ID which is different — skip it.
+  const int index=static_cast<int>(playerIndex);
   if(index<0||index>255||!Call(N::PlayerActive,{static_cast<std::uint64_t>(index)}))return 0;
   const int ped=static_cast<int>(Call(N::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
   return Exists(ped)?ped:0;

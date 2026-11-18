@@ -21,7 +21,8 @@ class NativeVehicleTransfer {
  std::uint64_t Call(std::uint64_t h,std::initializer_list<std::uint64_t> a={}){return api.Call(h,std::vector<std::uint64_t>(a));}
  Vec Position(int entity){return api.Vector(TransferN::GetEntityCoords,{static_cast<std::uint64_t>(entity),0});}
  int Player(){
-  int index=static_cast<int>(Call(Hash("GET_PLAYER_FROM_SERVER_ID"),{command.targetServerId}));
+  // targetServerId holds the GTA5 player slot (0-255) read from m_PlayerId in the external menu.
+  int index=static_cast<int>(command.targetServerId);
   if(index<0||index>255||!Call(TransferN::PlayerActive,{static_cast<std::uint64_t>(index)}))return 0;
   int ped=static_cast<int>(Call(TransferN::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
   return ped>0&&Call(TransferN::EntityExists,{static_cast<std::uint64_t>(ped)})?ped:0;

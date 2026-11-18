@@ -42,8 +42,9 @@ class NativeCamera {
  int observedPed=0;std::uint64_t observedId=0;
  std::uint64_t Call(std::uint64_t hash,std::initializer_list<std::uint64_t> values={}){return api.Call(hash,std::vector<std::uint64_t>(values));}
  void Focus(){Call(CameraN::SetFocusPosAndVel,{Float(pose.position.x),Float(pose.position.y),Float(pose.position.z),Float(0),Float(0),Float(0)});}
- int FindPlayer(std::uint64_t serverId){
-  int index=static_cast<int>(Call(Hash("GET_PLAYER_FROM_SERVER_ID"),{serverId}));
+ int FindPlayer(std::uint64_t playerIndex){
+  // playerIndex is the GTA5 player slot (0-255) read from m_PlayerId in the external menu.
+  int index=static_cast<int>(playerIndex);
   if(index<0||index>255||!Call(CameraN::PlayerActive,{static_cast<std::uint64_t>(index)}))return 0;
   int target=static_cast<int>(Call(CameraN::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
   return target>0&&Call(CameraN::EntityExists,{static_cast<std::uint64_t>(target)})?target:0;
