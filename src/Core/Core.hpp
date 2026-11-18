@@ -228,6 +228,9 @@ namespace Core {
 			g_Offsets.m_WeaponManager    = 0x10B4;  // dump: CPed::WeaponManager=0x10B4
 			g_Offsets.m_PlayerInfo       = 0x28C;   // dump: CPed::PlayerInfo=0x28C (era 0x10A8)
 			g_Offsets.m_LastVehicle      = 0xD04;   // dump: CPed::CurrentVehicle=0xD04 (era 0xD10)
+			// dump: local_player_ptr=0x17FB870 — ponteiro DIRETO pro CPed, nao via CPedFactory+0x8
+			// CPedFactory+0x8 esta errado pra b3258; UpdatePointers usa m_LocalPlayer quando != 0
+			g_Offsets.m_LocalPlayer      = Mem.ModBase + 0x17FB870;
 
 			// Nao confirmados pelo dump — mantendo valores anteriores
 			g_Offsets.m_EntityType       = 0x1098;

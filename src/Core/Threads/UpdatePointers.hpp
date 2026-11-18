@@ -24,7 +24,11 @@ namespace Core
                      //   continue;
 
                     Core::SDK::Pointers::pWorld = Mem.Read<CPedFactory *>( g_Offsets.m_World );
-                    Core::SDK::Pointers::pLocalPlayer = Core::SDK::Pointers::pWorld ? Core::SDK::Pointers::pWorld->GetLocalPlayer() : nullptr;
+                    // b3258: CPedFactory+0x8 nao tem mais o local player; usar ponteiro direto do dump
+                    if ( g_Offsets.m_LocalPlayer )
+                        Core::SDK::Pointers::pLocalPlayer = Mem.Read<CPed *>( g_Offsets.m_LocalPlayer );
+                    else
+                        Core::SDK::Pointers::pLocalPlayer = Core::SDK::Pointers::pWorld ? Core::SDK::Pointers::pWorld->GetLocalPlayer() : nullptr;
                     Core::SDK::Pointers::pReplayInterFace = Mem.Read<CReplayInterFace *>( g_Offsets.m_ReplayInterFace );
                     Core::SDK::Pointers::pViewPort = Mem.Read<uintptr_t>( g_Offsets.m_ViewPort );
                     Core::SDK::Pointers::pCamGamePlayDirector = Mem.Read<uintptr_t>( g_Offsets.m_CamGameplayDirector );
