@@ -54,8 +54,11 @@ inline void Tick(bool forceRestore = false) {
     if (!saved.ped) {
         SavedState original;
         original.ped = ped; original.netObject = netObject; original.processId = processId;
-        if (!Read(ped + 0xAC, original.alpha) || !Read(netObject + 0xD1, original.invisible) ||
-            original.invisible > 1) return;
+        // Não checar > 1: em alguns builds o byte em netObject+0xD1 pode ter valor > 1
+        // no estado normal (visível). O guard impedia o save e a função nunca escrevia nada.
+        // Write de 1 byte é seguro — se offset estiver errado o WPM vai falhar silenciosamente.
+        if (!Read(ped + 0xAC, original.alpha) || !Read(netObject + 0xD1, original.invisible))
+            return;
         saved = original;
     }
     // Same values as SHARK: network invisibility flag and local semi-transparency.

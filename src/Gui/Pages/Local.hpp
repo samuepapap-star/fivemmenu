@@ -775,18 +775,10 @@ namespace Local {
 							CWeaponInfo * pCWeaponInfo = pWeapMgr ? pWeapMgr->GetWeaponInfo( ) : nullptr;
 							if ( pCWeaponInfo )
 							{
-								// Offset 0x60 = kWeapAmmoCount (AcBypass.hpp) — mesmo offset usado pelo FreezeAmmo.
-								// FindSignature era usado para descobrir esse byte dinamicamente, mas falha em
-								// builds novos. 0x60 e o valor correto para todos os builds suportados.
-								// Fallback: se sig scan achar offset diferente de 0, usa ele; senao usa 0x60.
-								static uintptr_t s_ammoOff = 0;
-								if (!s_ammoOff) {
-									uintptr_t lixo = Mem.FindSignature(
-										{ 0x48, 0x8b, 0x43, 0x00, 0x48, 0x83, 0xc4, 0x00, 0x5b, 0xc3, 0xcc, 0x40, 0x53 }
-									);
-									BYTE sigByte = lixo ? Mem.Read<BYTE>( lixo + 3 ) : 0;
-									s_ammoOff = (sigByte >= 0x40 && sigByte <= 0xA0) ? sigByte : 0x60;
-								}
+								// Offset 0x60 = CWeapon::AmmoCount (confirmado pelo dump b3258 e AcBypass.hpp).
+								// Sig scan foi removido: pattern 48 8B 43 ?? pode encontrar GetClipAmmo (0x5C)
+								// antes de GetAmmoCount (0x60), cacheando offset errado para a sessão inteira.
+								static const uintptr_t s_ammoOff = 0x60;
 
 								uintptr_t AmmoInfo = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo + s_ammoOff );
 
@@ -814,15 +806,8 @@ namespace Local {
 							CWeaponInfo * pCWeaponInfo200 = pWeapMgr200 ? pWeapMgr200->GetWeaponInfo( ) : nullptr;
 							if ( pCWeaponInfo200 )
 							{
-								// Mesmo offset cacheado do botao AddAmmo acima.
-								static uintptr_t s_ammoOff200 = 0;
-								if (!s_ammoOff200) {
-									uintptr_t lixo200 = Mem.FindSignature(
-										{ 0x48, 0x8b, 0x43, 0x00, 0x48, 0x83, 0xc4, 0x00, 0x5b, 0xc3, 0xcc, 0x40, 0x53 }
-									);
-									BYTE sigByte200 = lixo200 ? Mem.Read<BYTE>( lixo200 + 3 ) : 0;
-									s_ammoOff200 = (sigByte200 >= 0x40 && sigByte200 <= 0xA0) ? sigByte200 : 0x60;
-								}
+								// Mesmo offset do botao AddAmmo — 0x60 = CWeapon::AmmoCount (b3258 confirmado).
+								static const uintptr_t s_ammoOff200 = 0x60;
 
 								uintptr_t AmmoInfo200 = Mem.Read<uintptr_t>( ( uintptr_t ) pCWeaponInfo200 + s_ammoOff200 );
 								if ( AmmoInfo200 )
