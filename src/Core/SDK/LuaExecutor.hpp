@@ -1,4 +1,8 @@
 #pragma once
+// Prevent Windows.h min/max macros from colliding with std::min/std::max
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <Includes/Includes.hpp>
 #include <Core/SDK/Memory.hpp>
 #include <vector>
@@ -303,7 +307,7 @@ inline uintptr_t LuaExecutor::GetExport( ModInfo mod, const char* name )
         char exportName[128] = {};
         SIZE_T r = 0;
         ReadProcessMemory( Mem.ProcHandle, (LPCVOID)(mod.base + nameRVAs[i]),
-                           exportName, std::min( (size_t)127u, targetLen + 1 ), &r );
+                           exportName, (std::min)( (size_t)127u, targetLen + 1 ), &r );
         exportName[127] = 0;
         if ( strcmp( exportName, name ) == 0 && ords[i] < numFuncs )
             return mod.base + funcRVAs[ ords[i] ];
@@ -346,12 +350,12 @@ inline std::vector<uintptr_t> LuaExecutor::ScanLuaStates()
                    && ( mbi.RegionSize >= 256 );
 
         if ( isHeap ) {
-            const size_t scanLimit = std::min( mbi.RegionSize, MAX_REGION );
+            const size_t scanLimit = (std::min)( mbi.RegionSize, MAX_REGION );
             buf.resize( CHUNK );
 
             for ( size_t off = 0; off + 64 <= scanLimit && results.size() < 20; off += CHUNK )
             {
-                size_t readSize = std::min( CHUNK, scanLimit - off );
+                size_t readSize = (std::min)( CHUNK, scanLimit - off );
                 SIZE_T nRead = 0;
                 if ( !ReadProcessMemory( Mem.ProcHandle, (LPCVOID)( addr + off ),
                                          buf.data(), readSize, &nRead ) )
