@@ -45,7 +45,7 @@ struct FakeTransfer:NativeApi {
  }
 };
 Frame FrameAt(std::uint64_t now){Frame f{};f.valid=1;f.heartbeat=now;f.forward={0,1,0};return f;}
-Command Request(bool rain=true){Command c{};c.id=1;c.action=Action::TransferVehicles;c.targetServerId=5137;c.flags=rain?1u:0u;return c;}
+Command Request(bool rain=true){Command c{};c.id=1;c.action=Action::TransferVehicles;c.targetServerId=1;c.flags=rain?1u:0u;return c;}
 int main(){
  static_assert(alignof(RageContext)==16&&offsetof(RageContext,vectorSpace)==32,"CFX scrThread.h context alignment");
  {std::array<std::uint64_t,4> result{Float(1.25f),Float(-3.5f),Float(9.f),0};auto v=DecodeNativeVector(result);assert(v.x==1.25f&&v.y==-3.5f&&v.z==9.f);}

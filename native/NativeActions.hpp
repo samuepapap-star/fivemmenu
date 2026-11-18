@@ -4,6 +4,7 @@
 #include <initializer_list>
 #include <stdexcept>
 #include <algorithm>
+#include <cstring>
 #include "NativeApi.hpp"
 #include "NativeVehicleSeats.hpp"
 
@@ -43,12 +44,30 @@ class Actions {
  bool Exists(int entity){return entity>0&&Call(N::EntityExists,{static_cast<std::uint64_t>(entity)})!=0;}
  void Delete(int& entity){if(Exists(entity))Call(N::DeleteEntity,{reinterpret_cast<std::uint64_t>(&entity)});entity=0;}
  int Target(std::uint64_t playerIndex){
-  // playerIndex is the GTA5 player slot (0-255) read from m_PlayerId in the external menu.
-  // GET_PLAYER_FROM_SERVER_ID expects a FiveM server ID which is different — skip it.
+  // Try direct player slot lookup first (fast path).
   const int index=static_cast<int>(playerIndex);
-  if(index<0||index>255||!Call(N::PlayerActive,{static_cast<std::uint64_t>(index)}))return 0;
-  const int ped=static_cast<int>(Call(N::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
-  return Exists(ped)?ped:0;
+  if(index>=0&&index<=255&&Call(N::PlayerActive,{static_cast<std::uint64_t>(index)})){
+   const int ped=static_cast<int>(Call(N::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
+   if(Exists(ped))return ped;
+  }
+  // m_PlayerId offset may be wrong for this build (all players read as slot 0).
+  // Fall back: external menu packed target x,y into targetEntityAddress as two float32s.
+  if(command.targetEntityAddress){
+   std::uint32_t xi=static_cast<std::uint32_t>(command.targetEntityAddress&0xFFFFFFFFULL);
+   std::uint32_t yi=static_cast<std::uint32_t>(command.targetEntityAddress>>32);
+   float tx=0,ty=0;std::memcpy(&tx,&xi,4);std::memcpy(&ty,&yi,4);
+   if(std::isfinite(tx)&&std::isfinite(ty)&&(tx!=0.f||ty!=0.f)){
+    for(int i=0;i<256;i++){
+     if(!Call(N::PlayerActive,{static_cast<std::uint64_t>(i)}))continue;
+     const int p=static_cast<int>(Call(N::PlayerPedByIndex,{static_cast<std::uint64_t>(i)}));
+     if(!Exists(p))continue;
+     const Vec pos=api.Vector(N::EntityCoords,{static_cast<std::uint64_t>(p),0});
+     const float dx=pos.x-tx,dy=pos.y-ty;
+     if(std::isfinite(pos.x)&&std::isfinite(pos.y)&&dx*dx+dy*dy<9.f)return p;// within 3 m
+    }
+   }
+  }
+  return 0;
  }
  void EnsureBackup(int ped){
   if(Exists(backup))return;

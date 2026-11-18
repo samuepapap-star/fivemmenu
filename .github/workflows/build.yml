@@ -132,7 +132,7 @@ jobs:
           @{
             commit = "${{ github.sha }}"
             run = "${{ github.run_id }}"
-            bridge_protocol = 7
+            bridge_protocol = 9
             bridge_builds = @(3258, 3889)
             in_game_validation = "pending"
             sha256 = $hashes

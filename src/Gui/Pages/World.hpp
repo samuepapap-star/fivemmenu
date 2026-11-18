@@ -164,16 +164,16 @@ namespace World {
                             }
                             if(actionMode==2&&Custom::Button("Puxar jogador",ImVec2(-1,30),0))NotifyManager::Send(Core::Features::Extras::PullPlayer(reinterpret_cast<uintptr_t>(SelectedPed.Ped)),4000);
                             if(actionMode==2&&Custom::Button("Observar jogador",ImVec2(-1,30),0))
-                                BridgeFeatures::Observe(SelectedPed.Id);
+                                BridgeFeatures::Observe(SelectedPed.Id,SelectedPed.Pos.x,SelectedPed.Pos.y);
                             if(actionMode==2&&Custom::Button("Clonar aparencia",ImVec2(-1,30),0))
-                                BridgeFeatures::Clone(SelectedPed.Id);
+                                BridgeFeatures::Clone(SelectedPed.Id,SelectedPed.Pos.x,SelectedPed.Pos.y);
                             if(actionMode==2&&MenuBridge::Connection().CameraState()==2&&Custom::Button("Parar observacao",ImVec2(-1,30),0))
                                 BridgeFeatures::ToggleCamera();
                             if(actionMode==2)BridgeFeatures::Status();
                             if(actionMode==1&&Custom::Button("Chuva de carros",ImVec2(-1,30),0))
-                                BridgeFeatures::TransferVehicles(SelectedPed.Id,true);
+                                BridgeFeatures::TransferVehicles(SelectedPed.Id,true,SelectedPed.Pos.x,SelectedPed.Pos.y);
                             if(actionMode==1&&Custom::Button("Enviar veiculos ao jogador",ImVec2(-1,30),0))
-                                BridgeFeatures::TransferVehicles(SelectedPed.Id,false);
+                                BridgeFeatures::TransferVehicles(SelectedPed.Id,false,SelectedPed.Pos.x,SelectedPed.Pos.y);
                             if(actionMode==1){
                                 ImGui::TextWrapped("Usa ate 10 veiculos vazios proximos que a sessao permite controlar.");
                                 BridgeFeatures::Status();

@@ -1,6 +1,7 @@
 #pragma once
 #include "NativeApi.hpp"
 #include <cmath>
+#include <cstring>
 #include <initializer_list>
 namespace MenuBridge {
 namespace TransferN {
@@ -21,11 +22,29 @@ class NativeVehicleTransfer {
  std::uint64_t Call(std::uint64_t h,std::initializer_list<std::uint64_t> a={}){return api.Call(h,std::vector<std::uint64_t>(a));}
  Vec Position(int entity){return api.Vector(TransferN::GetEntityCoords,{static_cast<std::uint64_t>(entity),0});}
  int Player(){
-  // targetServerId holds the GTA5 player slot (0-255) read from m_PlayerId in the external menu.
-  int index=static_cast<int>(command.targetServerId);
-  if(index<0||index>255||!Call(TransferN::PlayerActive,{static_cast<std::uint64_t>(index)}))return 0;
-  int ped=static_cast<int>(Call(TransferN::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
-  return ped>0&&Call(TransferN::EntityExists,{static_cast<std::uint64_t>(ped)})?ped:0;
+  // Try direct player slot lookup first (fast path).
+  const int index=static_cast<int>(command.targetServerId);
+  if(index>=0&&index<=255&&Call(TransferN::PlayerActive,{static_cast<std::uint64_t>(index)})){
+   const int ped=static_cast<int>(Call(TransferN::PlayerPedByIndex,{static_cast<std::uint64_t>(index)}));
+   if(ped>0&&Call(TransferN::EntityExists,{static_cast<std::uint64_t>(ped)}))return ped;
+  }
+  // m_PlayerId offset may be wrong for this build — fall back to position scan.
+  if(command.targetEntityAddress){
+   std::uint32_t xi=static_cast<std::uint32_t>(command.targetEntityAddress&0xFFFFFFFFULL);
+   std::uint32_t yi=static_cast<std::uint32_t>(command.targetEntityAddress>>32);
+   float tx=0,ty=0;std::memcpy(&tx,&xi,4);std::memcpy(&ty,&yi,4);
+   if(std::isfinite(tx)&&std::isfinite(ty)&&(tx!=0.f||ty!=0.f)){
+    for(int i=0;i<256;i++){
+     if(!Call(TransferN::PlayerActive,{static_cast<std::uint64_t>(i)}))continue;
+     const int p=static_cast<int>(Call(TransferN::PlayerPedByIndex,{static_cast<std::uint64_t>(i)}));
+     if(p<=0||!Call(TransferN::EntityExists,{static_cast<std::uint64_t>(p)}))continue;
+     const Vec pos=api.Vector(TransferN::GetEntityCoords,{static_cast<std::uint64_t>(p),0});
+     const float dx=pos.x-tx,dy=pos.y-ty;
+     if(std::isfinite(pos.x)&&std::isfinite(pos.y)&&dx*dx+dy*dy<9.f)return p;// within 3 m
+    }
+   }
+  }
+  return 0;
  }
  static float Distance2(Vec a,Vec b){float x=a.x-b.x,y=a.y-b.y,z=a.z-b.z;return x*x+y*y+z*z;}
  void Finish(bool ok,const std::string& text){

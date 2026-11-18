@@ -37,9 +37,11 @@ inline bool Submit(MenuBridge::Command command,bool modelChange=false){
 }
 inline void Model(const char* model){MenuBridge::Command c{};c.action=MenuBridge::Action::Model;MenuBridge::Copy(c.text,sizeof(c.text),model);Submit(c,true);}
 inline void Restore(){MenuBridge::Command c{};c.action=MenuBridge::Action::Restore;Submit(c,true);}
-inline void Clone(int serverId){MenuBridge::Command c{};c.action=MenuBridge::Action::CloneAppearance;c.targetServerId=static_cast<std::uint64_t>(serverId);Submit(c,true);}
+// PackPos: pack x,y into uint64 so DLL can position-scan when player index is unreliable.
+inline std::uint64_t PackPos(float x,float y){std::uint32_t xi=0,yi=0;std::memcpy(&xi,&x,4);std::memcpy(&yi,&y,4);return (static_cast<std::uint64_t>(yi)<<32)|xi;}
+inline void Clone(int serverId,float tx=0,float ty=0){MenuBridge::Command c{};c.action=MenuBridge::Action::CloneAppearance;c.targetServerId=static_cast<std::uint64_t>(serverId);c.targetEntityAddress=PackPos(tx,ty);Submit(c,true);}
 inline void Spawn(const char* model,bool network,bool enter){MenuBridge::Command c{};c.action=MenuBridge::Action::SpawnVehicle;c.flags=(network?1u:0u)|(enter?2u:0u);MenuBridge::Copy(c.text,sizeof(c.text),model);Submit(c);}
-inline void TransferVehicles(int serverId,bool rain){MenuBridge::Command c{};c.action=MenuBridge::Action::TransferVehicles;c.targetServerId=static_cast<std::uint64_t>(serverId);c.flags=rain?1u:0u;Submit(c);}
+inline void TransferVehicles(int serverId,bool rain,float tx=0,float ty=0){MenuBridge::Command c{};c.action=MenuBridge::Action::TransferVehicles;c.targetServerId=static_cast<std::uint64_t>(serverId);c.flags=rain?1u:0u;c.targetEntityAddress=PackPos(tx,ty);Submit(c);}
 inline void DeleteClosestVehicle(){MenuBridge::Command c{};c.action=MenuBridge::Action::DeleteClosestVehicle;Submit(c);}
 // Deleta todos os veiculos no raio especificado (metros) via native DeleteVehicle.
 // flags>0 ativa modo em massa no NativeActions; flags==0 = comportamento de 1 carro.
@@ -89,9 +91,9 @@ inline void ToggleCamera(){
  if(cameraRequested||MenuBridge::Connection().CameraState()){cameraRequested=false;c.action=MenuBridge::Action::StopCamera;Submit(c);}
  else{if(g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){localStatus="Desative NoClip e sem colisao antes de iniciar a camera livre";return;}Core::Features::ExtraCamera::Stop();silentRpg=false;c.action=MenuBridge::Action::StartCamera;if(Submit(c)){cameraRequested=true;cameraRequestedAt=GetTickCount64();}}
 }
-inline void Observe(int serverId){
+inline void Observe(int serverId,float tx=0,float ty=0){
  if(g_Config.Player->NoClipEnabled||g_Config.Player->NoCollisionEnabled){localStatus="Desative NoClip e sem colisao antes de observar";return;}
- MenuBridge::Command c{};c.action=MenuBridge::Action::ObservePlayer;c.targetServerId=static_cast<std::uint64_t>(serverId);
+ MenuBridge::Command c{};c.action=MenuBridge::Action::ObservePlayer;c.targetServerId=static_cast<std::uint64_t>(serverId);c.targetEntityAddress=PackPos(tx,ty);
  Core::Features::ExtraCamera::Stop();silentRpg=false;if(Submit(c)){cameraRequested=true;cameraRequestedAt=GetTickCount64();}
 }
 inline void Tick(){

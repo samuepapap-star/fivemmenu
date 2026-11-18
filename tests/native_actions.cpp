@@ -84,7 +84,7 @@ int main(){
   selected.Invoke(c);assert(result==99);
   selected=SelectNative(1,[](std::uint64_t)->RageHandler{return nullptr;},[](std::uint64_t)->CfxHandler*{return nullptr;});assert(!selected);assert(MissingNative(0x1234).find("0000000000001234")!=std::string::npos);
  }
- {auto c=Cmd(Action::CloneAppearance);c.targetServerId=0;assert(!Valid(c));c.targetServerId=5137;assert(Valid(c));c.targetServerId=0x80000000ULL;assert(!Valid(c));}
+ {auto c=Cmd(Action::CloneAppearance);c.targetServerId=0;assert(Valid(c));c.targetServerId=1;assert(Valid(c));c.targetServerId=256;assert(!Valid(c));c.targetServerId=0x80000000ULL;assert(!Valid(c));}
  assert(Hash("GET_PLAYER_FROM_SERVER_ID")==0x344ea166u);
  assert(Float(1.f)==0x3f800000&&AsFloat(Float(-2.f))==-2.f);
  {auto c=Cmd(Action::Model);std::memset(c.text,'a',sizeof(c.text));assert(!Valid(c));c=Cmd(Action::Model,"a_c_chimp;os.execute");assert(!Valid(c));}
@@ -93,16 +93,16 @@ int main(){
   actions.Tick(FrameAt(1100),1100,0);assert(api.sets==0);api.loaded=true;actions.Tick(FrameAt(1200),1200,0);assert(actions.reply.success&&api.sets==1);
   auto restore=Cmd(Action::Restore);restore.id=2;actions.Submit(restore,1300);actions.Tick(FrameAt(1400),1400,0);assert(actions.reply.success&&api.clones==1&&api.entities.at(api.player)==Hash("mp_m_freemode_01"));}
  {Fake api;api.inVehicle=true;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);assert(!actions.reply.success&&!actions.Pending()&&api.sets==0);}
- {Fake api;api.attached=true;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);assert(actions.hasReply&&!actions.reply.success&&!actions.Pending()&&api.sets==0);}
- {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);api.attached=true;api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(actions.hasReply&&!actions.reply.success&&api.sets==0);}
+ {Fake api;api.attached=true;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=1;actions.Submit(c,1000);assert(actions.hasReply&&!actions.reply.success&&!actions.Pending()&&api.sets==0);}
+ {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=1;actions.Submit(c,1000);api.attached=true;api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(actions.hasReply&&!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);api.inVehicle=true;api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.sets==0);}
  {Fake api;api.loaded=true;api.denyChange=true;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);actions.Tick(FrameAt(1100),1100,1);assert(!actions.Pending()&&!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Model),1000);actions.Tick(FrameAt(17000),17000,0);assert(!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);actions.Submit(Cmd(Action::Restore),1000);assert(!actions.reply.success);}
- {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.sets==1&&api.clones==1&&api.entities.at(api.player)==Hash("s_m_y_cop_01"));}
- {Fake api;api.entities[2]=api.entities[1];Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);assert(actions.hasReply&&actions.reply.success&&!actions.Pending()&&api.sets==0&&api.clones==1&&api.modelRequests==0&&api.releases==0);c=Cmd(Action::Restore);c.id=2;actions.Submit(c,1100);assert(actions.reply.success&&api.clones==2&&api.sets==0&&api.modelRequests==0&&api.releases==0);}
- {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=5137;actions.Submit(c,1000);api.entities.erase(2);api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.sets==0);}
+ {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=1;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.sets==1&&api.clones==1&&api.entities.at(api.player)==Hash("s_m_y_cop_01"));}
+ {Fake api;api.entities[2]=api.entities[1];Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=1;actions.Submit(c,1000);assert(actions.hasReply&&actions.reply.success&&!actions.Pending()&&api.sets==0&&api.clones==1&&api.modelRequests==0&&api.releases==0);c=Cmd(Action::Restore);c.id=2;actions.Submit(c,1100);assert(actions.reply.success&&api.clones==2&&api.sets==0&&api.modelRequests==0&&api.releases==0);}
+ {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=1;actions.Submit(c,1000);api.entities.erase(2);api.loaded=true;actions.Tick(FrameAt(1100),1100,0);assert(!actions.reply.success&&api.sets==0);}
  {Fake api;Actions actions(api);auto c=Cmd(Action::CloneAppearance);c.targetServerId=9999;actions.Submit(c,1000);assert(actions.hasReply&&!actions.reply.success&&api.sets==0);}
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"adder");c.flags=2;actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&actions.reply.value==50&&api.enters==1);}
  {Fake api;api.loaded=true;Actions actions(api);auto c=Cmd(Action::SpawnVehicle,"sultan");actions.Submit(c,1000);actions.Tick(FrameAt(1100),1100,0);assert(actions.reply.success&&api.vehicleCalls==1&&api.vehicleNetwork==0&&api.vehicleMission==1&&api.entities.at(50)==Hash("sultan"));}
