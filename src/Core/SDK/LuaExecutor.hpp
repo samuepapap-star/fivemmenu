@@ -540,45 +540,70 @@ inline bool LuaExecutor::Init()
 
     // 1. Locate the Lua module
     ModInfo luaMod = FindLuaModule();
-    if ( !luaMod.base ) return false;
+    if ( !luaMod.base ) {
+        NotifyManager::Send( xorstr("LuaExec: modulo lua nao encontrado"), 6000 );
+        return false;
+    }
+    {
+        char dbg[128];
+        snprintf( dbg, sizeof(dbg), xorstr("LuaExec: mod base=0x%llX sz=0x%llX"),
+            (unsigned long long)luaMod.base, (unsigned long long)luaMod.size );
+        NotifyManager::Send( std::string(dbg), 5000 );
+    }
 
-    // 2. Resolve exports — prefer the simpler 4-arg variants (lua_pcall /
-    //    luaL_loadbuffer) since the shellcode places NULL/0 in the extra
-    //    slots anyway, making both variants ABI-compatible with our stub.
+    // 2. Resolve exports
     s_fnLoadBuffer = GetExport( luaMod, "luaL_loadbuffer" );
     if ( !s_fnLoadBuffer )
         s_fnLoadBuffer = GetExport( luaMod, "luaL_loadbufferx" );
-    if ( !s_fnLoadBuffer ) return false;
+    if ( !s_fnLoadBuffer ) {
+        NotifyManager::Send( xorstr("LuaExec: export luaL_loadbuffer nao encontrado"), 6000 );
+        return false;
+    }
 
     s_fnPcall = GetExport( luaMod, "lua_pcall" );
     if ( !s_fnPcall )
         s_fnPcall = GetExport( luaMod, "lua_pcallk" );
-    if ( !s_fnPcall ) return false;
+    if ( !s_fnPcall ) {
+        NotifyManager::Send( xorstr("LuaExec: export lua_pcall nao encontrado"), 6000 );
+        return false;
+    }
+    {
+        char dbg[128];
+        snprintf( dbg, sizeof(dbg), xorstr("LuaExec: exports ok lb=0x%llX pc=0x%llX"),
+            (unsigned long long)s_fnLoadBuffer, (unsigned long long)s_fnPcall );
+        NotifyManager::Send( std::string(dbg), 5000 );
+    }
 
     // 3. Scan process heap for valid lua_State candidates
     auto candidates = ScanLuaStates();
+    {
+        char dbg[64];
+        snprintf( dbg, sizeof(dbg), xorstr("LuaExec: %zu candidatos lua_State"), candidates.size() );
+        NotifyManager::Send( std::string(dbg), 5000 );
+    }
     if ( candidates.empty() ) return false;
 
-    // 4a. Prefer a state with FiveM native access — test PlayerPedId()
-    //     This only resolves in the citizen scripting context.
+    // 4a. Prefer a state with FiveM native access
     for ( uintptr_t st : candidates ) {
         if ( TestLuaState( st, "local _ = PlayerPedId()" ) ) {
             s_LuaState = st;
             s_Ready    = true;
+            NotifyManager::Send( xorstr("LuaExec: PRONTO (FiveM nativo OK)"), 4000 );
             return true;
         }
     }
 
-    // 4b. Fallback: any state that can execute basic Lua (natives may still
-    //     work via other mechanisms; at least we have a working executor).
+    // 4b. Fallback: any working Lua state
     for ( uintptr_t st : candidates ) {
         if ( TestLuaState( st, "local x = 1 + 1" ) ) {
             s_LuaState = st;
             s_Ready    = true;
+            NotifyManager::Send( xorstr("LuaExec: PRONTO (fallback sem nativo)"), 4000 );
             return true;
         }
     }
 
+    NotifyManager::Send( xorstr("LuaExec: candidatos achados mas nenhum executou"), 6000 );
     return false;
 }
 
