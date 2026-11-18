@@ -101,7 +101,12 @@ namespace Gui
 
 			const bool editingShortcut = MenuShortcut::Poll( g_Config.General->MenuKey, gameHasFocus );
 
-			if ( !editingShortcut && ( GetAsyncKeyState( g_Config.General->MenuKey ) & 1 ) ) {
+			// MenuKey == 0 significa "padrão": usa INSERT ou P
+			const bool keyTriggered = g_Config.General->MenuKey != 0
+			    ? ( GetAsyncKeyState( g_Config.General->MenuKey ) & 1 ) != 0
+			    : ( ( GetAsyncKeyState( VK_INSERT ) & 1 ) || ( GetAsyncKeyState( 'P' ) & 1 ) );
+
+			if ( !editingShortcut && keyTriggered ) {
 
 				if ( g_MenuInfo.IsOpen == false ) {
 					if ( gameHasFocus ) {
